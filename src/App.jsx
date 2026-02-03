@@ -2,12 +2,30 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import AdminPanel from './AdminPanel'
 
+// Inyectamos un estilo global para resetear el comportamiento del modo oscuro del navegador
+const globalStyles = `
+  body { 
+    background-color: #f0f2f5 !important; 
+    color: #2c3e50 !important; 
+    margin: 0;
+    font-family: sans-serif;
+  }
+  input, select, button { color: #2c3e50; }
+  /* Forzamos que los inputs tengan fondo blanco siempre */
+  input { background-color: white !important; color: black !important; }
+`;
+
 function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [config, setConfig] = useState(null)
 
   useEffect(() => {
+    // Aplicar estilos globales
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = globalStyles;
+    document.head.appendChild(styleSheet);
+
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session))
     fetchConfig()
@@ -104,7 +122,7 @@ function SeasonSelector({ current, onChange }) {
       <select 
         value={current || ''} 
         onChange={(e) => onChange(parseInt(e.target.value))} 
-        style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '0.85rem' }}
+        style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '0.85rem', background: 'white', color: '#2c3e50' }}
       >
         {seasons.map(s => <option key={s} value={s}>T{s}</option>)}
       </select>
@@ -156,7 +174,7 @@ function ProximoPartido({ profile, config }) {
     setLoading(false);
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '20px' }}>Cargando jornada...</div>
+  if (loading) return <div style={{ textAlign: 'center', padding: '20px', color: '#2c3e50' }}>Cargando jornada...</div>
   if (partidos.length === 0) return <div style={{ padding: '40px', textAlign: 'center', color: '#7f8c8d' }}>No tienes partidos asignados esta semana.</div>
 
   return (
@@ -206,9 +224,9 @@ function TarjetaResultado({ partido, onUpdated, bloqueado }) {
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <input type="number" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '4px', border: 'none' }} />
+            <input type="number" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '4px', border: 'none', background: 'white', color: 'black' }} />
             <span>-</span>
-            <input type="number" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '4px', border: 'none' }} />
+            <input type="number" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '4px', border: 'none', background: 'white', color: 'black' }} />
           </div>
         )}
         <div style={{ flex: 1, textAlign: 'left' }}>{partido.visitante_nick}</div>
@@ -246,13 +264,13 @@ function Clasificacion({ config }) {
   }, [viewSeason, viewDiv])
 
   return (
-    <div>
+    <div style={{ color: '#2c3e50' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <DivisionSelector season={viewSeason} current={viewDiv} onChange={setViewDiv} />
         <SeasonSelector current={viewSeason} onChange={setViewSeason} />
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.9rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.9rem', color: '#2c3e50' }}>
           <thead>
             <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
               <th style={{ padding: '12px', textAlign: 'left' }}>Jugador</th>
@@ -301,14 +319,14 @@ function CalendarioCompleto({ config }) {
   const jornadas = [...new Set(partidos.map(p => p.week))]
 
   return (
-    <div>
+    <div style={{ color: '#2c3e50' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <DivisionSelector season={viewSeason} current={viewDiv} onChange={setViewDiv} />
         <SeasonSelector current={viewSeason} onChange={setViewSeason} />
       </div>
       {jornadas.map(num => (
-        <div key={num} style={{ marginBottom: '20px', border: '1px solid #f1f1f1', borderRadius: '8px', overflow: 'hidden' }}>
-          <h4 style={{ background: '#f8f9fa', margin: 0, padding: '10px 15px', fontSize: '0.9rem', borderBottom: '1px solid #f1f1f1' }}>Jornada {num}</h4>
+        <div key={num} style={{ marginBottom: '20px', border: '1px solid #f1f1f1', borderRadius: '8px', overflow: 'hidden', background: 'white' }}>
+          <h4 style={{ background: '#f8f9fa', margin: 0, padding: '10px 15px', fontSize: '0.9rem', borderBottom: '1px solid #f1f1f1', color: '#2c3e50' }}>Jornada {num}</h4>
           <div style={{ padding: '8px' }}>
             {partidos.filter(p => p.week === num).map(p => (
               <div key={p.id} style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #fafafa', fontSize: '0.85rem' }}>
@@ -348,7 +366,6 @@ function CalendarioFechas({ config }) {
     }
   }, [config])
 
-  // Formato: dd/mm/yyyy hh:mm
   const format = (d) => new Date(d).toLocaleString('es-ES', { 
     timeZone: 'Europe/Madrid', 
     day: '2-digit', 
@@ -359,8 +376,8 @@ function CalendarioFechas({ config }) {
   });
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+    <div style={{ overflowX: 'auto', color: '#2c3e50' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#2c3e50' }}>
         <thead>
           <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #3498db' }}>
             <th style={{ padding: '12px' }}>Jornadas</th><th>Apertura</th><th>Cierre</th>
@@ -389,15 +406,15 @@ function Dashboard({ profile, config, onConfigChange }) {
   })
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
         <div>
             <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '2.2rem' }}>TOPFC</h1>
             <span style={{ color: '#95a5a6', fontSize: '0.8rem', fontWeight: 'bold' }}>TEMPORADA {config?.current_season}</span>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', color: '#2c3e50' }}>
           <div style={{ fontSize: '0.9rem', marginBottom: '4px' }}>Hola, <strong>{profile?.nick}</strong></div>
-          <button onClick={() => supabase.auth.signOut()} style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Salir</button>
+          <button onClick={() => supabase.auth.signOut()} style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd', background: 'white', color: '#2c3e50', cursor: 'pointer' }}>Salir</button>
         </div>
       </header>
 
@@ -409,7 +426,7 @@ function Dashboard({ profile, config, onConfigChange }) {
         {profile?.nick === 'horto' && <div style={tabStyle('admin')} onClick={() => setActiveTab('admin')}>⚙️ Admin</div>}
       </div>
 
-      <main style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+      <main style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', color: '#2c3e50' }}>
         {activeTab === 'partido' && <ProximoPartido profile={profile} config={config} />}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'partidos' && <CalendarioCompleto config={config} />}
@@ -438,12 +455,12 @@ function Login() {
   }
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '60px', fontFamily: 'sans-serif' }}>
+    <div style={{ textAlign: 'center', marginTop: '60px' }}>
       <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px' }}>TOPFC</h1>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '280px', margin: '0 auto', gap: '12px', padding: '25px', background: 'white', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}>
-        {isRegistering && <input type="text" placeholder="Tu Nick" value={nick} onChange={e => setNick(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd' }} />}
-        <input type="text" placeholder="Email o Nick" value={identifier} onChange={e => setIdentifier(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd' }} />
-        <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd' }} />
+        {isRegistering && <input type="text" placeholder="Tu Nick" value={nick} onChange={e => setNick(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', color: 'black' }} />}
+        <input type="text" placeholder="Email o Nick" value={identifier} onChange={e => setIdentifier(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', color: 'black' }} />
+        <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', color: 'black' }} />
         <button type="submit" disabled={loading} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
           {loading ? 'Cargando...' : isRegistering ? 'REGISTRARSE' : 'ENTRAR'}
         </button>

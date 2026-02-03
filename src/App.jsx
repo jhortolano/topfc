@@ -11,6 +11,7 @@ const globalStyles = `
     padding: 0;
     font-family: -apple-system, system-ui, sans-serif;
     overflow-x: hidden;
+    display: block; /* Asegura que no haya flexbox en el body */
   }
   input, select, button { color: #2c3e50; font-size: 16px; }
   input { background-color: white !important; color: black !important; }
@@ -100,28 +101,29 @@ function SeasonSelector({ current, onChange }) {
 }
 
 // --- TABS ---
-function ProximoPartido({ profile, config }) {
+function ProximoPartido({ profile, config, onUpdated }) {
   const [partidos, setPartidos] = useState([])
   const [tiempoAgotado, setTiempoAgotado] = useState(false)
 
-  useEffect(() => {
-    const cargar = async () => {
-      if (!config) return;
-      const { data: week } = await supabase.from('weeks_schedule').select('*').eq('season', config.current_season).eq('week', config.current_week).single();
-      if (week) {
-        const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"}));
-        setTiempoAgotado(ahora > new Date(week.end_at));
-        const { data } = await supabase.from('partidos_detallados').select('*').eq('season', config.current_season).eq('week', config.current_week).or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
-        setPartidos(data || []);
-      }
+  const cargar = async () => {
+    if (!config) return;
+    const { data: week } = await supabase.from('weeks_schedule').select('*').eq('season', config.current_season).eq('week', config.current_week).single();
+    if (week) {
+      const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"}));
+      setTiempoAgotado(ahora > new Date(week.end_at));
+      const { data } = await supabase.from('partidos_detallados').select('*').eq('season', config.current_season).eq('week', config.current_week).or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
+      setPartidos(data || []);
     }
+  }
+
+  useEffect(() => {
     if (profile && config) cargar();
   }, [profile, config])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       {tiempoAgotado && <div style={{ background: '#e74c3c', color: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PLAZO CERRADO</div>}
-      {partidos.map(p => <TarjetaResultado key={p.id} partido={p} bloqueado={tiempoAgotado} />)}
+      {partidos.map(p => <TarjetaResultado key={p.id} partido={p} bloqueado={tiempoAgotado} onUpdated={cargar} />)}
     </div>
   )
 }
@@ -136,18 +138,12 @@ function TarjetaResultado({ partido, onUpdated, bloqueado }) {
     setEnviando(true);
     const { error } = await supabase
       .from('matches')
-      .update({ 
-        home_score: parseInt(gL), 
-        away_score: parseInt(gV), 
-        is_played: true 
-      })
+      .update({ home_score: parseInt(gL), away_score: parseInt(gV), is_played: true })
       .eq('id', partido.id);
     
     if (!error) {
       alert("Resultado guardado");
       if (onUpdated) onUpdated();
-    } else {
-      alert("Error al guardar");
     }
     setEnviando(false);
   }
@@ -155,61 +151,22 @@ function TarjetaResultado({ partido, onUpdated, bloqueado }) {
   return (
     <div style={{ background: '#2c3e50', color: 'white', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-        
-        {/* Local */}
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>
-          {partido.local_nick}
-        </div>
-
-        {/* Inputs o Resultado Final */}
+        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>{partido.local_nick}</div>
         {partido.is_played ? (
           <div style={{ background: '#34495e', padding: '5px 12px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', minWidth: '70px' }}>
             {partido.home_score} - {partido.away_score}
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <input 
-              type="number" 
-              value={gL} 
-              onChange={e => setGL(e.target.value)} 
-              disabled={bloqueado}
-              style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} 
-            />
+            <input type="number" value={gL} onChange={e => setGL(e.target.value)} disabled={bloqueado} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
             <span style={{ fontWeight: 'bold' }}>-</span>
-            <input 
-              type="number" 
-              value={gV} 
-              onChange={e => setGV(e.target.value)} 
-              disabled={bloqueado}
-              style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} 
-            />
+            <input type="number" value={gV} onChange={e => setGV(e.target.value)} disabled={bloqueado} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
           </div>
         )}
-
-        {/* Visitante */}
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>
-          {partido.visitante_nick}
-        </div>
+        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>{partido.visitante_nick}</div>
       </div>
-
-      {/* Botón de acción */}
       {!partido.is_played && !bloqueado && (
-        <button 
-          onClick={guardar} 
-          disabled={enviando} 
-          style={{ 
-            background: '#2ecc71', 
-            color: 'white', 
-            border: 'none', 
-            padding: '10px', 
-            borderRadius: '6px', 
-            cursor: 'pointer', 
-            fontWeight: 'bold', 
-            width: '100%',
-            marginTop: '5px',
-            fontSize: '0.8rem'
-          }}
-        >
+        <button onClick={guardar} disabled={enviando} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '5px', fontSize: '0.8rem' }}>
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
       )}
@@ -287,7 +244,7 @@ function CalendarioCompleto({ config }) {
   )
 }
 
-// --- DASHBOARD (HEADER CORREGIDO) ---
+// --- DASHBOARD (CORREGIDO: Arriba y a la izquierda) ---
 function Dashboard({ profile, config, onConfigChange }) {
   const [activeTab, setActiveTab] = useState('partido')
   const tabs = [
@@ -298,18 +255,17 @@ function Dashboard({ profile, config, onConfigChange }) {
   if (profile?.nick === 'horto') tabs.push({ id: 'admin', label: 'ADMIN' });
 
   return (
-    <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', padding: '10px' }}>
+    <div style={{ width: '100%', maxWidth: '1000px', margin: '0', padding: '15px' }}>
       
-      {/* HEADER: Temporada arriba y Usuario a la derecha */}
       <header style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'flex-start', 
         marginBottom: '15px' 
       }}>
-        <div>
+        <div style={{ textAlign: 'left' }}>
           <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '1.8rem', lineHeight: '1' }}>TOPFC</h1>
-          <div style={{ color: '#95a5a6', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '2px' }}>
+          <div style={{ color: '#95a5a6', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '4px' }}>
             TEMPORADA {config?.current_season || '-'}
           </div>
         </div>
@@ -330,7 +286,7 @@ function Dashboard({ profile, config, onConfigChange }) {
         ))}
       </div>
 
-      <main style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+      <main style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', textAlign: 'left' }}>
         {activeTab === 'partido' && <ProximoPartido profile={profile} config={config} />}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
@@ -354,9 +310,9 @@ function Login() {
     setLoading(false);
   }
   return (
-    <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-      <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px' }}>TOPFC</h1>
-      <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', textAlign: 'left' }}>
+      <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px', textAlign: 'left' }}>TOPFC</h1>
+      <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px', margin: '0' }}>
         <input type="text" placeholder="Email o Nick" value={identifier} onChange={e => setIdentifier(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
         <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
         <button type="submit" disabled={loading} style={{ background: '#2ecc71', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', fontWeight: 'bold' }}>ENTRAR</button>

@@ -106,6 +106,7 @@ function ProximoPartido({ profile, config }) {
 
   useEffect(() => {
     const cargar = async () => {
+      if (!config) return;
       const { data: week } = await supabase.from('weeks_schedule').select('*').eq('season', config.current_season).eq('week', config.current_week).single();
       if (week) {
         const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"}));
@@ -120,23 +121,98 @@ function ProximoPartido({ profile, config }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       {tiempoAgotado && <div style={{ background: '#e74c3c', color: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PLAZO CERRADO</div>}
-      {partidos.map(p => <TarjetaResultado key={p.id} partido={p} onUpdated={() => {}} bloqueado={tiempoAgotado} />)}
+      {partidos.map(p => <TarjetaResultado key={p.id} partido={p} bloqueado={tiempoAgotado} />)}
     </div>
   )
 }
 
-function TarjetaResultado({ partido, bloqueado }) {
-  const [gL, setGL] = useState('');
-  const [gV, setGV] = useState('');
+function TarjetaResultado({ partido, onUpdated, bloqueado }) {
+  const [gL, setGL] = useState(partido.home_score ?? '');
+  const [gV, setGV] = useState(partido.away_score ?? '');
+  const [enviando, setEnviando] = useState(false);
+
+  const guardar = async () => {
+    if (gL === '' || gV === '') return alert("Introduce los goles");
+    setEnviando(true);
+    const { error } = await supabase
+      .from('matches')
+      .update({ 
+        home_score: parseInt(gL), 
+        away_score: parseInt(gV), 
+        is_played: true 
+      })
+      .eq('id', partido.id);
+    
+    if (!error) {
+      alert("Resultado guardado");
+      if (onUpdated) onUpdated();
+    } else {
+      alert("Error al guardar");
+    }
+    setEnviando(false);
+  }
+
   return (
     <div style={{ background: '#2c3e50', color: 'white', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-        <div style={{ flex: 1, fontSize: '0.85rem', textAlign: 'right' }}>{partido.local_nick}</div>
-        <div style={{ background: '#34495e', padding: '5px 10px', borderRadius: '8px', border: '1px solid #2ecc71', minWidth: '60px', fontWeight: 'bold' }}>
-          {partido.is_played ? `${partido.home_score} - ${partido.away_score}` : 'vs'}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+        
+        {/* Local */}
+        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>
+          {partido.local_nick}
         </div>
-        <div style={{ flex: 1, fontSize: '0.85rem', textAlign: 'left' }}>{partido.visitante_nick}</div>
+
+        {/* Inputs o Resultado Final */}
+        {partido.is_played ? (
+          <div style={{ background: '#34495e', padding: '5px 12px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', minWidth: '70px' }}>
+            {partido.home_score} - {partido.away_score}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <input 
+              type="number" 
+              value={gL} 
+              onChange={e => setGL(e.target.value)} 
+              disabled={bloqueado}
+              style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} 
+            />
+            <span style={{ fontWeight: 'bold' }}>-</span>
+            <input 
+              type="number" 
+              value={gV} 
+              onChange={e => setGV(e.target.value)} 
+              disabled={bloqueado}
+              style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} 
+            />
+          </div>
+        )}
+
+        {/* Visitante */}
+        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>
+          {partido.visitante_nick}
+        </div>
       </div>
+
+      {/* Botón de acción */}
+      {!partido.is_played && !bloqueado && (
+        <button 
+          onClick={guardar} 
+          disabled={enviando} 
+          style={{ 
+            background: '#2ecc71', 
+            color: 'white', 
+            border: 'none', 
+            padding: '10px', 
+            borderRadius: '6px', 
+            cursor: 'pointer', 
+            fontWeight: 'bold', 
+            width: '100%',
+            marginTop: '5px',
+            fontSize: '0.8rem'
+          }}
+        >
+          {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
+        </button>
+      )}
     </div>
   )
 }
@@ -155,7 +231,7 @@ function Clasificacion({ config }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <DivisionSelector season={vS} current={vD} onChange={setVD} />
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
@@ -191,7 +267,7 @@ function CalendarioCompleto({ config }) {
   const jornadas = [...new Set(partidos.map(p => p.week))];
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <DivisionSelector season={vS} current={vD} onChange={setVD} />
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
@@ -211,7 +287,7 @@ function CalendarioCompleto({ config }) {
   )
 }
 
-// --- DASHBOARD ---
+// --- DASHBOARD (HEADER CORREGIDO) ---
 function Dashboard({ profile, config, onConfigChange }) {
   const [activeTab, setActiveTab] = useState('partido')
   const tabs = [
@@ -223,17 +299,32 @@ function Dashboard({ profile, config, onConfigChange }) {
 
   return (
     <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', padding: '10px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '1.5rem' }}>TOPFC</h1>
-        <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-          <strong>{profile?.nick}</strong> <button onClick={() => supabase.auth.signOut()} style={{ padding: '2px 5px' }}>Salir</button>
+      
+      {/* HEADER: Temporada arriba y Usuario a la derecha */}
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        marginBottom: '15px' 
+      }}>
+        <div>
+          <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '1.8rem', lineHeight: '1' }}>TOPFC</h1>
+          <div style={{ color: '#95a5a6', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '2px' }}>
+            TEMPORADA {config?.current_season || '-'}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.85rem' }}><strong>{profile?.nick}</strong></div>
+          <button onClick={() => supabase.auth.signOut()} style={{ 
+            padding: '2px 8px', fontSize: '0.7rem', marginTop: '4px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ddd', background: 'white' 
+          }}>Salir</button>
         </div>
       </header>
 
-      <div style={{ display: 'flex', gap: '5px', borderBottom: '1px solid #eee', marginBottom: '15px', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: '5px', borderBottom: '1px solid #eee', marginBottom: '15px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {tabs.map(t => (
           <div key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            padding: '10px', cursor: 'pointer', borderBottom: activeTab === t.id ? '3px solid #2ecc71' : '3px solid transparent',
+            padding: '12px 10px', cursor: 'pointer', borderBottom: activeTab === t.id ? '3px solid #2ecc71' : '3px solid transparent',
             color: activeTab === t.id ? '#2ecc71' : '#95a5a6', fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap'
           }}>{t.label}</div>
         ))}
@@ -263,8 +354,8 @@ function Login() {
     setLoading(false);
   }
   return (
-    <div style={{ padding: '50px 20px', textAlign: 'center' }}>
-      <h1 style={{ color: '#2ecc71', fontSize: '3rem' }}>TOPFC</h1>
+    <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+      <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px' }}>TOPFC</h1>
       <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px', margin: '0 auto' }}>
         <input type="text" placeholder="Email o Nick" value={identifier} onChange={e => setIdentifier(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
         <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />

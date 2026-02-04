@@ -52,19 +52,46 @@ export default function CalendarioCompleto({ config }) {
   const [vS, setVS] = useState(config?.current_season);
   const [vD, setVD] = useState(1);
   const [partidos, setPartidos] = useState([]);
+  const [jornadasActivas, setJornadasActivas] = useState([]);
 
-  useEffect(() => {
+useEffect(() => {
     async function fetch() {
-      const { data } = await supabase
+      // 1. Cargar partidos
+      const { data: dataPartidos } = await supabase
         .from('partidos_detallados')
         .select('*')
         .eq('season', vS)
         .eq('division', vD)
         .order('week', { ascending: true });
-      if (data) setPartidos(data)
+      if (dataPartidos) setPartidos(dataPartidos);
+
+      // 2. Detectar jornadas activas (resaltado)
+      if (vS === config?.current_season) {
+        // Buscamos las fechas de la jornada actual según config
+        const { data: currentWeekData } = await supabase
+          .from('weeks_schedule')
+          .select('start_at, end_at')
+          .eq('season', vS)
+          .eq('week', config.current_week)
+          .single();
+
+        if (currentWeekData) {
+          // Buscamos todas las jornadas que tengan esas mismas fechas
+          const { data: activeWeeks } = await supabase
+            .from('weeks_schedule')
+            .select('week')
+            .eq('season', vS)
+            .eq('start_at', currentWeekData.start_at)
+            .eq('end_at', currentWeekData.end_at);
+          
+          setJornadasActivas(activeWeeks.map(w => w.week));
+        }
+      } else {
+        setJornadasActivas([]); // Si vemos otra temporada, no resaltamos nada
+      }
     }
     if (vS) fetch();
-  }, [vS, vD]);
+  }, [vS, vD, config]); // Añadimos config a las dependencias
 
   const jornadas = [...new Set(partidos.map(p => p.week))];
 
@@ -77,18 +104,40 @@ export default function CalendarioCompleto({ config }) {
       {jornadas.length === 0 ? (
         <p style={{textAlign:'center', color:'#95a5a6', fontSize:'0.8rem'}}>No hay partidos.</p>
       ) : (
-        jornadas.map(n => (
-          <div key={n} style={{ marginBottom: '10px', border: '1px solid #eee', borderRadius: '8px' }}>
-            <div style={{ background: '#f8f9fa', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold' }}>Jornada {n}</div>
-            {partidos.filter(p => p.week === n).map(p => (
-              <div key={p.id} style={{ display: 'flex', padding: '5px', fontSize: '0.75rem', borderBottom: '1px solid #fafafa' }}>
-                <div style={{ flex: 1, textAlign: 'right' }}>{p.local_nick}</div>
-                <div style={{ width: '50px', textAlign: 'center', fontWeight: 'bold' }}>{p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}</div>
-                <div style={{ flex: 1, textAlign: 'left' }}>{p.visitante_nick}</div>
+          jornadas.map(n => {
+            const estaActiva = jornadasActivas.includes(n);
+            
+            return (
+              <div key={n} style={{ 
+                marginBottom: '10px', 
+                border: estaActiva ? '2px solid #2ecc71' : '1px solid #eee', // Borde verde si está activa
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: estaActiva ? '0 0 10px rgba(46, 204, 113, 0.2)' : 'none'
+              }}>
+                <div style={{ 
+                  background: estaActiva ? '#2ecc71' : '#f8f9fa', // Fondo verde si está activa
+                  color: estaActiva ? 'white' : '#2c3e50',       // Texto blanco si está activa
+                  padding: '5px 10px', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>Jornada {n}</span>
+                  {estaActiva && <span>ACTUAL</span>}
+                </div>
+                
+                {partidos.filter(p => p.week === n).map(p => (
+                  <div key={p.id} style={{ display: 'flex', padding: '5px', fontSize: '0.75rem', borderBottom: '1px solid #fafafa' }}>
+                    <div style={{ flex: 1, textAlign: 'right' }}>{p.local_nick}</div>
+                    <div style={{ width: '50px', textAlign: 'center', fontWeight: 'bold' }}>{p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}</div>
+                    <div style={{ flex: 1, textAlign: 'left' }}>{p.visitante_nick}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))
+            )
+          })
       )}
     </div>
   )

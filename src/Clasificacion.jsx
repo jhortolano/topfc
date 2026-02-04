@@ -77,16 +77,28 @@ export default function Clasificacion({ config }) {
           <thead>
             <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
               <th style={{ padding: '8px', textAlign: 'left' }}>Nick</th>
-              <th>PTS</th><th>PJ</th><th>DG</th>
+              <th title="Puntos">PTS</th>
+              <th title="Partidos Jugados">PJ</th>
+              <th title="Ganados">G</th>
+              <th title="Perdidos">P</th>
+              <th title="Goles a Favor">GF</th>
+              <th title="Goles en Contra">GC</th>
+              <th title="Diferencia de Goles">DG</th>
             </tr>
           </thead>
           <tbody>
             {lista.map((j, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+              <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center' }}>
                 <td style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>{j.nick}</td>
-                <td style={{ fontWeight: 'bold' }}>{j.pts}</td>
-                <td>{j.pj}</td>
-                <td>{j.dg}</td>
+                <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.pts ?? 0}</td>
+                <td>{j.pj ?? 0}</td>
+                <td>{j.pg ?? 0}</td>
+                <td>{j.pp ?? 0}</td>
+                <td>{j.gf ?? 0}</td>
+                <td>{j.gc ?? 0}</td>
+                <td style={{ color: (j.dg || 0) > 0 ? '#2ecc71' : (j.dg || 0) < 0 ? '#e74c3c' : 'inherit' }}>
+                  {(j.dg || 0) > 0 ? `+${j.dg}` : (j.dg || 0)}
+                </td>
               </tr>
             ))}
           </tbody>

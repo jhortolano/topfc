@@ -5,6 +5,8 @@ import Login from './Login'
 import ProximoPartido from './Partido'
 import Clasificacion from './Clasificacion'
 import CalendarioCompleto from './Calendario'
+import UserInfo from './UserInfo'
+import Jugadores from './Jugadores'
 
 
 const globalStyles = `
@@ -47,22 +49,24 @@ function App() {
   useEffect(() => { if (session) getProfile() }, [session])
 
   async function getProfile() {
-    const { data } = await supabase.from('profiles').select('nick').eq('id', session.user.id).single()
+    if (!session?.user?.id) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
     if (data) setProfile(data)
   }
 
   if (!session) return <Login />
-  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} />
+  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} />
 }
 
 
 
-function Dashboard({ profile, config, onConfigChange }) {
+function Dashboard({ profile, config, onConfigChange, getProfile }) {
   const [activeTab, setActiveTab] = useState('partido')
   const tabs = [
     { id: 'partido', label: 'PARTIDO' },
     { id: 'clasificacion', label: 'CLASIFICACIÓN' },
     { id: 'calendario', label: 'CALENDARIO' },
+    { id: 'jugadores', label: 'JUGADORES' },
   ];
   if (profile?.nick === 'horto') tabs.push({ id: 'admin', label: 'ADMIN' });
 
@@ -75,9 +79,16 @@ function Dashboard({ profile, config, onConfigChange }) {
             TEMPORADA {config?.current_season || '-'}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.85rem' }}><strong>{profile?.nick}</strong></div>
-          <button onClick={() => supabase.auth.signOut()} style={{ padding: '2px 8px', fontSize: '0.7rem', marginTop: '4px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ddd', background: 'white' }}>Salir</button>
+        
+        {/* Nombre clickeable para ir al perfil */}
+        <div 
+          onClick={() => setActiveTab('perfil')} 
+          style={{ textAlign: 'right', cursor: 'pointer', padding: '5px' }}
+        >
+          <div style={{ fontSize: '0.85rem', color: activeTab === 'perfil' ? '#2ecc71' : '#2c3e50' }}>
+            <strong>{profile?.nick}</strong>
+          </div>
+          <div style={{ fontSize: '0.65rem', color: '#95a5a6' }}>Mi Perfil</div>
         </div>
       </header>
 
@@ -95,6 +106,8 @@ function Dashboard({ profile, config, onConfigChange }) {
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
+        {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
+        {activeTab === 'jugadores' && <Jugadores config={config} />}
       </main>
     </div>
   )

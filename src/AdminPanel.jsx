@@ -81,6 +81,8 @@ export default function AdminPanel({ config, onConfigChange }) {
   const [partidosEdit, setPartidosEdit] = useState([]);
   const [schedule, setSchedule] = useState([]);
 
+  const [searchTerm, setSearchTerm] = useState(""); // Nuevo estado para filtrar usuarios
+
   useEffect(() => {
     fetchSeasons();
     fetchUsers();
@@ -392,14 +394,40 @@ const fetchUsers = async () => {
 
       {/* SECCIÓN GESTIÓN DE USUARIOS */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Usuarios y Telegram</h4>
-        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr auto', gap: '10px', padding: '8px', background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.7rem' }}>
-            <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>ACC.</span>
+        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios</h4>
+        
+        {/* BUSCADOR */}
+        <div style={{ marginBottom: '15px' }}>
+          <input 
+            type="text" 
+            placeholder="🔍 Filtrar por Nick o Email..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.85rem' }}
+          />
+        </div>
+
+        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          {/* CABECERA (Añadido Teléfono) */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto', 
+            gap: '8px', padding: '8px', 
+            background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.65rem' 
+          }}>
+            <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>TELÉFONO</span><span>ACC.</span>
           </div>
-          {availableUsers.map(u => (
-            <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
-          ))}
+          
+          {/* LISTA FILTRADA */}
+          {availableUsers
+            .filter(u => 
+              (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) || 
+              (u.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+            )
+            .map(u => (
+              <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
+            ))
+          }
         </div>
       </div>
 
@@ -451,35 +479,63 @@ function UserRow({ user, onRefresh }) {
   const [editNick, setEditNick] = useState(user.nick || '');
   const [editEmail, setEditEmail] = useState(user.email || '');
   const [editTelegram, setEditTelegram] = useState(user.telegram_user || '');
+  const [editPhone, setEditPhone] = useState(user.phone || ''); // Nuevo
   const [saving, setSaving] = useState(false);
 
-  const hasChanges = editNick !== (user.nick || '') || editEmail !== (user.email || '') || editTelegram !== (user.telegram_user || '');
+  // Comprobar si hay cambios incluyendo el teléfono
+  const hasChanges = 
+    editNick !== (user.nick || '') || 
+    editEmail !== (user.email || '') || 
+    editTelegram !== (user.telegram_user || '') ||
+    editPhone !== (user.phone || '');
 
   const handleUpdate = async () => {
     setSaving(true);
     const { error } = await supabase.from('profiles').update({
-      nick: editNick, email: editEmail, telegram_user: editTelegram
+      nick: editNick, 
+      email: editEmail, 
+      telegram_user: editTelegram,
+      phone: editPhone // Guardar teléfono
     }).eq('id', user.id);
+    
     if (error) alert(error.message);
     else onRefresh();
     setSaving(false);
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`¿Borrar a ${user.nick}?`)) return;
+    if (!window.confirm(`¿Borrar permanentemente a ${user.nick}?`)) return;
     const { error } = await supabase.from('profiles').delete().eq('id', user.id);
     if (error) alert(error.message);
     else onRefresh();
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr auto', gap: '10px', padding: '8px', borderBottom: '1px solid #eee', alignItems: 'center' }}>
-      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editNick} onChange={e => setEditNick(e.target.value)} />
-      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto', 
+      gap: '8px', padding: '8px', 
+      borderBottom: '1px solid #eee', alignItems: 'center' 
+    }}>
+      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editNick} onChange={e => setEditNick(e.target.value)} />
+      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
+      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+34..." />
+      
       <div style={{display:'flex', gap:'4px'}}>
-        <button onClick={handleUpdate} disabled={!hasChanges || saving} style={{background: hasChanges ? '#2ecc71' : '#ccc', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}>{saving ? '...' : '✓'}</button>
-        <button onClick={handleDelete} style={{background: '#e74c3c', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}>×</button>
+        <button 
+          onClick={handleUpdate} 
+          disabled={!hasChanges || saving} 
+          style={{background: hasChanges ? '#2ecc71' : '#ccc', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor: hasChanges ? 'pointer' : 'default'}}
+        >
+          {saving ? '...' : '✓'}
+        </button>
+        <button 
+          onClick={handleDelete} 
+          style={{background: '#e74c3c', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}
+        >
+          ×
+        </button>
       </div>
     </div>
   );

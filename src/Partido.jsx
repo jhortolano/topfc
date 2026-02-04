@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react' // Importante añadir useEffect aquí
 import { supabase } from './supabaseClient'
 
+const Avatar = ({ url }) => (
+  <div style={{ 
+    width: '35px', height: '35px', borderRadius: '50%', overflow: 'hidden', 
+    background: '#34495e', border: '2px solid #2ecc71', flexShrink: 0 
+  }}>
+    {url ? (
+      <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.8rem', color: '#7f8c8d' }}>👤</div>
+    )}
+  </div>
+);
 
 function TarjetaResultado({ partido, onUpdated }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
@@ -28,23 +40,43 @@ function TarjetaResultado({ partido, onUpdated }) {
         JORNADA {partido.week}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px', marginTop: '10px' }}>
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>{partido.local_nick}</div>
-        {partido.is_played ? (
-          <div style={{ background: '#34495e', padding: '5px 12px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', minWidth: '70px' }}>
-            {partido.home_score} - {partido.away_score}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '10px', marginTop: '15px' }}>
+        
+        {/* LOCAL: Nick y Avatar */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <Avatar url={partido.local_avatar} />
+          <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {partido.local_nick}
           </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <input type="number" min="0" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
-            <span style={{ fontWeight: 'bold' }}>-</span>
-            <input type="number" min="0" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
+        </div>
+
+        {/* MARCADOR / INPUTS */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {partido.is_played ? (
+            <div style={{ background: '#34495e', padding: '8px 15px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', fontSize: '1.2rem', minWidth: '60px' }}>
+              {partido.home_score} - {partido.away_score}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <input type="number" min="0" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '6px', border: 'none', fontSize: '18px', fontWeight: 'bold' }} />
+              <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>-</span>
+              <input type="number" min="0" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '45px', textAlign: 'center', padding: '8px', borderRadius: '6px', border: 'none', fontSize: '18px', fontWeight: 'bold' }} />
+            </div>
+          )}
+        </div>
+
+        {/* VISITANTE: Avatar y Nick */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <Avatar url={partido.visitante_avatar} />
+          <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {partido.visitante_nick}
           </div>
-        )}
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>{partido.visitante_nick}</div>
+        </div>
+
       </div>
+
       {!partido.is_played && (
-        <button onClick={guardar} disabled={enviando} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '5px', fontSize: '0.8rem' }}>
+        <button onClick={guardar} disabled={enviando} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', fontSize: '0.85rem' }}>
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
       )}

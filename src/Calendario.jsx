@@ -162,13 +162,45 @@ useEffect(() => {
                   )}
                 </div>
                 
-                {partidos.filter(p => p.week === n).map(p => (
-                  <div key={p.id} style={{ display: 'flex', padding: '5px', fontSize: '0.75rem', borderBottom: '1px solid #fafafa' }}>
-                    <div style={{ flex: 1, textAlign: 'right' }}>{p.local_nick}</div>
-                    <div style={{ width: '50px', textAlign: 'center', fontWeight: 'bold' }}>{p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}</div>
-                    <div style={{ flex: 1, textAlign: 'left' }}>{p.visitante_nick}</div>
-                  </div>
-                ))}
+                {partidos.filter(p => p.week === n).map(p => {
+                  // Mini-componente para el avatar para no repetir código
+                  const Avatar = ({ url }) => (
+                    <div style={{ 
+                      width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', 
+                      background: '#eee', border: '1px solid #ddd', flexShrink: 0 
+                    }}>
+                      {url ? (
+                        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.6rem', color: '#bdc3c7' }}>👤</div>
+                      )}
+                    </div>
+                  );
+
+                  return (
+                    <div key={p.id} style={{ 
+                      display: 'flex', alignItems: 'center', padding: '8px 10px', 
+                      fontSize: '0.75rem', borderBottom: '1px solid #fafafa', gap: '10px' 
+                    }}>
+                      {/* LOCAL: Imagen izquierda + Nick derecha */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick}</span>
+                        <Avatar url={p.local_avatar} />
+                      </div>
+
+                      {/* MARCADOR */}
+                      <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
+                        {p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}
+                      </div>
+
+                      {/* VISITANTE: Imagen derecha + Nick izquierda */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
+                        <Avatar url={p.visitante_avatar} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick}</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )
           })

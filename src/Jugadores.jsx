@@ -53,7 +53,7 @@ export default function Jugadores({ config }) {
         // Traemos los perfiles de esos IDs
         const { data: profiles } = await supabase
         .from('profiles')
-        .select('nick, telegram_user, phone') // Añadido phone
+        .select('nick, telegram_user, phone, avatar_url')
         .in('id', ids)
         .order('nick', { ascending: true })
 
@@ -107,25 +107,40 @@ export default function Jugadores({ config }) {
           {usuariosFiltrados.map((u, i) => (
             <div key={i} style={{ 
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '10px 15px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #eee'
+              padding: '8px 12px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #eee'
             }}>
-              <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>{u.nick}</span>
-              
+              {/* LADO IZQUIERDO: Avatar + Nick */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', 
+                  background: '#eee', border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  {u.avatar_url ? (
+                    <img src={u.avatar_url} alt={u.nick} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: '1.2rem', color: '#bdc3c7' }}>👤</span>
+                  )}
+                </div>
+                <span style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem' }}>{u.nick}</span>
+              </div>
+
+              {/* LADO DERECHO: Botón Contacto */}
               {(u.telegram_user || u.phone) ? (
                 <button 
-                  onClick={() => abrirTelegram(u)} // Pasamos el usuario entero
+                  onClick={() => abrirTelegram(u)}
                   title={u.telegram_user ? `Telegram: ${u.telegram_user}` : `Teléfono: ${u.phone}`}
                   style={{ 
                     background: '#0088cc', color: 'white', border: 'none', 
-                    borderRadius: '50%', width: '32px', height: '32px', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    cursor: 'pointer', fontSize: '1.1rem' 
+                    borderRadius: '12px', padding: '0 12px', height: '32px', 
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold'
                   }}
                 >
-                  <span style={{ transform: 'rotate(-20deg)', display: 'block', marginTop: '-2px' }}>✈</span>
+                  <span>✈</span> CONTACTAR
                 </button>
               ) : (
-                <span style={{ fontSize: '0.7rem', color: '#bdc3c7', fontStyle: 'italic' }}>Sin contacto</span>
+                <span style={{ fontSize: '0.65rem', color: '#bdc3c7', fontStyle: 'italic' }}>Sin contacto</span>
               )}
             </div>
           ))}

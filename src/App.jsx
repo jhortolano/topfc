@@ -81,14 +81,53 @@ function Dashboard({ profile, config, onConfigChange, getProfile }) {
         </div>
         
         {/* Nombre clickeable para ir al perfil */}
+        {/* Nombre e Imagen clickeable para ir al perfil */}
         <div 
           onClick={() => setActiveTab('perfil')} 
-          style={{ textAlign: 'right', cursor: 'pointer', padding: '5px' }}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            cursor: 'pointer', 
+            padding: '5px',
+            borderRadius: '8px',
+            transition: 'background 0.2s'
+          }}
         >
-          <div style={{ fontSize: '0.85rem', color: activeTab === 'perfil' ? '#2ecc71' : '#2c3e50' }}>
-            <strong>{profile?.nick}</strong>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ 
+              fontSize: '0.85rem', 
+              color: activeTab === 'perfil' ? '#2ecc71' : '#2c3e50',
+              lineHeight: '1.2'
+            }}>
+              <strong>{profile?.nick}</strong>
+            </div>
+            <div style={{ fontSize: '0.65rem', color: '#95a5a6' }}>Mi Perfil</div>
           </div>
-          <div style={{ fontSize: '0.65rem', color: '#95a5a6' }}>Mi Perfil</div>
+
+          {/* Miniatura del Avatar */}
+          <div style={{ 
+            width: '38px', 
+            height: '38px', 
+            borderRadius: '50%', 
+            overflow: 'hidden', 
+            background: '#eee', 
+            border: activeTab === 'perfil' ? '2px solid #2ecc71' : '2px solid #fff',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="Avatar" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            ) : (
+              <span style={{ fontSize: '1.2rem' }}>👤</span>
+            )}
+          </div>
         </div>
       </header>
 

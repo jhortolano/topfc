@@ -76,7 +76,7 @@ export default function Clasificacion({ config }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
           <thead>
             <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
-              <th style={{ padding: '8px', textAlign: 'left' }}>Nick</th>
+              <th style={{ padding: '8px', textAlign: 'left' }}>Jugador</th>
               <th title="Puntos">PTS</th>
               <th title="Partidos Jugados">PJ</th>
               <th title="Ganados">G</th>
@@ -89,7 +89,35 @@ export default function Clasificacion({ config }) {
           <tbody>
             {lista.map((j, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center' }}>
-                <td style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>{j.nick}</td>
+                <td style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Contenedor de la imagen */}
+                    <div style={{ 
+                      width: '30px', 
+                      height: '30px', 
+                      borderRadius: '50%', 
+                      overflow: 'hidden', 
+                      background: '#eee', 
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid #ddd'
+                    }}>
+                      {j.avatar_url ? (
+                        <img 
+                          src={j.avatar_url} 
+                          alt={j.nick} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: '#bdc3c7' }}>👤</span>
+                      )}
+                    </div>
+                    {/* Nombre del jugador */}
+                    <span>{j.nick}</span>
+                  </div>
+                </td>
                 <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.pts ?? 0}</td>
                 <td>{j.pj ?? 0}</td>
                 <td>{j.pg ?? 0}</td>

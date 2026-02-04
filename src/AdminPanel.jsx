@@ -107,9 +107,12 @@ export default function AdminPanel({ config, onConfigChange }) {
     }
   };
 
-  const fetchUsers = async () => {
-    const { data, error } = await supabase.from('profiles').select('id, nick');
-    if (error) console.error("Error cargando usuarios:", error);
+const fetchUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*') // Traemos todo: email, telegram_user, etc.
+      .order('nick', { ascending: true });
+    if (error) console.error("Error:", error);
     if (data) setAvailableUsers(data);
   };
 
@@ -387,6 +390,20 @@ export default function AdminPanel({ config, onConfigChange }) {
         </div>
       </div>
 
+      {/* SECCIÓN GESTIÓN DE USUARIOS */}
+      <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Usuarios y Telegram</h4>
+        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr auto', gap: '10px', padding: '8px', background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.7rem' }}>
+            <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>ACC.</span>
+          </div>
+          {availableUsers.map(u => (
+            <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
+          ))}
+        </div>
+      </div>
+
+
       {/* 4. CALENDARIO DE FECHAS */}
       <div style={{ background: '#eef2f7', padding: '15px', borderRadius: '8px', border: '1px solid #d1d9e6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -428,4 +445,42 @@ function generarCalendario(jugadores) {
   }
   const jornadasVuelta = jornadasIda.map(p => ({ home_team: p.away_team, away_team: p.home_team, week: p.week + (n - 1) }));
   return [...jornadasIda, ...jornadasVuelta];
+}
+
+function UserRow({ user, onRefresh }) {
+  const [editNick, setEditNick] = useState(user.nick || '');
+  const [editEmail, setEditEmail] = useState(user.email || '');
+  const [editTelegram, setEditTelegram] = useState(user.telegram_user || '');
+  const [saving, setSaving] = useState(false);
+
+  const hasChanges = editNick !== (user.nick || '') || editEmail !== (user.email || '') || editTelegram !== (user.telegram_user || '');
+
+  const handleUpdate = async () => {
+    setSaving(true);
+    const { error } = await supabase.from('profiles').update({
+      nick: editNick, email: editEmail, telegram_user: editTelegram
+    }).eq('id', user.id);
+    if (error) alert(error.message);
+    else onRefresh();
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`¿Borrar a ${user.nick}?`)) return;
+    const { error } = await supabase.from('profiles').delete().eq('id', user.id);
+    if (error) alert(error.message);
+    else onRefresh();
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr auto', gap: '10px', padding: '8px', borderBottom: '1px solid #eee', alignItems: 'center' }}>
+      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editNick} onChange={e => setEditNick(e.target.value)} />
+      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+      <input style={{fontSize:'0.75rem', padding:'4px'}} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
+      <div style={{display:'flex', gap:'4px'}}>
+        <button onClick={handleUpdate} disabled={!hasChanges || saving} style={{background: hasChanges ? '#2ecc71' : '#ccc', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}>{saving ? '...' : '✓'}</button>
+        <button onClick={handleDelete} style={{background: '#e74c3c', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}>×</button>
+      </div>
+    </div>
+  );
 }

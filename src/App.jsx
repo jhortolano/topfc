@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import AdminPanel from './AdminPanel'
 import Login from './Login'
+import ProximoPartido from './Partido'
+import Clasificacion from './Clasificacion'
+import CalendarioCompleto from './Calendario'
+
 
 const globalStyles = `
   * { box-sizing: border-box; }
@@ -51,237 +55,13 @@ function App() {
   return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} />
 }
 
-// --- SELECTORES ---
-function DivisionSelector({ current, onChange, season }) {
-  const [divisions, setDivisions] = useState([])
-  useEffect(() => {
-    async function load() {
-      if (!season) return;
-      const { data } = await supabase.from('matches').select('division').eq('season', season)
-      if (data) {
-        const unique = [...new Set(data.map(d => d.division))].sort((a, b) => a - b)
-        setDivisions(unique)
-        if (unique.length > 0 && !unique.includes(current)) onChange(unique[0])
-      }
-    }
-    load()
-  }, [season])
-  if (divisions.length <= 1) return null;
-  return (
-    <div style={{ display: 'flex', gap: '5px', marginBottom: '10px', flexWrap: 'wrap' }}>
-      {divisions.map(d => (
-        <button key={d} onClick={() => onChange(d)} style={{
-          padding: '5px 10px', borderRadius: '15px', border: 'none',
-          background: current === d ? '#2ecc71' : '#ecf0f1',
-          color: current === d ? 'white' : '#7f8c8d', fontSize: '0.7rem', fontWeight: 'bold'
-        }}> DIV {d} </button>
-      ))}
-    </div>
-  )
-}
 
-function SeasonSelector({ current, onChange }) {
-  const [seasons, setSeasons] = useState([])
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('matches').select('season')
-      if (data) setSeasons([...new Set(data.map(d => d.season))].sort((a, b) => b - a))
-    }
-    load()
-  }, [])
-  return (
-    <select value={current || ''} onChange={(e) => onChange(parseInt(e.target.value))} 
-      style={{ padding: '4px', borderRadius: '4px', fontSize: '0.8rem', background: 'white' }}>
-      {seasons.map(s => <option key={s} value={s}>T{s}</option>)}
-    </select>
-  )
-}
-
-// --- TABS (FILTRADO POR JORNADA ACTIVA EN CONFIG) ---
-function ProximoPartido({ profile, config, onUpdated }) {
-  const [partidos, setPartidos] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  const cargar = async () => {
-    if (!config || !profile) return;
-    setLoading(true)
-    
-    const { data: currentWeekData } = await supabase
-      .from('weeks_schedule')
-      .select('start_at, end_at')
-      .eq('season', config.current_season)
-      .eq('week', config.current_week)
-      .single();
-
-    if (currentWeekData) {
-      const { data: activeWeeks } = await supabase
-        .from('weeks_schedule')
-        .select('week')
-        .eq('season', config.current_season)
-        .eq('start_at', currentWeekData.start_at)
-        .eq('end_at', currentWeekData.end_at);
-
-      const weekNumbers = activeWeeks.map(w => w.week);
-
-      const { data } = await supabase
-        .from('partidos_detallados')
-        .select('*')
-        .eq('season', config.current_season)
-        .in('week', weekNumbers)
-        .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`)
-        .order('week', { ascending: true });
-      
-      setPartidos(data || []);
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    cargar();
-  }, [profile, config])
-
-  if (loading) return <div style={{fontSize: '0.8rem', color: '#95a5a6'}}>Cargando partidos...</div>
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-      {partidos.length === 0 ? (
-        <div style={{ color: '#95a5a6', fontSize: '0.8rem', textAlign: 'center', padding: '20px' }}>
-          No hay partidos programados para la Jornada {config.current_week}.
-        </div>
-      ) : (
-        partidos.map(p => (
-          <TarjetaResultado key={p.id} partido={p} onUpdated={cargar} />
-        ))
-      )}
-    </div>
-  )
-}
-
-function TarjetaResultado({ partido, onUpdated }) {
-  const [gL, setGL] = useState(partido.home_score ?? '');
-  const [gV, setGV] = useState(partido.away_score ?? '');
-  const [enviando, setEnviando] = useState(false);
-
-  const guardar = async () => {
-    if (gL === '' || gV === '') return alert("Introduce los goles");
-    setEnviando(true);
-    const { error } = await supabase
-      .from('matches')
-      .update({ home_score: parseInt(gL), away_score: parseInt(gV), is_played: true })
-      .eq('id', partido.id);
-    
-    if (!error) {
-      alert("Resultado guardado");
-      if (onUpdated) onUpdated();
-    }
-    setEnviando(false);
-  }
-
-  return (
-    <div style={{ background: '#2c3e50', color: 'white', padding: '15px', borderRadius: '12px', textAlign: 'center', position: 'relative' }}>
-      <div style={{ position: 'absolute', top: '5px', left: '10px', fontSize: '0.6rem', color: '#2ecc71', fontWeight: 'bold' }}>
-        JORNADA {partido.week}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px', marginTop: '10px' }}>
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>{partido.local_nick}</div>
-        {partido.is_played ? (
-          <div style={{ background: '#34495e', padding: '5px 12px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', minWidth: '70px' }}>
-            {partido.home_score} - {partido.away_score}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <input type="number" min="0" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
-            <span style={{ fontWeight: 'bold' }}>-</span>
-            <input type="number" min="0" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
-          </div>
-        )}
-        <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>{partido.visitante_nick}</div>
-      </div>
-      {!partido.is_played && (
-        <button onClick={guardar} disabled={enviando} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '5px', fontSize: '0.8rem' }}>
-          {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
-        </button>
-      )}
-    </div>
-  )
-}
-
-function Clasificacion({ config }) {
-  const [vS, setVS] = useState(config?.current_season);
-  const [vD, setVD] = useState(1);
-  const [lista, setLista] = useState([]);
-  useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false });
-      if (data) setLista(data)
-    }
-    if (vS) fetch();
-  }, [vS, vD]);
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <DivisionSelector season={vS} current={vD} onChange={setVD} />
-        <SeasonSelector current={vS} onChange={setVS} />
-      </div>
-      <div className="table-container">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-          <thead><tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
-            <th style={{ padding: '8px', textAlign: 'left' }}>Nick</th><th>PTS</th><th>PJ</th><th>DG</th>
-          </tr></thead>
-          <tbody>{lista.map((j, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>{j.nick}</td>
-              <td style={{ fontWeight: 'bold' }}>{j.pts}</td><td>{j.pj}</td><td>{j.dg}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function CalendarioCompleto({ config }) {
-  const [vS, setVS] = useState(config?.current_season);
-  const [vD, setVD] = useState(1);
-  const [partidos, setPartidos] = useState([]);
-  useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase.from('partidos_detallados').select('*').eq('season', vS).eq('division', vD).order('week', { ascending: true });
-      if (data) setPartidos(data)
-    }
-    if (vS) fetch();
-  }, [vS, vD]);
-
-  const jornadas = [...new Set(partidos.map(p => p.week))];
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <DivisionSelector season={vS} current={vD} onChange={setVD} />
-        <SeasonSelector current={vS} onChange={setVS} />
-      </div>
-      {jornadas.map(n => (
-        <div key={n} style={{ marginBottom: '10px', border: '1px solid #eee', borderRadius: '8px' }}>
-          <div style={{ background: '#f8f9fa', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold' }}>Jornada {n}</div>
-          {partidos.filter(p => p.week === n).map(p => (
-            <div key={p.id} style={{ display: 'flex', padding: '5px', fontSize: '0.75rem', borderBottom: '1px solid #fafafa' }}>
-              <div style={{ flex: 1, textAlign: 'right' }}>{p.local_nick}</div>
-              <div style={{ width: '50px', textAlign: 'center', fontWeight: 'bold' }}>{p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}</div>
-              <div style={{ flex: 1, textAlign: 'left' }}>{p.visitante_nick}</div>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function Dashboard({ profile, config, onConfigChange }) {
   const [activeTab, setActiveTab] = useState('partido')
   const tabs = [
     { id: 'partido', label: 'PARTIDO' },
-    { id: 'clasificacion', label: 'TABLA' },
+    { id: 'clasificacion', label: 'CLASIFICACIÓN' },
     { id: 'calendario', label: 'CALENDARIO' },
   ];
   if (profile?.nick === 'horto') tabs.push({ id: 'admin', label: 'ADMIN' });
@@ -311,7 +91,7 @@ function Dashboard({ profile, config, onConfigChange }) {
       </div>
 
       <main style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', textAlign: 'left' }}>
-        {activeTab === 'partido' && <ProximoPartido profile={profile} config={config} onUpdated={onConfigChange} />}
+        {activeTab === 'partido' && (<ProximoPartido profile={profile} config={config} onUpdated={onConfigChange} />)}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}

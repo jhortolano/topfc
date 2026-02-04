@@ -1,6 +1,71 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
+// --- SUB-COMPONENTE PARA FILA DE PARTIDO ---
+function PartidoEditable({ partido, onUpdate }) {
+  const [gL, setGL] = useState(partido.home_score ?? '');
+  const [gV, setGV] = useState(partido.away_score ?? '');
+
+  // Sincronizar si el partido cambia desde fuera (ej: cambiar de jornada)
+  useEffect(() => {
+    setGL(partido.home_score ?? '');
+    setGV(partido.away_score ?? '');
+  }, [partido]);
+
+  const modificado = gL != (partido.home_score ?? '') || gV != (partido.away_score ?? '');
+
+  return (
+    <div style={{ 
+      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', 
+      background: modificado ? '#ebf8ff' : '#f8f9fa', 
+      borderRadius: '10px', marginBottom: '8px', border: modificado ? '1px solid #4299e1' : '1px solid #edf2f7',
+      transition: 'all 0.2s'
+    }}>
+      <span style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.local_nick}</span>
+      
+      <div style={{ display: 'flex', gap: '5px' }}>
+        <input 
+          type="number" 
+          value={gL} 
+          onChange={e => setGL(e.target.value)} 
+          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }} 
+        />
+        <span style={{ fontWeight: 'bold', color: '#a0aec0' }}>-</span>
+        <input 
+          type="number" 
+          value={gV} 
+          onChange={e => setGV(e.target.value)} 
+          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }} 
+        />
+      </div>
+
+      <span style={{ flex: 1, fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.visitante_nick}</span>
+
+      <div style={{ display: 'flex', gap: '5px' }}>
+        <button 
+          onClick={() => onUpdate(partido.id, gL, gV, true)}
+          disabled={!modificado}
+          title="Guardar"
+          style={{ 
+            background: modificado ? '#2ecc71' : '#cbd5e0', color: 'white', border: 'none', 
+            padding: '5px 10px', borderRadius: '4px', cursor: modificado ? 'pointer' : 'default' 
+          }}
+        >✓</button>
+        <button 
+          onClick={() => {
+            if(window.confirm("¿Resetear marcador?")) {
+              setGL(''); setGV('');
+              onUpdate(partido.id, '', '', false);
+            }
+          }}
+          title="Resetear"
+          style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+        >↺</button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel({ config, onConfigChange }) {
   const [loading, setLoading] = useState(false);
   const [availableSeasons, setAvailableSeasons] = useState([]);
@@ -43,7 +108,8 @@ export default function AdminPanel({ config, onConfigChange }) {
   };
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('profiles').select('id, nick');
+    const { data, error } = await supabase.from('profiles').select('id, nick');
+    if (error) console.error("Error cargando usuarios:", error);
     if (data) setAvailableUsers(data);
   };
 
@@ -66,35 +132,34 @@ export default function AdminPanel({ config, onConfigChange }) {
     setPartidosEdit(data || []);
   };
 
-  // --- LÓGICA DE BORRADO ---
-  const eliminarTemporada = async () => {
-    if (!seasonToDelete) return;
-    const conf = window.confirm(`¿ESTÁS SEGURO? Se borrarán todos los partidos y fechas de la Temporada ${seasonToDelete}. Esta acción no se puede deshacer.`);
-    if (!conf) return;
-
-    setLoading(true);
-    const s = parseInt(seasonToDelete);
-    await supabase.from('matches').delete().eq('season', s);
-    await supabase.from('weeks_schedule').delete().eq('season', s);
+  const handleUpdateMatch = async (id, hScore, aScore, played) => {
+    const { error } = await supabase.from('matches').update({
+      home_score: hScore === '' ? null : parseInt(hScore),
+      away_score: aScore === '' ? null : parseInt(aScore),
+      is_played: played
+    }).eq('id', id);
     
-    alert(`Temporada ${s} eliminada.`);
-    await fetchSeasons();
-    onConfigChange();
-    setLoading(false);
+    if (!error) fetchPartidosParaEditar();
   };
 
-  // --- LÓGICA DE FECHAS ---
+  // --- LÓGICA DE FECHAS EN CASCADA ---
   const handleDateChange = async (index, field, newValue) => {
     let newSchedule = [...schedule];
     newSchedule[index][field] = newValue;
-
     for (let i = index; i < newSchedule.length; i++) {
-      if (i < newSchedule.length - 1 && !newSchedule[i+1].is_linked) {
-        newSchedule[i+1].start_at = newSchedule[i].end_at;
-      }
-      if (i > 0 && newSchedule[i].is_linked) {
-        newSchedule[i].start_at = newSchedule[i-1].start_at;
-        newSchedule[i].end_at = newSchedule[i-1].end_at;
+      const current = newSchedule[i];
+      const next = newSchedule[i + 1];
+      if (next) {
+        if (next.is_linked) {
+          next.start_at = current.start_at;
+          next.end_at = current.end_at;
+        } else {
+          const oldStartNext = new Date(next.start_at).getTime();
+          const oldEndNext = new Date(next.end_at).getTime();
+          const durationNext = oldEndNext - oldStartNext;
+          next.start_at = current.end_at;
+          next.end_at = new Date(new Date(next.start_at).getTime() + durationNext).toISOString();
+        }
       }
     }
     setSchedule(newSchedule);
@@ -105,13 +170,25 @@ export default function AdminPanel({ config, onConfigChange }) {
     const newSchedule = [...schedule];
     newSchedule[index].is_linked = !newSchedule[index].is_linked;
     if (newSchedule[index].is_linked) {
-      newSchedule[index].start_at = newSchedule[index-1].start_at;
-      newSchedule[index].end_at = newSchedule[index-1].end_at;
+      newSchedule[index].start_at = newSchedule[index - 1].start_at;
+      newSchedule[index].end_at = newSchedule[index - 1].end_at;
     } else {
-      newSchedule[index].start_at = newSchedule[index-1].end_at;
-      let nextWeek = new Date(newSchedule[index].start_at);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      newSchedule[index].end_at = nextWeek.toISOString();
+      newSchedule[index].start_at = newSchedule[index - 1].end_at;
+      let defaultEnd = new Date(newSchedule[index].start_at);
+      defaultEnd.setDate(defaultEnd.getDate() + 7);
+      newSchedule[index].end_at = defaultEnd.toISOString();
+    }
+    for (let i = index; i < newSchedule.length - 1; i++) {
+      const current = newSchedule[i];
+      const next = newSchedule[i+1];
+      if (next.is_linked) {
+        next.start_at = current.start_at;
+        next.end_at = current.end_at;
+      } else {
+        const dur = new Date(next.end_at).getTime() - new Date(next.start_at).getTime();
+        next.start_at = current.end_at;
+        next.end_at = new Date(new Date(next.start_at).getTime() + dur).toISOString();
+      }
     }
     setSchedule(newSchedule);
     await supabase.from('weeks_schedule').upsert(newSchedule);
@@ -137,13 +214,16 @@ export default function AdminPanel({ config, onConfigChange }) {
     await supabase.from('weeks_schedule').upsert(newSchedule);
   };
 
-  const handleUpdateMatch = async (id, hScore, aScore, played) => {
-    await supabase.from('matches').update({
-      home_score: hScore === '' ? null : parseInt(hScore),
-      away_score: aScore === '' ? null : parseInt(aScore),
-      is_played: played
-    }).eq('id', id);
-    fetchPartidosParaEditar();
+  const eliminarTemporada = async () => {
+    if (!seasonToDelete) return;
+    if (!window.confirm(`¿ESTÁS SEGURO?`)) return;
+    setLoading(true);
+    const s = parseInt(seasonToDelete);
+    await supabase.from('matches').delete().eq('season', s);
+    await supabase.from('weeks_schedule').delete().eq('season', s);
+    await fetchSeasons();
+    onConfigChange();
+    setLoading(false);
   };
 
   const toLocalISO = (dateStr) => {
@@ -153,7 +233,6 @@ export default function AdminPanel({ config, onConfigChange }) {
     return new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
   };
 
-  // --- GENERACIÓN TEMPORADA ---
   const handleAssign = (userId, div) => {
     const newAssignments = { ...assignments };
     Object.keys(newAssignments).forEach(d => {
@@ -163,15 +242,18 @@ export default function AdminPanel({ config, onConfigChange }) {
     setAssignments(newAssignments);
   };
 
+  const abrirSelectorUsuarios = () => {
+    fetchUsers();
+    setShowUserSelector(true);
+  };
+
   const confirmarCreacionTemporada = async () => {
     const seasonNum = prompt("Nº Temporada?", (availableSeasons.length > 0 ? Math.max(...availableSeasons) + 1 : 1).toString());
     const startStr = prompt("Inicio J1 (AAAA-MM-DD HH:MM)", "2026-02-10 17:00");
     if (!seasonNum || !startStr) return;
-
     setLoading(true);
     let allMatches = [];
     let maxJ = 0;
-
     for (let d = 1; d <= numDivisions; d++) {
       const ids = assignments[d];
       if (ids.length < 2) continue;
@@ -180,9 +262,7 @@ export default function AdminPanel({ config, onConfigChange }) {
       maxJ = Math.max(maxJ, Math.max(...matches.map(m => m.week)));
       allMatches = [...allMatches, ...matches.map(m => ({ ...m, season: parseInt(seasonNum), division: d, is_played: false }))];
     }
-
     await supabase.from('matches').insert(allMatches);
-
     let currentStart = new Date(startStr.replace(' ', 'T'));
     const scheduleEntries = [];
     for (let i = 1; i <= maxJ; i++) {
@@ -195,7 +275,6 @@ export default function AdminPanel({ config, onConfigChange }) {
       currentStart = new Date(currentEnd.getTime());
     }
     await supabase.from('weeks_schedule').insert(scheduleEntries);
-
     setShowUserSelector(false);
     fetchSeasons();
     onConfigChange();
@@ -206,12 +285,12 @@ export default function AdminPanel({ config, onConfigChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
       
       {/* 1. NAVEGACIÓN */}
-      <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
            Jornada Activa: 
-           <button onClick={async () => { await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1); onConfigChange(); }}>-</button>
+           <button style={{padding: '2px 8px'}} onClick={async () => { await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1); onConfigChange(); }}>-</button>
            <strong style={{ margin: '0 10px' }}>{config?.current_week}</strong>
-           <button onClick={async () => { await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1); onConfigChange(); }}>+</button>
+           <button style={{padding: '2px 8px'}} onClick={async () => { await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1); onConfigChange(); }}>+</button>
         </div>
         <div>
           T. Activa: 
@@ -224,11 +303,11 @@ export default function AdminPanel({ config, onConfigChange }) {
         </div>
       </div>
 
-      {/* 2. GESTIÓN TEMPORADAS (NUEVA Y BORRADO) */}
+      {/* 2. GESTIÓN TEMPORADAS */}
       <div style={{ background: '#fff5f5', padding: '15px', borderRadius: '8px', border: '1px solid #feb2b2' }}>
         <h4 style={{ marginTop: 0 }}>Gestión de Temporadas</h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #fed7d7', paddingBottom: '15px' }}>
-           <button onClick={() => setShowUserSelector(true)} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold' }}>
+           <button onClick={abrirSelectorUsuarios} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
              + NUEVA TEMPORADA
            </button>
            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -250,49 +329,69 @@ export default function AdminPanel({ config, onConfigChange }) {
              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
                 <div><small>REGISTRADOS</small>
                   {availableUsers.filter(u => !Object.values(assignments).flat().includes(u.id)).map(u => (
-                    <div key={u.id} style={{ fontSize: '0.7rem' }}>{u.nick} {[...Array(numDivisions)].map((_, i) => <button key={i} onClick={() => handleAssign(u.id, i+1)}>D{i+1}</button>)}</div>
+                    <div key={u.id} style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
+                      {u.nick || "Sin Nick"} {[...Array(numDivisions)].map((_, i) => <button key={i} onClick={() => handleAssign(u.id, i+1)}>D{i+1}</button>)}
+                    </div>
                   ))}
                 </div>
                 {[...Array(numDivisions)].map((_, i) => (
                   <div key={i} style={{ background: '#f0fff4', padding: '5px' }}>
                     <small>DIV {i+1}</small>
                     {assignments[i+1].map(id => (
-                      <div key={id} style={{ fontSize: '0.7rem' }}>{availableUsers.find(u => u.id === id)?.nick} <button onClick={() => handleAssign(id, 0)} style={{ color: 'red', border: 'none' }}>x</button></div>
+                      <div key={id} style={{ fontSize: '0.7rem' }}>
+                        {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"} 
+                        <button onClick={() => handleAssign(id, 0)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>x</button>
+                      </div>
                     ))}
                   </div>
                 ))}
              </div>
              <div style={{ marginTop: '15px' }}>
-                <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px' }}>GENERAR</button>
-                <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px' }}>Cerrar</button>
+                <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
+                <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
              </div>
           </div>
         )}
       </div>
 
-      {/* 3. EDITOR RESULTADOS */}
-      <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #eee' }}>
-        <h4 style={{ marginTop: 0 }}>Marcadores Rápidos</h4>
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-          <select value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))}>{availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}</select>
-          <select value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))}><option value={1}>D1</option><option value={2}>D2</option><option value={3}>D3</option></select>
-          <input type="number" value={editWeek} onChange={e => setEditWeek(parseInt(e.target.value))} style={{ width: '45px' }} />
-        </div>
-        {partidosEdit.map(p => (
-          <div key={p.id} style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', marginBottom: '4px' }}>
-            <span style={{ flex: 1, textAlign: 'right' }}>{p.local_nick}</span>
-            <input type="number" defaultValue={p.home_score} onBlur={(e) => handleUpdateMatch(p.id, e.target.value, p.away_score, true)} style={{ width: '30px' }} />
-            <input type="number" defaultValue={p.away_score} onBlur={(e) => handleUpdateMatch(p.id, p.home_score, e.target.value, true)} style={{ width: '30px' }} />
-            <span style={{ flex: 1 }}>{p.visitante_nick}</span>
+      {/* 3. EDITOR RESULTADOS (MEJORADO) */}
+      <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #2ecc71', paddingBottom: '10px' }}>Marcadores Rápidos</h4>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
+            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>TEMP:</label>
+            <select style={{padding: '5px'}} value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))}>
+              {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
+            </select>
           </div>
-        ))}
+          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
+            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>DIV:</label>
+            <select style={{padding: '5px'}} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))}>
+              <option value={1}>D1</option><option value={2}>D2</option><option value={3}>D3</option>
+            </select>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
+            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>JORNADA:</label>
+            <input type="number" value={editWeek} onChange={e => setEditWeek(parseInt(e.target.value))} style={{ width: '45px', padding: '5px' }} />
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {partidosEdit.length === 0 ? (
+            <p style={{fontSize: '0.8rem', color: '#95a5a6', textAlign: 'center'}}>No hay partidos para este filtro.</p>
+          ) : (
+            partidosEdit.map(p => (
+              <PartidoEditable key={p.id} partido={p} onUpdate={handleUpdateMatch} />
+            ))
+          )}
+        </div>
       </div>
 
       {/* 4. CALENDARIO DE FECHAS */}
       <div style={{ background: '#eef2f7', padding: '15px', borderRadius: '8px', border: '1px solid #d1d9e6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <h4 style={{ margin: 0 }}>📅 Calendario T{config?.current_season}</h4>
-          <button onClick={resetCalendarioSemanas} style={{ fontSize: '0.7rem', background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Resetear a 1 Semana</button>
+          <button onClick={resetCalendarioSemanas} style={{ fontSize: '0.7rem', background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Resetear a 1 Semana</button>
         </div>
         <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
           <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid #ccc' }}><th>J</th><th>Unir</th><th>Apertura</th><th>Cierre Plazo</th></tr></thead>

@@ -1,25 +1,22 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import AdminPanel from './AdminPanel'
+import Login from './Login'
 
 const globalStyles = `
   * { box-sizing: border-box; }
   body { 
     background-color: #f0f2f5 !important; 
     color: #2c3e50 !important; 
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     font-family: -apple-system, system-ui, sans-serif;
-    overflow-x: hidden;
-    display: block; /* Asegura que no haya flexbox en el body */
+    overflow-x: hidden; display: block;
   }
   input, select, button { color: #2c3e50; font-size: 16px; }
   input { background-color: white !important; color: black !important; }
   .table-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-top: 10px;
+    width: 100%; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; margin-top: 10px;
   }
 `;
 
@@ -100,35 +97,67 @@ function SeasonSelector({ current, onChange }) {
   )
 }
 
-// --- TABS ---
+// --- TABS (FILTRADO POR JORNADA ACTIVA EN CONFIG) ---
 function ProximoPartido({ profile, config, onUpdated }) {
   const [partidos, setPartidos] = useState([])
-  const [tiempoAgotado, setTiempoAgotado] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const cargar = async () => {
-    if (!config) return;
-    const { data: week } = await supabase.from('weeks_schedule').select('*').eq('season', config.current_season).eq('week', config.current_week).single();
-    if (week) {
-      const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"}));
-      setTiempoAgotado(ahora > new Date(week.end_at));
-      const { data } = await supabase.from('partidos_detallados').select('*').eq('season', config.current_season).eq('week', config.current_week).or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
+    if (!config || !profile) return;
+    setLoading(true)
+    
+    const { data: currentWeekData } = await supabase
+      .from('weeks_schedule')
+      .select('start_at, end_at')
+      .eq('season', config.current_season)
+      .eq('week', config.current_week)
+      .single();
+
+    if (currentWeekData) {
+      const { data: activeWeeks } = await supabase
+        .from('weeks_schedule')
+        .select('week')
+        .eq('season', config.current_season)
+        .eq('start_at', currentWeekData.start_at)
+        .eq('end_at', currentWeekData.end_at);
+
+      const weekNumbers = activeWeeks.map(w => w.week);
+
+      const { data } = await supabase
+        .from('partidos_detallados')
+        .select('*')
+        .eq('season', config.current_season)
+        .in('week', weekNumbers)
+        .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`)
+        .order('week', { ascending: true });
+      
       setPartidos(data || []);
     }
+    setLoading(false)
   }
 
   useEffect(() => {
-    if (profile && config) cargar();
+    cargar();
   }, [profile, config])
+
+  if (loading) return <div style={{fontSize: '0.8rem', color: '#95a5a6'}}>Cargando partidos...</div>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-      {tiempoAgotado && <div style={{ background: '#e74c3c', color: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PLAZO CERRADO</div>}
-      {partidos.map(p => <TarjetaResultado key={p.id} partido={p} bloqueado={tiempoAgotado} onUpdated={cargar} />)}
+      {partidos.length === 0 ? (
+        <div style={{ color: '#95a5a6', fontSize: '0.8rem', textAlign: 'center', padding: '20px' }}>
+          No hay partidos programados para la Jornada {config.current_week}.
+        </div>
+      ) : (
+        partidos.map(p => (
+          <TarjetaResultado key={p.id} partido={p} onUpdated={cargar} />
+        ))
+      )}
     </div>
   )
 }
 
-function TarjetaResultado({ partido, onUpdated, bloqueado }) {
+function TarjetaResultado({ partido, onUpdated }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
   const [gV, setGV] = useState(partido.away_score ?? '');
   const [enviando, setEnviando] = useState(false);
@@ -149,8 +178,12 @@ function TarjetaResultado({ partido, onUpdated, bloqueado }) {
   }
 
   return (
-    <div style={{ background: '#2c3e50', color: 'white', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+    <div style={{ background: '#2c3e50', color: 'white', padding: '15px', borderRadius: '12px', textAlign: 'center', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '5px', left: '10px', fontSize: '0.6rem', color: '#2ecc71', fontWeight: 'bold' }}>
+        JORNADA {partido.week}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px', marginTop: '10px' }}>
         <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}>{partido.local_nick}</div>
         {partido.is_played ? (
           <div style={{ background: '#34495e', padding: '5px 12px', borderRadius: '8px', border: '2px solid #2ecc71', fontWeight: 'bold', minWidth: '70px' }}>
@@ -158,14 +191,14 @@ function TarjetaResultado({ partido, onUpdated, bloqueado }) {
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <input type="number" value={gL} onChange={e => setGL(e.target.value)} disabled={bloqueado} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
+            <input type="number" min="0" value={gL} onChange={e => setGL(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
             <span style={{ fontWeight: 'bold' }}>-</span>
-            <input type="number" value={gV} onChange={e => setGV(e.target.value)} disabled={bloqueado} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
+            <input type="number" min="0" value={gV} onChange={e => setGV(e.target.value)} style={{ width: '40px', textAlign: 'center', padding: '6px', borderRadius: '4px', border: 'none', fontSize: '16px' }} />
           </div>
         )}
         <div style={{ flex: 1, fontSize: '0.9rem', textAlign: 'left', fontWeight: 'bold' }}>{partido.visitante_nick}</div>
       </div>
-      {!partido.is_played && !bloqueado && (
+      {!partido.is_played && (
         <button onClick={guardar} disabled={enviando} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '5px', fontSize: '0.8rem' }}>
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
@@ -244,11 +277,10 @@ function CalendarioCompleto({ config }) {
   )
 }
 
-// --- DASHBOARD (CORREGIDO: Arriba y a la izquierda) ---
 function Dashboard({ profile, config, onConfigChange }) {
   const [activeTab, setActiveTab] = useState('partido')
   const tabs = [
-    { id: 'partido', label: 'MÍO' },
+    { id: 'partido', label: 'PARTIDO' },
     { id: 'clasificacion', label: 'TABLA' },
     { id: 'calendario', label: 'CALENDARIO' },
   ];
@@ -256,13 +288,7 @@ function Dashboard({ profile, config, onConfigChange }) {
 
   return (
     <div style={{ width: '100%', maxWidth: '1000px', margin: '0', padding: '15px' }}>
-      
-      <header style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-start', 
-        marginBottom: '15px' 
-      }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
         <div style={{ textAlign: 'left' }}>
           <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '1.8rem', lineHeight: '1' }}>TOPFC</h1>
           <div style={{ color: '#95a5a6', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '4px' }}>
@@ -271,9 +297,7 @@ function Dashboard({ profile, config, onConfigChange }) {
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '0.85rem' }}><strong>{profile?.nick}</strong></div>
-          <button onClick={() => supabase.auth.signOut()} style={{ 
-            padding: '2px 8px', fontSize: '0.7rem', marginTop: '4px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ddd', background: 'white' 
-          }}>Salir</button>
+          <button onClick={() => supabase.auth.signOut()} style={{ padding: '2px 8px', fontSize: '0.7rem', marginTop: '4px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ddd', background: 'white' }}>Salir</button>
         </div>
       </header>
 
@@ -287,7 +311,7 @@ function Dashboard({ profile, config, onConfigChange }) {
       </div>
 
       <main style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', textAlign: 'left' }}>
-        {activeTab === 'partido' && <ProximoPartido profile={profile} config={config} />}
+        {activeTab === 'partido' && <ProximoPartido profile={profile} config={config} onUpdated={onConfigChange} />}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
@@ -296,29 +320,5 @@ function Dashboard({ profile, config, onConfigChange }) {
   )
 }
 
-function Login() {
-  const [identifier, setIdentifier] = useState(''), [password, setPassword] = useState(''), [loading, setLoading] = useState(false);
-  const handle = async (e) => {
-    e.preventDefault(); setLoading(true);
-    let email = identifier;
-    if (!identifier.includes('@')) {
-      const { data } = await supabase.from('profiles').select('email').eq('nick', identifier).single();
-      if (data) email = data.email;
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    setLoading(false);
-  }
-  return (
-    <div style={{ padding: '20px', textAlign: 'left' }}>
-      <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px', textAlign: 'left' }}>TOPFC</h1>
-      <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px', margin: '0' }}>
-        <input type="text" placeholder="Email o Nick" value={identifier} onChange={e => setIdentifier(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
-        <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
-        <button type="submit" disabled={loading} style={{ background: '#2ecc71', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', fontWeight: 'bold' }}>ENTRAR</button>
-      </form>
-    </div>
-  )
-}
 
 export default App;

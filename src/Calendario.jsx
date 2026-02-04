@@ -53,6 +53,7 @@ export default function CalendarioCompleto({ config }) {
   const [vD, setVD] = useState(1);
   const [partidos, setPartidos] = useState([]);
   const [jornadasActivas, setJornadasActivas] = useState([]);
+  const [fechasJornadas, setFechasJornadas] = useState({});
 
 useEffect(() => {
     async function fetch() {
@@ -64,6 +65,24 @@ useEffect(() => {
         .eq('division', vD)
         .order('week', { ascending: true });
       if (dataPartidos) setPartidos(dataPartidos);
+
+      // 1.5 Cargar fechas de todas las jornadas de esta temporada
+      const { data: dataFechas } = await supabase
+        .from('weeks_schedule')
+        .select('week, start_at, end_at')
+        .eq('season', vS);
+      
+      if (dataFechas) {
+        // Convertimos el array en un objeto { 1: {start, end}, 2: {start, end} }
+        const mapaFechas = {};
+        dataFechas.forEach(f => {
+          mapaFechas[f.week] = {
+            inicio: new Date(f.start_at).toLocaleString([], {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}),
+            fin: new Date(f.end_at).toLocaleString([], {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
+          };
+        });
+        setFechasJornadas(mapaFechas);
+      }
 
       // 2. Detectar jornadas activas (resaltado)
       if (vS === config?.current_season) {
@@ -116,16 +135,31 @@ useEffect(() => {
                 boxShadow: estaActiva ? '0 0 10px rgba(46, 204, 113, 0.2)' : 'none'
               }}>
                 <div style={{ 
-                  background: estaActiva ? '#2ecc71' : '#f8f9fa', // Fondo verde si está activa
-                  color: estaActiva ? 'white' : '#2c3e50',       // Texto blanco si está activa
-                  padding: '5px 10px', 
+                  background: estaActiva ? '#2ecc71' : '#f8f9fa', 
+                  color: estaActiva ? 'white' : '#2c3e50',       
+                  padding: '8px 10px', // Un poco más de padding
                   fontSize: '0.75rem', 
                   fontWeight: 'bold',
                   display: 'flex',
-                  justifyContent: 'space-between'
+                  flexDirection: 'column', // Cambiado a columna para que la fecha vaya debajo
+                  gap: '2px'
                 }}>
-                  <span>Jornada {n}</span>
-                  {estaActiva && <span>ACTUAL</span>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Jornada {n}</span>
+                    {estaActiva && <span style={{ fontSize: '0.6rem', background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>ACTUAL</span>}
+                  </div>
+                  
+                  {/* Mostramos las fechas si existen para esta jornada */}
+                  {fechasJornadas[n] && (
+                    <div style={{ 
+                      fontSize: '0.65rem', 
+                      fontWeight: 'normal', 
+                      opacity: 0.8,
+                      marginTop: '2px' 
+                    }}>
+                      {fechasJornadas[n].inicio}  -  {fechasJornadas[n].fin}
+                    </div>
+                  )}
                 </div>
                 
                 {partidos.filter(p => p.week === n).map(p => (

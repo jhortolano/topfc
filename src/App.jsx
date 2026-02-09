@@ -7,6 +7,7 @@ import Clasificacion from './Clasificacion'
 import CalendarioCompleto from './Calendario'
 import UserInfo from './UserInfo'
 import Jugadores from './Jugadores'
+import Normas from './Normas'
 
 
 const globalStyles = `
@@ -67,6 +68,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile }) {
     { id: 'clasificacion', label: 'CLASIFICACIÓN' },
     { id: 'calendario', label: 'CALENDARIO' },
     { id: 'jugadores', label: 'JUGADORES' },
+    { id: 'normas', label: 'NORMAS' },
   ];
   if (profile?.nick === 'horto') tabs.push({ id: 'admin', label: 'ADMIN' });
 
@@ -147,6 +149,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile }) {
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}
+        {activeTab === 'normas' && <Normas />}
       </main>
     </div>
   )

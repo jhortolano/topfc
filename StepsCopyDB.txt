@@ -1,0 +1,29 @@
+--EXPORTING DATA FROM PROD
+-- COMMAND LINE -- 
+psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_prod_para_testing.sql
+
+--COMMAND LINE 2 --
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > usuarios_prod.sql
+
+
+-- BORRAR DATOS EN TESTING DATABASE
+
+TRUNCATE auth.users CASCADE;
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
+
+--CARGAR USUARIOS:
+psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f usuarios_prod.sql
+
+--CARGAR TABLAS:
+psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_produccion_completo_20260210.sql
+
+-SQL en teting:
+-- 1. Recargar el esquema para la API de PostgREST
+NOTIFY pgrst, 'reload schema';
+
+-- 2. Asegurar permisos de lectura para la App
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;

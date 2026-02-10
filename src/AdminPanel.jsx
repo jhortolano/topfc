@@ -83,6 +83,12 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   const [searchTerm, setSearchTerm] = useState(""); // Nuevo estado para filtrar usuarios
 
+  // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
+  const supabaseUrl = supabase.supabaseUrl || '';
+  const isProd = supabaseUrl.includes('nkecyqwcrsicsyladdhw');
+  const dbName = isProd ? "PRODUCCIÓN (Real)" : "TESTING (Pruebas)";
+  const dbColor = isProd ? "#e74c3c" : "#3498db";
+
   useEffect(() => {
     fetchSeasons();
     fetchUsers();
@@ -451,6 +457,24 @@ const fetchUsers = async () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* 5. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
+      <div style={{ 
+        marginTop: '10px', 
+        padding: '15px', 
+        borderRadius: '10px', 
+        textAlign: 'center', 
+        background: '#f8f9fa', 
+        border: `2px solid ${dbColor}`,
+        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+      }}>
+        <div style={{ color: dbColor, fontWeight: 'bold', fontSize: '1rem', marginBottom: '4px' }}>
+          🔌 CONECTADO A: {dbName}
+        </div>
+        <div style={{ color: '#95a5a6', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+          {supabaseUrl}
+        </div>
       </div>
 
     </div>

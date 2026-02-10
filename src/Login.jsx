@@ -125,8 +125,32 @@ function Login() {
   }
 
   return (
-    <div style={{ padding: '20px', textAlign: 'left', maxWidth: '400px', margin: 'auto' }}>
-      <h1 style={{ color: '#2ecc71', fontSize: '3.5rem', marginBottom: '10px' }}>TOPFC</h1>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      minHeight: '80vh', // Centra el contenido verticalmente
+      padding: '20px' 
+    }}>
+      {/* CONTENEDOR DEL LOGO CENTRADO */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        marginBottom: '20px',
+        marginTop: '10px' 
+      }}>
+        <img 
+          src="/topfc.png" 
+          alt="TOP FC Logo" 
+          style={{ 
+            width: '200px',      // Tamaño grande
+            height: 'auto', 
+            objectFit: 'contain',
+            filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.1))' // Sombra opcional para dar relieve
+          }} 
+        />
+      </div>
       <h2 style={{ fontSize: '1.2rem', marginBottom: '20px' }}>
         {isRegister ? 'Crear nueva cuenta' : 'Identifícate'}
       </h2>
@@ -138,7 +162,7 @@ function Login() {
           <div>
             <label style={labelStyle}>Nick de usuario:</label>
             <input 
-              type="text" placeholder="ej: horto" 
+              type="text" placeholder="ej: user1" 
               value={nick} onChange={e => setNick(e.target.value)} required
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
             />

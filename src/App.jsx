@@ -181,11 +181,45 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   return (
     <div style={{ width: '100%', maxWidth: '1000px', margin: '0', padding: '15px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-        <div style={{ textAlign: 'left' }}>
-          <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '1.8rem', lineHeight: '1' }}>TOPFC</h1>
-          <div style={{ color: '#95a5a6', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '4px' }}>
-            TEMPORADA {config?.current_season || '-'}
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', // Alineación vertical perfecta
+        marginBottom: '20px',
+        padding: '10px 0'
+      }}>
+
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* LOGO DE LA LIGA */}
+          <img 
+            src="/topfc.png" 
+            alt="Logo TOP FC" 
+            style={{ 
+              width: '50px', 
+              height: '50px', 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' // Sombra suave
+            }} 
+          />
+          
+          <div style={{ textAlign: 'left' }}>
+            <h1 style={{ 
+              color: '#2ecc71', 
+              margin: 0, 
+              fontSize: '1.8rem', 
+              lineHeight: '1',
+              letterSpacing: '-1px' 
+            }}>TOPFC</h1>
+            <div style={{ 
+              color: '#95a5a6', 
+              fontSize: '0.75rem', 
+              fontWeight: 'bold', 
+              marginTop: '4px',
+              textTransform: 'uppercase'
+            }}>
+              Temporada {config?.current_season || '-'}
+            </div>
           </div>
         </div>
         

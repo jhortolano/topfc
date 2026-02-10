@@ -83,6 +83,8 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   const [searchTerm, setSearchTerm] = useState(""); // Nuevo estado para filtrar usuarios
 
+  const [isIdaVuelta, setIsIdaVuelta] = useState(true);
+
   // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
   const isProd = supabaseUrl.includes('nkecyqwcrsicsyladdhw');
@@ -269,7 +271,7 @@ const fetchUsers = async () => {
       const ids = assignments[d];
       if (ids.length < 2) continue;
       const players = availableUsers.filter(u => ids.includes(u.id));
-      const matches = generarCalendario(players);
+      const matches = generarCalendario(players, isIdaVuelta);
       maxJ = Math.max(maxJ, Math.max(...matches.map(m => m.week)));
       allMatches = [...allMatches, ...matches.map(m => ({ ...m, season: parseInt(seasonNum), division: d, is_played: false }))];
     }
@@ -337,6 +339,23 @@ const fetchUsers = async () => {
              <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
                <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
              </select>
+
+                {/* CHECKBOXES DE MODALIDAD */}
+              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={isIdaVuelta} 
+                  onChange={() => setIsIdaVuelta(true)} 
+                /> Ida y Vuelta
+              </label>
+              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={!isIdaVuelta} 
+                  onChange={() => setIsIdaVuelta(false)} 
+                /> Solo Ida
+              </label>
+
              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
                 <div><small>REGISTRADOS</small>
                   {availableUsers.filter(u => !Object.values(assignments).flat().includes(u.id)).map(u => (
@@ -481,21 +500,48 @@ const fetchUsers = async () => {
   );
 }
 
-function generarCalendario(jugadores) {
+function generarCalendario(jugadores, idaYVuelta) {
   const players = [...jugadores];
+  // Mezclar jugadores aleatoriamente para que el orden de emparejamientos cambie cada vez
+  players.sort(() => Math.random() - 0.5);
+
   if (players.length % 2 !== 0) players.push({ id: null, nick: 'BYE' });
+  
   const n = players.length;
   const jornadasIda = [];
   const temp = [...players];
+
+  // Algoritmo Round Robin (Sistema de liga)
   for (let j = 0; j < n - 1; j++) {
     for (let i = 0; i < n / 2; i++) {
-      if (temp[i].id && temp[n - 1 - i].id) {
-        jornadasIda.push({ home_team: temp[i].id, away_team: temp[n - 1 - i].id, week: j + 1 });
+      const local = temp[i];
+      const visitante = temp[n - 1 - i];
+      
+      if (local.id && visitante.id) {
+        // Alternar quién es local para que sea más justo
+        if (j % 2 === 0) {
+          jornadasIda.push({ home_team: local.id, away_team: visitante.id, week: j + 1 });
+        } else {
+          jornadasIda.push({ home_team: visitante.id, away_team: local.id, week: j + 1 });
+        }
       }
     }
+    // Rotación del algoritmo
     temp.splice(1, 0, temp.pop());
   }
-  const jornadasVuelta = jornadasIda.map(p => ({ home_team: p.away_team, away_team: p.home_team, week: p.week + (n - 1) }));
+
+  if (!idaYVuelta) {
+    return jornadasIda;
+  }
+
+  // Generar la vuelta invirtiendo locales y sumando jornadas
+  const numJornadasIda = n - 1;
+  const jornadasVuelta = jornadasIda.map(p => ({ 
+    home_team: p.away_team, 
+    away_team: p.home_team, 
+    week: p.week + numJornadasIda 
+  }));
+
   return [...jornadasIda, ...jornadasVuelta];
 }
 

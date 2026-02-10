@@ -1,6 +1,6 @@
 --EXPORTING DATA FROM PROD
 -- COMMAND LINE -- 
-psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_prod_para_testing.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > backup_produccion_completo_20260210.sql
 
 --COMMAND LINE 2 --
 pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > usuarios_prod.sql
@@ -19,7 +19,7 @@ psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydi
 --CARGAR TABLAS:
 psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_produccion_completo_20260210.sql
 
--SQL en teting:
+-SQL en testing:
 -- 1. Recargar el esquema para la API de PostgREST
 NOTIFY pgrst, 'reload schema';
 

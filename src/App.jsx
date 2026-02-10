@@ -31,6 +31,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [config, setConfig] = useState(null)
+  const [isActivePlayer, setIsActivePlayer] = useState(false)
 
   useEffect(() => {
     const styleSheet = document.createElement("style");
@@ -47,30 +48,136 @@ function App() {
     if (data) setConfig(data)
   }
 
-  useEffect(() => { if (session) getProfile() }, [session])
+  useEffect(() => { 
+    if (session && config) { // Solo pedimos el perfil si ya tenemos la config
+      getProfile() 
+    } 
+  }, [session, config])
 
   async function getProfile() {
-    if (!session?.user?.id) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-    if (data) setProfile(data)
+    if (!session?.user?.id || !config) return;
+    
+    // 1. Obtener perfil
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+      
+    if (profileData) setProfile(profileData)
+
+    // 2. Verificar si es jugador activo usando los nombres de columna correctos
+    const { data: matchesData, error } = await supabase
+      .from('matches')
+      .select('id')
+      // CAMBIO AQUÍ: Usamos home_team y away_team en lugar de jugador1_id y jugador2_id
+      .or(`home_team.eq.${session.user.id},away_team.eq.${session.user.id}`)
+      .eq('season', config.current_season) 
+      .limit(1)
+
+    if (error) {
+      console.error("Error comprobando partidos:", error.message)
+      setIsActivePlayer(false)
+    } else {
+      setIsActivePlayer(matchesData && matchesData.length > 0)
+    }
   }
 
+  // 1. Si no hay sesión, al Login
   if (!session) return <Login />
-  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} />
+
+  // 2. Comprobación estricta de confirmación
+  // Comprobamos ambas propiedades por si acaso: email_confirmed_at y confirmed_at
+  const isEmailConfirmed = session.user?.email_confirmed_at || session.user?.confirmed_at;
+
+  if (!isEmailConfirmed) {
+    return (
+      <div style={{ 
+        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        padding: '20px', backgroundColor: '#f0f2f5' 
+      }}>
+        <div style={{ 
+          background: 'white', padding: '30px', borderRadius: '15px', 
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '400px' 
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📧</div>
+          <h2 style={{ color: '#2c3e50', marginTop: 0 }}>¡Confirma tu email!</h2>
+          <p style={{ color: '#7f8c8d', lineHeight: '1.5' }}>
+            Para entrar en <b>TOPFC</b> debes validar tu cuenta.<br/>
+            Hemos enviado un enlace a:<br/>
+            <strong>{session.user.email}</strong>
+          </p>
+          
+          <button 
+            onClick={async () => {
+              // Forzamos un refresco de la sesión para ver si ya confirmó
+              const { data } = await supabase.auth.refreshSession();
+              if (data?.user?.email_confirmed_at) {
+                setSession(data.session);
+              } else {
+                alert("Parece que aún no has pulsado el enlace del email.");
+              }
+            }}
+            style={{ 
+              background: '#2ecc71', color: 'white', border: 'none', 
+              padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', 
+              fontWeight: 'bold', width: '100%', marginBottom: '10px' 
+            }}
+          >
+            YA HE CONFIRMADO (Actualizar)
+          </button>
+
+          <button 
+            onClick={() => supabase.auth.signOut()}
+            style={{ 
+              background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', 
+              padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', 
+              fontWeight: 'bold', width: '100%' 
+            }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Si todo está ok, al Dashboard
+  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} isActivePlayer={isActivePlayer}/>
+
 }
 
 
 
-function Dashboard({ profile, config, onConfigChange, getProfile }) {
-  const [activeTab, setActiveTab] = useState('partido')
+function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer }) {
+
+  const isAdmin = profile?.is_admin === true;
+  // 1. Decidimos la pestaña inicial: 
+  // Si es jugador activo o admin va a 'partido', si no, va a 'clasificacion'
+  const initialTab = (isActivePlayer || isAdmin) ? 'partido' : 'clasificacion';
+
+  // 2. Inicializamos el estado con esa pestaña dinámica
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Definimos las pestañas base
   const tabs = [
     { id: 'partido', label: 'PARTIDO' },
     { id: 'clasificacion', label: 'CLASIFICACIÓN' },
     { id: 'calendario', label: 'CALENDARIO' },
-    { id: 'jugadores', label: 'JUGADORES' },
-    { id: 'normas', label: 'NORMAS' },
   ];
-  if (profile?.nick === 'horto') tabs.push({ id: 'admin', label: 'ADMIN' });
+
+  // Solo añadir JUGADORES si es activo o es el admin
+  if (isActivePlayer || isAdmin) {
+    tabs.push({ id: 'jugadores', label: 'JUGADORES' });
+  }
+
+  // Añadir NORMAS al final
+  tabs.push({ id: 'normas', label: 'NORMAS' });
+
+  // Añadir ADMIN solo si es administrador
+  if (isAdmin) {
+    tabs.push({ id: 'admin', label: 'ADMIN' });
+  }
 
   return (
     <div style={{ width: '100%', maxWidth: '1000px', margin: '0', padding: '15px' }}>

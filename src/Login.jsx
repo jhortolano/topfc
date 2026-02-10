@@ -60,7 +60,6 @@ function Login() {
   const handleAuth = async (e) => {
     e.preventDefault();
     
-    // VALIDACIÓN DE CONTRASEÑA IGUAL
     if (isRegister && password !== confirmPassword) {
       alert("Las contraseñas no coinciden. Por favor, verifícalas.");
       return;
@@ -69,15 +68,21 @@ function Login() {
     setLoading(true);
 
     if (isRegister) {
+      // 1. REGISTRO
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { nick: nick } }
+        options: { 
+          data: { nick: nick },
+          // EVITA QUE ENTRE DIRECTO SIN CONFIRMAR
+          shouldCreateSession: false 
+        }
       });
 
       if (authError) {
         alert(authError.message);
       } else if (authData?.user) {
+        // 2. CREACIÓN DE PERFIL
         const fullPhone = phone ? `${countryCode}${phone.replace(/\s/g, '')}` : null;
         
         const { error: profileError } = await supabase
@@ -90,10 +95,23 @@ function Login() {
             telegram_user: telegram || null
           }, { onConflict: 'id' });
 
-        if (profileError) console.error("Error:", profileError.message);
-        alert("¡Registro completado!");
+        if (profileError) console.error("Error Perfil:", profileError.message);
+
+        // 3. LIMPIEZA Y RETORNO AL LOGIN
+        await supabase.auth.signOut(); // Asegura que no quede sesión colgada
+        alert("¡Registro completado! Por favor, confirma tu correo electrónico antes de iniciar sesión.");
+        
+        // Limpiamos los campos y volvemos a la vista de login
+        setNick('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setPhone('');
+        setTelegram('');
+        setIsRegister(false); // <--- ESTO te manda de vuelta a la pantalla de Login
       }
     } else {
+      // LOGIN NORMAL
       let loginEmail = email;
       if (!email.includes('@')) {
         const { data: profileData } = await supabase

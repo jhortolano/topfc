@@ -1,30 +1,47 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
-// --- REUTILIZAMOS SELECTOR DE DIVISIÓN ---
-function DivisionSelector({ current, onChange, season }) {
-  const [divisions, setDivisions] = useState([])
+// --- SELECTOR UNIFICADO: DIVISIONES + PLAYOFFS ---
+function CategorySelector({ current, onChange, season }) {
+  const [categories, setCategories] = useState([])
+
   useEffect(() => {
     async function load() {
       if (!season) return;
-      const { data } = await supabase.from('matches').select('division').eq('season', season)
-      if (data) {
-        const unique = [...new Set(data.map(d => d.division))].sort((a, b) => a - b)
-        setDivisions(unique)
-        if (unique.length > 0 && !unique.includes(current)) onChange(unique[0])
+      
+      // 1. Cargar Divisiones desde 'matches'
+      const { data: divData } = await supabase.from('matches').select('division').eq('season', season)
+      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : []
+
+      // 2. Cargar Playoffs desde 'playoffs'
+      const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season)
+      const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, name: p.name.toUpperCase() })) : []
+
+      const allCategories = [
+        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+        ...formattedPlayoffs.map(p => ({ id: p.id, label: p.name, type: 'po' }))
+      ]
+
+      setCategories(allCategories)
+      
+      // Si el actual no existe en la lista, poner el primero por defecto
+      if (allCategories.length > 0 && !allCategories.find(c => c.id === current)) {
+        onChange(allCategories[0].id)
       }
     }
     load()
   }, [season])
-  if (divisions.length <= 1) return null;
+
+  if (categories.length <= 1 && categories[0]?.type === 'div') return null;
+
   return (
-    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>
-      {divisions.map(d => (
-        <button key={d} onClick={() => onChange(d)} style={{
+    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px', flexWrap: 'wrap' }}>
+      {categories.map(cat => (
+        <button key={cat.id} onClick={() => onChange(cat.id)} style={{
           padding: '6px 12px', borderRadius: '15px', border: 'none',
-          background: current === d ? '#3498db' : '#ecf0f1',
-          color: current === d ? 'white' : '#7f8c8d', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer'
-        }}> DIV {d} </button>
+          background: current === cat.id ? (cat.type === 'div' ? '#3498db' : '#34495e') : '#ecf0f1',
+          color: current === cat.id ? 'white' : '#7f8c8d', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer'
+        }}> {cat.label} </button>
       ))}
     </div>
   )
@@ -33,61 +50,74 @@ function DivisionSelector({ current, onChange, season }) {
 export default function Jugadores({ config }) {
   const [usuarios, setUsuarios] = useState([])
   const [filtro, setFiltro] = useState('')
-  const [divActiva, setDivActiva] = useState(1)
+  const [catActiva, setCatActiva] = useState(1) // Puede ser número (DIV) o string (UUID de Playoff)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchJugadores() {
       setLoading(true)
-      // Buscamos los IDs de los jugadores que participan en esta temporada y división
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('home_team, away_team')
-        .eq('season', config.current_season)
-        .eq('division', divActiva)
+      let ids = []
 
-      if (matches) {
-        // Unimos todos los IDs y eliminamos duplicados
-        const ids = [...new Set(matches.flatMap(m => [m.home_team, m.away_team]))].filter(id => id !== null)
-        
-        // Traemos los perfiles de esos IDs
+      if (typeof catActiva === 'number') {
+        // Lógica para Divisiones
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('home_team, away_team')
+          .eq('season', config.current_season)
+          .eq('division', catActiva)
+        if (matches) ids = matches.flatMap(m => [m.home_team, m.away_team])
+      } else {
+        // Lógica para Playoffs
+        const { data: poMatches } = await supabase
+          .from('playoff_matches')
+          .select('home_team, away_team')
+          .eq('playoff_id', catActiva)
+        if (poMatches) ids = poMatches.flatMap(m => [m.home_team, m.away_team])
+      }
+
+      // Limpiar IDs (quitar nulos/TBD/duplicados)
+      const cleanIds = [...new Set(ids)].filter(id => id !== null)
+
+      if (cleanIds.length > 0) {
         const { data: profiles } = await supabase
-        .from('profiles')
-        .select('nick, telegram_user, phone, avatar_url')
-        .in('id', ids)
-        .order('nick', { ascending: true })
-
+          .from('profiles')
+          .select('nick, telegram_user, phone, avatar_url')
+          .in('id', cleanIds)
+          .order('nick', { ascending: true })
         setUsuarios(profiles || [])
+      } else {
+        setUsuarios([])
       }
       setLoading(false)
     }
     if (config?.current_season) fetchJugadores()
-  }, [config, divActiva])
+  }, [config, catActiva])
 
-  // Filtrado dinámico por Nick
   const usuariosFiltrados = usuarios.filter(u => 
     u.nick?.toLowerCase().includes(filtro.toLowerCase())
   )
 
   const abrirTelegram = (u) => {
-  if (u.telegram_user) {
-    // Si tiene nick de telegram
-    const cleanUser = u.telegram_user.replace('@', '');
-    window.open(`https://t.me/${cleanUser}`, '_blank');
-  } else if (u.phone) {
-    // Si no tiene nick pero tiene teléfono
-    const cleanPhone = u.phone.replace(/\D/g, ''); // Limpia espacios o símbolos
-    window.open(`https://t.me/+${cleanPhone}`, '_blank');
-  } else {
-    alert("Este usuario no tiene contacto configurado");
+    if (u.telegram_user) {
+      const cleanUser = u.telegram_user.replace('@', '');
+      window.open(`https://t.me/${cleanUser}`, '_blank');
+    } else if (u.phone) {
+      const cleanPhone = u.phone.replace(/\D/g, '');
+      window.open(`https://t.me/+${cleanPhone}`, '_blank');
+    } else {
+      alert("Este usuario no tiene contacto configurado");
+    }
   }
-}
 
   return (
     <div>
       <h3 style={{ marginTop: 0, color: '#2c3e50', fontSize: '1.1rem' }}>Directorio de Jugadores</h3>
       
-      <DivisionSelector season={config?.current_season} current={divActiva} onChange={setDivActiva} />
+      <CategorySelector 
+        season={config?.current_season} 
+        current={catActiva} 
+        onChange={setCatActiva} 
+      />
 
       <input 
         type="text" 
@@ -109,7 +139,6 @@ export default function Jugadores({ config }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '8px 12px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #eee'
             }}>
-              {/* LADO IZQUIERDO: Avatar + Nick */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ 
                   width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', 
@@ -125,11 +154,9 @@ export default function Jugadores({ config }) {
                 <span style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem' }}>{u.nick}</span>
               </div>
 
-              {/* LADO DERECHO: Botón Contacto */}
               {(u.telegram_user || u.phone) ? (
                 <button 
                   onClick={() => abrirTelegram(u)}
-                  title={u.telegram_user ? `Telegram: ${u.telegram_user}` : `Teléfono: ${u.phone}`}
                   style={{ 
                     background: '#0088cc', color: 'white', border: 'none', 
                     borderRadius: '12px', padding: '0 12px', height: '32px', 

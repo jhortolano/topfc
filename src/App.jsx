@@ -8,6 +8,7 @@ import CalendarioCompleto from './Calendario'
 import UserInfo from './UserInfo'
 import Jugadores from './Jugadores'
 import Normas from './Normas'
+import AdminPlayoffs from './AdminPlayoffs'
 
 
 const globalStyles = `
@@ -32,6 +33,7 @@ function App() {
   const [profile, setProfile] = useState(null)
   const [config, setConfig] = useState(null)
   const [isActivePlayer, setIsActivePlayer] = useState(false)
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const styleSheet = document.createElement("style");
@@ -55,6 +57,7 @@ function App() {
   }, [session, config])
 
   async function getProfile() {
+    setLoading(true); // Empezamos a cargar
     if (!session?.user?.id || !config) return;
     
     // 1. Obtener perfil
@@ -81,6 +84,7 @@ function App() {
     } else {
       setIsActivePlayer(matchesData && matchesData.length > 0)
     }
+    setLoading(false); // Terminamos de cargar
   }
 
   // 1. Si no hay sesión, al Login
@@ -143,6 +147,7 @@ function App() {
   }
 
   // 3. Si todo está ok, al Dashboard
+  if (loading) return <div style={{textAlign: 'center', marginTop: '50px'}}>Cargando TOPFC...</div>;
   return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} isActivePlayer={isActivePlayer}/>
 
 }
@@ -152,6 +157,15 @@ function App() {
 function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer }) {
 
   const isAdmin = profile?.is_admin === true;
+
+  useEffect(() => {
+    if (isActivePlayer || isAdmin) {
+      setActiveTab('partido');
+    } else {
+      setActiveTab('clasificacion');
+    }
+  }, [isActivePlayer, isAdmin]); // Se activa cuando estos valores cambien
+
   // 1. Decidimos la pestaña inicial: 
   // Si es jugador activo o admin va a 'partido', si no, va a 'clasificacion'
   const initialTab = (isActivePlayer || isAdmin) ? 'partido' : 'clasificacion';
@@ -177,6 +191,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
   // Añadir ADMIN solo si es administrador
   if (isAdmin) {
     tabs.push({ id: 'admin', label: 'ADMIN' });
+    tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
   }
 
   return (
@@ -288,6 +303,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
+        {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}
         {activeTab === 'normas' && <Normas />}

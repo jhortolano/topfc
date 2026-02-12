@@ -15,45 +15,45 @@ function PartidoEditable({ partido, onUpdate }) {
   const modificado = gL != (partido.home_score ?? '') || gV != (partido.away_score ?? '');
 
   return (
-    <div style={{ 
-      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', 
-      background: modificado ? '#ebf8ff' : '#f8f9fa', 
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px',
+      background: modificado ? '#ebf8ff' : '#f8f9fa',
       borderRadius: '10px', marginBottom: '8px', border: modificado ? '1px solid #4299e1' : '1px solid #edf2f7',
       transition: 'all 0.2s'
     }}>
       <span style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.local_nick}</span>
-      
+
       <div style={{ display: 'flex', gap: '5px' }}>
-        <input 
-          type="number" 
-          value={gL} 
-          onChange={e => setGL(e.target.value)} 
-          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }} 
+        <input
+          type="number"
+          value={gL}
+          onChange={e => setGL(e.target.value)}
+          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
         />
         <span style={{ fontWeight: 'bold', color: '#a0aec0' }}>-</span>
-        <input 
-          type="number" 
-          value={gV} 
-          onChange={e => setGV(e.target.value)} 
-          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }} 
+        <input
+          type="number"
+          value={gV}
+          onChange={e => setGV(e.target.value)}
+          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
         />
       </div>
 
       <span style={{ flex: 1, fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.visitante_nick}</span>
 
       <div style={{ display: 'flex', gap: '5px' }}>
-        <button 
+        <button
           onClick={() => onUpdate(partido.id, gL, gV, true)}
           disabled={!modificado}
           title="Guardar"
-          style={{ 
-            background: modificado ? '#2ecc71' : '#cbd5e0', color: 'white', border: 'none', 
-            padding: '5px 10px', borderRadius: '4px', cursor: modificado ? 'pointer' : 'default' 
+          style={{
+            background: modificado ? '#2ecc71' : '#cbd5e0', color: 'white', border: 'none',
+            padding: '5px 10px', borderRadius: '4px', cursor: modificado ? 'pointer' : 'default'
           }}
         >✓</button>
-        <button 
+        <button
           onClick={() => {
-            if(window.confirm("¿Resetear marcador?")) {
+            if (window.confirm("¿Resetear marcador?")) {
               setGL(''); setGV('');
               onUpdate(partido.id, '', '', false);
             }
@@ -74,7 +74,7 @@ export default function AdminPanel({ config, onConfigChange }) {
   const [numDivisions, setNumDivisions] = useState(1);
   const [assignments, setAssignments] = useState({ 1: [], 2: [], 3: [] });
   const [seasonToDelete, setSeasonToDelete] = useState("");
-  
+
   const [editSeason, setEditSeason] = useState(config?.current_season || 1);
   const [editWeek, setEditWeek] = useState(config?.current_week || 1);
   const [editDiv, setEditDiv] = useState(1);
@@ -117,7 +117,7 @@ export default function AdminPanel({ config, onConfigChange }) {
     }
   };
 
-const fetchUsers = async () => {
+  const fetchUsers = async () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*') // Traemos todo: email, telegram_user, etc.
@@ -151,7 +151,7 @@ const fetchUsers = async () => {
       away_score: aScore === '' ? null : parseInt(aScore),
       is_played: played
     }).eq('id', id);
-    
+
     if (!error) fetchPartidosParaEditar();
   };
 
@@ -193,7 +193,7 @@ const fetchUsers = async () => {
     }
     for (let i = index; i < newSchedule.length - 1; i++) {
       const current = newSchedule[i];
-      const next = newSchedule[i+1];
+      const next = newSchedule[i + 1];
       if (next.is_linked) {
         next.start_at = current.start_at;
         next.end_at = current.end_at;
@@ -213,10 +213,10 @@ const fetchUsers = async () => {
     for (let i = 0; i < newSchedule.length; i++) {
       if (i > 0) {
         if (newSchedule[i].is_linked) {
-          newSchedule[i].start_at = newSchedule[i-1].start_at;
-          newSchedule[i].end_at = newSchedule[i-1].end_at;
+          newSchedule[i].start_at = newSchedule[i - 1].start_at;
+          newSchedule[i].end_at = newSchedule[i - 1].end_at;
         } else {
-          newSchedule[i].start_at = newSchedule[i-1].end_at;
+          newSchedule[i].start_at = newSchedule[i - 1].end_at;
           let d = new Date(newSchedule[i].start_at);
           d.setDate(d.getDate() + 7);
           newSchedule[i].end_at = d.toISOString();
@@ -296,21 +296,41 @@ const fetchUsers = async () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-      
-      {/* 1. NAVEGACIÓN */}
+
+      {/* 1. NAVEGACIÓN  */}
       <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           Jornada Activa: 
-           <button style={{padding: '2px 8px'}} onClick={async () => { await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1); onConfigChange(); }}>-</button>
-           <strong style={{ margin: '0 10px' }}>{config?.current_week}</strong>
-           <button style={{padding: '2px 8px'}} onClick={async () => { await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1); onConfigChange(); }}>+</button>
+          Jornada Activa:
+          <button style={{ padding: '2px 8px' }} onClick={async () => {
+            await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
+            onConfigChange();
+          }}>-</button>
+          <strong style={{ margin: '0 10px' }}>{config?.current_week}</strong>
+          <button style={{ padding: '2px 8px' }} onClick={async () => {
+            await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
+            onConfigChange();
+          }}>+</button>
         </div>
         <div>
-          T. Activa: 
-          <select value={config?.current_season} onChange={async (e) => {
-            await supabase.from('config').update({ current_season: parseInt(e.target.value), current_week: 1 }).eq('id', 1);
-            onConfigChange();
-          }}>
+          T. Activa:
+          <select
+            value={config?.current_season || ''}
+            onChange={async (e) => {
+              const nuevaSeason = parseInt(e.target.value);
+              // Usamos update con eq('id', 1) explícito
+              const { error } = await supabase
+                .from('config')
+                .update({ current_season: nuevaSeason, current_week: 1 })
+                .eq('id', 1);
+
+              if (error) {
+                console.error("Error al cambiar temporada:", error);
+                // Si el update falla, intentamos upsert como plan B
+                await supabase.from('config').upsert({ id: 1, current_season: nuevaSeason, current_week: 1 });
+              }
+              onConfigChange();
+            }}
+          >
             {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
           </select>
         </div>
@@ -320,66 +340,66 @@ const fetchUsers = async () => {
       <div style={{ background: '#fff5f5', padding: '15px', borderRadius: '8px', border: '1px solid #feb2b2' }}>
         <h4 style={{ marginTop: 0 }}>Gestión de Temporadas</h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #fed7d7', paddingBottom: '15px' }}>
-           <button onClick={abrirSelectorUsuarios} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
-             + NUEVA TEMPORADA
-           </button>
-           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <select value={seasonToDelete} onChange={e => setSeasonToDelete(e.target.value)} style={{ padding: '5px' }}>
-                {availableSeasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
-              </select>
-              <button onClick={eliminarTemporada} disabled={loading} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>
-                BORRAR
-              </button>
-           </div>
+          <button onClick={abrirSelectorUsuarios} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+            + NUEVA TEMPORADA
+          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <select value={seasonToDelete} onChange={e => setSeasonToDelete(e.target.value)} style={{ padding: '5px' }}>
+              {availableSeasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
+            </select>
+            <button onClick={eliminarTemporada} disabled={loading} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>
+              BORRAR
+            </button>
+          </div>
         </div>
 
         {showUserSelector && (
           <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
-             <h3>Reparto de Divisiones</h3>
-             <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
-               <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
-             </select>
+            <h3>Reparto de Divisiones</h3>
+            <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
+              <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
+            </select>
 
-                {/* CHECKBOXES DE MODALIDAD */}
-              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={isIdaVuelta} 
-                  onChange={() => setIsIdaVuelta(true)} 
-                /> Ida y Vuelta
-              </label>
-              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={!isIdaVuelta} 
-                  onChange={() => setIsIdaVuelta(false)} 
-                /> Solo Ida
-              </label>
+            {/* CHECKBOXES DE MODALIDAD */}
+            <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <input
+                type="checkbox"
+                checked={isIdaVuelta}
+                onChange={() => setIsIdaVuelta(true)}
+              /> Ida y Vuelta
+            </label>
+            <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <input
+                type="checkbox"
+                checked={!isIdaVuelta}
+                onChange={() => setIsIdaVuelta(false)}
+              /> Solo Ida
+            </label>
 
-             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
-                <div><small>REGISTRADOS</small>
-                  {availableUsers.filter(u => !Object.values(assignments).flat().includes(u.id)).map(u => (
-                    <div key={u.id} style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
-                      {u.nick || "Sin Nick"} {[...Array(numDivisions)].map((_, i) => <button key={i} onClick={() => handleAssign(u.id, i+1)}>D{i+1}</button>)}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
+              <div><small>REGISTRADOS</small>
+                {availableUsers.filter(u => !Object.values(assignments).flat().includes(u.id)).map(u => (
+                  <div key={u.id} style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
+                    {u.nick || "Sin Nick"} {[...Array(numDivisions)].map((_, i) => <button key={i} onClick={() => handleAssign(u.id, i + 1)}>D{i + 1}</button>)}
+                  </div>
+                ))}
+              </div>
+              {[...Array(numDivisions)].map((_, i) => (
+                <div key={i} style={{ background: '#f0fff4', padding: '5px' }}>
+                  <small>DIV {i + 1}</small>
+                  {assignments[i + 1].map(id => (
+                    <div key={id} style={{ fontSize: '0.7rem' }}>
+                      {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
+                      <button onClick={() => handleAssign(id, 0)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>x</button>
                     </div>
                   ))}
                 </div>
-                {[...Array(numDivisions)].map((_, i) => (
-                  <div key={i} style={{ background: '#f0fff4', padding: '5px' }}>
-                    <small>DIV {i+1}</small>
-                    {assignments[i+1].map(id => (
-                      <div key={id} style={{ fontSize: '0.7rem' }}>
-                        {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"} 
-                        <button onClick={() => handleAssign(id, 0)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>x</button>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-             </div>
-             <div style={{ marginTop: '15px' }}>
-                <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
-                <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
-             </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '15px' }}>
+              <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
+              <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
           </div>
         )}
       </div>
@@ -388,27 +408,27 @@ const fetchUsers = async () => {
       <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #2ecc71', paddingBottom: '10px' }}>Marcadores Rápidos</h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
-          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
-            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>TEMP:</label>
-            <select style={{padding: '5px'}} value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>TEMP:</label>
+            <select style={{ padding: '5px' }} value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))}>
               {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
             </select>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
-            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>DIV:</label>
-            <select style={{padding: '5px'}} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>DIV:</label>
+            <select style={{ padding: '5px' }} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))}>
               <option value={1}>D1</option><option value={2}>D2</option><option value={3}>D3</option>
             </select>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap: '5px'}}>
-            <label style={{fontSize: '0.75rem', fontWeight: 'bold'}}>JORNADA:</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>JORNADA:</label>
             <input type="number" value={editWeek} onChange={e => setEditWeek(parseInt(e.target.value))} style={{ width: '45px', padding: '5px' }} />
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {partidosEdit.length === 0 ? (
-            <p style={{fontSize: '0.8rem', color: '#95a5a6', textAlign: 'center'}}>No hay partidos para este filtro.</p>
+            <p style={{ fontSize: '0.8rem', color: '#95a5a6', textAlign: 'center' }}>No hay partidos para este filtro.</p>
           ) : (
             partidosEdit.map(p => (
               <PartidoEditable key={p.id} partido={p} onUpdate={handleUpdateMatch} />
@@ -420,12 +440,12 @@ const fetchUsers = async () => {
       {/* SECCIÓN GESTIÓN DE USUARIOS */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios</h4>
-        
+
         {/* BUSCADOR */}
         <div style={{ marginBottom: '15px' }}>
-          <input 
-            type="text" 
-            placeholder="🔍 Filtrar por Nick o Email..." 
+          <input
+            type="text"
+            placeholder="🔍 Filtrar por Nick o Email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.85rem' }}
@@ -434,19 +454,19 @@ const fetchUsers = async () => {
 
         <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
           {/* CABECERA (Añadido Teléfono) */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto', 
-            gap: '8px', padding: '8px', 
-            background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.65rem' 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
+            gap: '8px', padding: '8px',
+            background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.65rem'
           }}>
             <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>TELÉFONO</span><span>ACC.</span>
           </div>
-          
+
           {/* LISTA FILTRADA */}
           {availableUsers
-            .filter(u => 
-              (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) || 
+            .filter(u =>
+              (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
               (u.email?.toLowerCase().includes(searchTerm.toLowerCase()))
             )
             .map(u => (
@@ -479,12 +499,12 @@ const fetchUsers = async () => {
       </div>
 
       {/* 5. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
-      <div style={{ 
-        marginTop: '10px', 
-        padding: '15px', 
-        borderRadius: '10px', 
-        textAlign: 'center', 
-        background: '#f8f9fa', 
+      <div style={{
+        marginTop: '10px',
+        padding: '15px',
+        borderRadius: '10px',
+        textAlign: 'center',
+        background: '#f8f9fa',
         border: `2px solid ${dbColor}`,
         boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
       }}>
@@ -506,7 +526,7 @@ function generarCalendario(jugadores, idaYVuelta) {
   players.sort(() => Math.random() - 0.5);
 
   if (players.length % 2 !== 0) players.push({ id: null, nick: 'BYE' });
-  
+
   const n = players.length;
   const jornadasIda = [];
   const temp = [...players];
@@ -516,7 +536,7 @@ function generarCalendario(jugadores, idaYVuelta) {
     for (let i = 0; i < n / 2; i++) {
       const local = temp[i];
       const visitante = temp[n - 1 - i];
-      
+
       if (local.id && visitante.id) {
         // Alternar quién es local para que sea más justo
         if (j % 2 === 0) {
@@ -536,10 +556,10 @@ function generarCalendario(jugadores, idaYVuelta) {
 
   // Generar la vuelta invirtiendo locales y sumando jornadas
   const numJornadasIda = n - 1;
-  const jornadasVuelta = jornadasIda.map(p => ({ 
-    home_team: p.away_team, 
-    away_team: p.home_team, 
-    week: p.week + numJornadasIda 
+  const jornadasVuelta = jornadasIda.map(p => ({
+    home_team: p.away_team,
+    away_team: p.home_team,
+    week: p.week + numJornadasIda
   }));
 
   return [...jornadasIda, ...jornadasVuelta];
@@ -553,21 +573,21 @@ function UserRow({ user, onRefresh }) {
   const [saving, setSaving] = useState(false);
 
   // Comprobar si hay cambios incluyendo el teléfono
-  const hasChanges = 
-    editNick !== (user.nick || '') || 
-    editEmail !== (user.email || '') || 
+  const hasChanges =
+    editNick !== (user.nick || '') ||
+    editEmail !== (user.email || '') ||
     editTelegram !== (user.telegram_user || '') ||
     editPhone !== (user.phone || '');
 
   const handleUpdate = async () => {
     setSaving(true);
     const { error } = await supabase.from('profiles').update({
-      nick: editNick, 
-      email: editEmail, 
+      nick: editNick,
+      email: editEmail,
       telegram_user: editTelegram,
       phone: editPhone // Guardar teléfono
     }).eq('id', user.id);
-    
+
     if (error) alert(error.message);
     else onRefresh();
     setSaving(false);
@@ -581,28 +601,28 @@ function UserRow({ user, onRefresh }) {
   };
 
   return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto', 
-      gap: '8px', padding: '8px', 
-      borderBottom: '1px solid #eee', alignItems: 'center' 
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
+      gap: '8px', padding: '8px',
+      borderBottom: '1px solid #eee', alignItems: 'center'
     }}>
-      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editNick} onChange={e => setEditNick(e.target.value)} />
-      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
-      <input style={{fontSize:'0.7rem', padding:'4px', width:'100%'}} value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+34..." />
-      
-      <div style={{display:'flex', gap:'4px'}}>
-        <button 
-          onClick={handleUpdate} 
-          disabled={!hasChanges || saving} 
-          style={{background: hasChanges ? '#2ecc71' : '#ccc', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor: hasChanges ? 'pointer' : 'default'}}
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editNick} onChange={e => setEditNick(e.target.value)} />
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+34..." />
+
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <button
+          onClick={handleUpdate}
+          disabled={!hasChanges || saving}
+          style={{ background: hasChanges ? '#2ecc71' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 8px', cursor: hasChanges ? 'pointer' : 'default' }}
         >
           {saving ? '...' : '✓'}
         </button>
-        <button 
-          onClick={handleDelete} 
-          style={{background: '#e74c3c', color:'white', border:'none', borderRadius:'4px', padding:'5px 8px', cursor:'pointer'}}
+        <button
+          onClick={handleDelete}
+          style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 8px', cursor: 'pointer' }}
         >
           ×
         </button>

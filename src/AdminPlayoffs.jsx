@@ -18,6 +18,12 @@ export default function AdminPlayoffs({ config }) {
   const [roundSettings, setRoundSettings] = useState({
     "Dieciseisavos": false, "Octavos": false, "Cuartos": false, "Semifinales": false, "Final": false
   });
+  const [autoPlayoff, setAutoPlayoff] = useState(config?.auto_playoff_by_date || false);
+
+  // Sincronizar con la config global si cambia fuera
+  useEffect(() => {
+    setAutoPlayoff(config?.auto_playoff_by_date || false);
+  }, [config?.auto_playoff_by_date]);
 
   const rondasNombres = { 2: "Final", 4: "Semifinales", 8: "Cuartos", 16: "Octavos", 32: "Dieciseisavos" };
   const orderRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
@@ -59,6 +65,54 @@ export default function AdminPlayoffs({ config }) {
     const { data } = await supabase.from('playoff_matches').select('playoff_id').in('playoff_id', ids);
     const hasMatches = new Set(data?.map(m => m.playoff_id));
     setPlayoffsConPartidos(hasMatches);
+  };
+
+  // ... dentro de AdminPlayoffs ...
+
+  useEffect(() => {
+    if (autoPlayoff && listaPlayoffs.length > 0) {
+      sincronizarFasesAuto();
+    }
+  }, [autoPlayoff, listaPlayoffs.length]);
+
+  const sincronizarFasesAuto = async () => {
+    const ahora = new Date();
+
+    // Para cada playoff, necesitamos sus fechas de partidos para saber en qué fase estamos
+    for (const tp of listaPlayoffs) {
+      const { data: matchesData } = await supabase
+        .from('playoff_matches')
+        .select('round, start_date, end_date')
+        .eq('playoff_id', tp.id);
+
+      if (matchesData && matchesData.length > 0) {
+        // Buscamos la fase donde "ahora" está entre inicio y fin
+        const faseEncontrada = matchesData.find(m => {
+          const inicio = new Date(m.start_date);
+          const fin = new Date(m.end_date);
+          return ahora >= inicio && ahora <= fin;
+        });
+
+        // Si no hay ninguna fase activa ahora, pero hay partidos, 
+        // podríamos decidir si poner "Finalizado" o mantener la última.
+        // Aquí calculamos la fase candidata:
+        let faseCandidata = tp.current_round;
+
+        if (faseEncontrada) {
+          faseCandidata = faseEncontrada.round;
+        } else {
+          // Opcional: Si ya pasaron todas las fechas, marcar como Finalizado
+          const ultimaFecha = new Date(Math.max(...matchesData.map(m => new Date(m.end_date))));
+          if (ahora > ultimaFecha) faseCandidata = 'Finalizado';
+        }
+
+        // SOLO actualizamos si es diferente para evitar bucles de red
+        if (faseCandidata !== tp.current_round) {
+          console.log(`Auto-actualizando ${tp.name} a fase: ${faseCandidata}`);
+          await updateCurrentRound(tp.id, faseCandidata);
+        }
+      }
+    }
   };
 
   const fetchMatches = async (playoffId) => {
@@ -158,7 +212,7 @@ export default function AdminPlayoffs({ config }) {
     fetchPlayoffs();
   };
 
-const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
+  const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
     const val = userId === "" ? null : userId;
     const matchesToUpdate = matches.filter(m =>
       m.round.startsWith(roundBase) && m.match_order === matchOrder
@@ -300,10 +354,10 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
       if (firstRoundMatches) {
         const orders = [...new Set(firstRoundMatches.map(m => m.match_order))];
         for (const order of orders) {
-           const group = firstRoundMatches.filter(m => m.match_order === order);
-           const roundBase = group[0].round.split(' (')[0];
-           // Esta función revisará si falta p1 o p2 y lo mandará a la siguiente fase
-           await checkAndPromoteBye(group, selectedTorneo.id, roundBase, order);
+          const group = firstRoundMatches.filter(m => m.match_order === order);
+          const roundBase = group[0].round.split(' (')[0];
+          // Esta función revisará si falta p1 o p2 y lo mandará a la siguiente fase
+          await checkAndPromoteBye(group, selectedTorneo.id, roundBase, order);
         }
       }
 
@@ -460,7 +514,7 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
       const mOrder = parseInt(partido.match_order);
       const faseBase = partido.round.split(' (')[0].trim();
       const esDoble = partido.round.includes('(Ida)') || partido.round.includes('(Vuelta)');
-      
+
       let ganadorId = null;
 
       if (!esDoble) {
@@ -491,7 +545,7 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
 
           if (golesA > golesB) ganadorId = idJugadorA;
           else if (golesB > golesA) ganadorId = idJugadorB;
-        } 
+        }
       }
 
       // 3. ACTUALIZAR RONDA SIGUIENTE (Promover o Limpiar)
@@ -501,8 +555,8 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
       if (sigRonda) {
         const sigMatchOrder = String(Math.floor(mOrder / 2));
         const columna = mOrder % 2 === 0 ? 'home_team' : 'away_team';
-      
-        
+
+
         // MUY IMPORTANTE: Actualizamos con el ganadorId (que puede ser null si hay empate)
         // Esto limpia la casilla si el resultado cambia a un empate global.
         await supabase.from('playoff_matches')
@@ -512,7 +566,7 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
           .ilike('round', `${sigRonda}%`);
       }
 
-      fetchMatches(viewBracket.id); 
+      fetchMatches(viewBracket.id);
     } catch (err) {
       console.error("Error crítico en saveBracketScore:", err);
     }
@@ -532,6 +586,57 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
               <input type="text" placeholder="Nombre torneo..." value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ flex: 1, padding: '8px' }} />
               <button onClick={crearTorneo} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px' }}>CREAR</button>
             </div>
+          </div>
+
+          {/* --- CONTROL AUTOMÁTICO DE FASES --- */}
+          <div style={{
+            background: autoPlayoff ? '#e8f8f5' : '#fff',
+            padding: '12px 15px',
+            borderRadius: '12px',
+            border: autoPlayoff ? '1px solid #2ecc71' : '1px solid #ddd',
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.3s ease'
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              color: autoPlayoff ? '#27ae60' : '#7f8c8d'
+            }}>
+              <input
+                type="checkbox"
+                checked={autoPlayoff}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                onChange={async (e) => {
+                  const checked = e.target.checked;
+                  setAutoPlayoff(checked); // Cambio visual instantáneo
+
+                  const { error } = await supabase
+                    .from('config')
+                    .update({ auto_playoff_by_date: checked })
+                    .eq('id', 1);
+
+                  if (error) {
+                    alert("Error al actualizar config");
+                    setAutoPlayoff(!checked);
+                  } else {
+                    // Avisamos al padre (App.jsx) para que refresque la config global
+                    if (props.onConfigChange) props.onConfigChange();
+                  }
+                }}
+              />
+              <span>Sincronizar fases automáticamente por fecha</span>
+            </label>
+            {autoPlayoff && (
+              <span style={{ fontSize: '0.65rem', color: '#27ae60', fontWeight: 'bold' }}>
+                MODO AUTO ACTIVO
+              </span>
+            )}
           </div>
 
           {listaPlayoffs.map(tp => (
@@ -598,17 +703,19 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          cursor: 'pointer',
+                          cursor: autoPlayoff ? 'not-allowed' : 'pointer', // Cambio de cursor
                           background: tp.current_round === label ? '#e8f8f5' : 'transparent',
                           padding: '4px 8px',
                           borderRadius: '4px',
                           border: tp.current_round === label ? '1px solid #2ecc71' : '1px solid transparent',
-                          transition: 'all 0.2s'
+                          transition: 'all 0.2s',
+                          opacity: autoPlayoff ? 0.7 : 1 // Opacidad para indicar bloqueo
                         }}>
                           <input
                             type="radio"
                             name={`round-${tp.id}`}
                             checked={tp.current_round === label}
+                            disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
                             onChange={() => updateCurrentRound(tp.id, label)}
                           />
                           {label}
@@ -620,15 +727,17 @@ const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    cursor: 'pointer',
+                    cursor: autoPlayoff ? 'not-allowed' : 'pointer',
                     padding: '4px 8px',
                     background: (!tp.current_round || tp.current_round === 'Finalizado') ? '#f1f2f6' : 'transparent',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    opacity: autoPlayoff ? 0.7 : 1
                   }}>
                     <input
                       type="radio"
                       name={`round-${tp.id}`}
                       checked={!tp.current_round || tp.current_round === 'Finalizado'}
+                      disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
                       onChange={() => updateCurrentRound(tp.id, 'Finalizado')}
                     />
                     Finalizado

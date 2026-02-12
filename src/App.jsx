@@ -28,6 +28,15 @@ const globalStyles = `
   }
 `;
 
+const calcularJornadaReal = (schedule) => {
+  const ahora = new Date();
+  // Buscamos la jornada actual: aquella donde el final es mayor a "ahora"
+  const encontrada = schedule.find(s => new Date(s.end_at) > ahora);
+  if (encontrada) return encontrada.week;
+  // Si todas han pasado, devolvemos la última
+  return schedule.length > 0 ? schedule[schedule.length - 1].week : 1;
+};
+
 function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -46,27 +55,57 @@ function App() {
   }, [])
 
   const fetchConfig = async () => {
-    const { data } = await supabase.from('config').select('*').eq('id', 1).maybeSingle()
-    if (data) setConfig(data)
-  }
+    // 1. Traer la config actual
+    const { data: configData } = await supabase.from('config').select('*').eq('id', 1).maybeSingle();
 
-  useEffect(() => { 
+    if (configData) {
+      // 2. Si el modo automático está activo, verificamos la fecha
+      if (configData.auto_week_by_date) {
+        const { data: schedule } = await supabase
+          .from('weeks_schedule')
+          .select('week, end_at')
+          .eq('season', configData.current_season)
+          .order('week', { ascending: true });
+
+        if (schedule && schedule.length > 0) {
+          const jornadaQueToca = calcularJornadaReal(schedule);
+
+          // 3. SOLO actualizamos si hay un cambio real
+          if (jornadaQueToca !== configData.current_week) {
+            console.log(`Actualizando jornada automática: ${configData.current_week} -> ${jornadaQueToca}`);
+
+            const { error } = await supabase
+              .from('config')
+              .update({ current_week: jornadaQueToca })
+              .eq('id', 1);
+
+            if (!error) {
+              configData.current_week = jornadaQueToca;
+            }
+          }
+        }
+      }
+      setConfig(configData);
+    }
+  };
+
+  useEffect(() => {
     if (session && config) { // Solo pedimos el perfil si ya tenemos la config
-      getProfile() 
-    } 
+      getProfile()
+    }
   }, [session, config])
 
   async function getProfile() {
     setLoading(true); // Empezamos a cargar
     if (!session?.user?.id || !config) return;
-    
+
     // 1. Obtener perfil
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
       .single()
-      
+
     if (profileData) setProfile(profileData)
 
     // 2. Verificar si es jugador activo usando los nombres de columna correctos
@@ -75,7 +114,7 @@ function App() {
       .select('id')
       // CAMBIO AQUÍ: Usamos home_team y away_team en lugar de jugador1_id y jugador2_id
       .or(`home_team.eq.${session.user.id},away_team.eq.${session.user.id}`)
-      .eq('season', config.current_season) 
+      .eq('season', config.current_season)
       .limit(1)
 
     if (error) {
@@ -96,23 +135,23 @@ function App() {
 
   if (!isEmailConfirmed) {
     return (
-      <div style={{ 
-        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-        padding: '20px', backgroundColor: '#f0f2f5' 
+      <div style={{
+        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px', backgroundColor: '#f0f2f5'
       }}>
-        <div style={{ 
-          background: 'white', padding: '30px', borderRadius: '15px', 
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '400px' 
+        <div style={{
+          background: 'white', padding: '30px', borderRadius: '15px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '400px'
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📧</div>
           <h2 style={{ color: '#2c3e50', marginTop: 0 }}>¡Confirma tu email!</h2>
           <p style={{ color: '#7f8c8d', lineHeight: '1.5' }}>
-            Para entrar en <b>TOPFC</b> debes validar tu cuenta.<br/>
-            Hemos enviado un enlace a:<br/>
+            Para entrar en <b>TOPFC</b> debes validar tu cuenta.<br />
+            Hemos enviado un enlace a:<br />
             <strong>{session.user.email}</strong>
           </p>
-          
-          <button 
+
+          <button
             onClick={async () => {
               // Forzamos un refresco de la sesión para ver si ya confirmó
               const { data } = await supabase.auth.refreshSession();
@@ -122,21 +161,21 @@ function App() {
                 alert("Parece que aún no has pulsado el enlace del email.");
               }
             }}
-            style={{ 
-              background: '#2ecc71', color: 'white', border: 'none', 
-              padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', 
-              fontWeight: 'bold', width: '100%', marginBottom: '10px' 
+            style={{
+              background: '#2ecc71', color: 'white', border: 'none',
+              padding: '10px 20px', borderRadius: '8px', cursor: 'pointer',
+              fontWeight: 'bold', width: '100%', marginBottom: '10px'
             }}
           >
             YA HE CONFIRMADO (Actualizar)
           </button>
 
-          <button 
+          <button
             onClick={() => supabase.auth.signOut()}
-            style={{ 
-              background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', 
-              padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', 
-              fontWeight: 'bold', width: '100%' 
+            style={{
+              background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c',
+              padding: '8px 20px', borderRadius: '8px', cursor: 'pointer',
+              fontWeight: 'bold', width: '100%'
             }}
           >
             Cerrar sesión
@@ -147,8 +186,8 @@ function App() {
   }
 
   // 3. Si todo está ok, al Dashboard
-  if (loading) return <div style={{textAlign: 'center', marginTop: '50px'}}>Cargando TOPFC...</div>;
-  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} isActivePlayer={isActivePlayer}/>
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '50px' }}>Cargando TOPFC...</div>;
+  return <Dashboard profile={profile} config={config} onConfigChange={fetchConfig} getProfile={getProfile} isActivePlayer={isActivePlayer} />
 
 }
 
@@ -158,20 +197,19 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   const isAdmin = profile?.is_admin === true;
 
-  useEffect(() => {
-    if (isActivePlayer || isAdmin) {
-      setActiveTab('partido');
-    } else {
-      setActiveTab('clasificacion');
-    }
-  }, [isActivePlayer, isAdmin]); // Se activa cuando estos valores cambien
-
-  // 1. Decidimos la pestaña inicial: 
-  // Si es jugador activo o admin va a 'partido', si no, va a 'clasificacion'
-  const initialTab = (isActivePlayer || isAdmin) ? 'partido' : 'clasificacion';
-
   // 2. Inicializamos el estado con esa pestaña dinámica
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(() => {
+    // 1. Miramos si hay una pestaña guardada de antes
+    const saved = localStorage.getItem('activeTab');
+    if (saved) return saved;
+
+    // 2. Si no hay nada guardado, usamos la lógica de "pestaña inicial"
+    return (isActivePlayer || isAdmin) ? 'partido' : 'clasificacion';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   // Definimos las pestañas base
   const tabs = [
@@ -196,40 +234,40 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   return (
     <div style={{ width: '100%', maxWidth: '1000px', margin: '0', padding: '15px' }}>
-      <header style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <header style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center', // Alineación vertical perfecta
         marginBottom: '20px',
         padding: '10px 0'
       }}>
 
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* LOGO DE LA LIGA */}
-          <img 
-            src="/topfc.png" 
-            alt="Logo TOP FC" 
-            style={{ 
-              width: '50px', 
-              height: '50px', 
+          <img
+            src="/topfc.png"
+            alt="Logo TOP FC"
+            style={{
+              width: '50px',
+              height: '50px',
               objectFit: 'contain',
               filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' // Sombra suave
-            }} 
+            }}
           />
-          
+
           <div style={{ textAlign: 'left' }}>
-            <h1 style={{ 
-              color: '#2ecc71', 
-              margin: 0, 
-              fontSize: '1.8rem', 
+            <h1 style={{
+              color: '#2ecc71',
+              margin: 0,
+              fontSize: '1.8rem',
               lineHeight: '1',
-              letterSpacing: '-1px' 
+              letterSpacing: '-1px'
             }}>TOPFC</h1>
-            <div style={{ 
-              color: '#95a5a6', 
-              fontSize: '0.75rem', 
-              fontWeight: 'bold', 
+            <div style={{
+              color: '#95a5a6',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
               marginTop: '4px',
               textTransform: 'uppercase'
             }}>
@@ -237,24 +275,24 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
             </div>
           </div>
         </div>
-        
+
         {/* Nombre clickeable para ir al perfil */}
         {/* Nombre e Imagen clickeable para ir al perfil */}
-        <div 
-          onClick={() => setActiveTab('perfil')} 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            cursor: 'pointer', 
+        <div
+          onClick={() => setActiveTab('perfil')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
             padding: '5px',
             borderRadius: '8px',
             transition: 'background 0.2s'
           }}
         >
           <div style={{ textAlign: 'right' }}>
-            <div style={{ 
-              fontSize: '0.85rem', 
+            <div style={{
+              fontSize: '0.85rem',
               color: activeTab === 'perfil' ? '#2ecc71' : '#2c3e50',
               lineHeight: '1.2'
             }}>
@@ -264,12 +302,12 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
           </div>
 
           {/* Miniatura del Avatar */}
-          <div style={{ 
-            width: '38px', 
-            height: '38px', 
-            borderRadius: '50%', 
-            overflow: 'hidden', 
-            background: '#eee', 
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: '#eee',
             border: activeTab === 'perfil' ? '2px solid #2ecc71' : '2px solid #fff',
             boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
             display: 'flex',
@@ -277,10 +315,10 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
             justifyContent: 'center'
           }}>
             {profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt="Avatar" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              <img
+                src={profile.avatar_url}
+                alt="Avatar"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
               <span style={{ fontSize: '1.2rem' }}>👤</span>

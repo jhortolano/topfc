@@ -49,6 +49,7 @@ export default function CalendarioCompleto({ config }) {
       const isPlayoff = typeof vD === 'string';
 
       if (!isPlayoff) {
+        // --- LÓGICA LIGA ---
         const { data: dataPartidos } = await supabase
           .from('partidos_detallados')
           .select('*')
@@ -78,15 +79,31 @@ export default function CalendarioCompleto({ config }) {
         } else { setJornadasActivas([]); }
 
       } else {
-        const { data } = await supabase
+        // --- LÓGICA PLAYOFF (CON MEJORA DE FECHAS JUNTAS) ---
+        const { data: dataPlayoff } = await supabase
           .from('playoff_matches_detallados')
           .select('*')
           .eq('playoff_id', vD)
           .order('start_date', { ascending: true });
-        setPartidos(data || []);
+        
+        setPartidos(dataPlayoff || []);
 
         const currentPO = playoffs.find(p => p.id === vD);
-        setJornadasActivas(currentPO ? [currentPO.current_round] : []);
+        if (currentPO && dataPlayoff) {
+          // Buscamos el partido de referencia de la ronda actual para saber sus fechas
+          const refMatch = dataPlayoff.find(m => m.round === currentPO.current_round);
+          
+          if (refMatch && refMatch.start_date && refMatch.end_date) {
+            // Buscamos TODAS las rondas que tengan exactamente esa misma fecha de inicio y fin
+            const rondasConMismaFecha = dataPlayoff
+              .filter(m => m.start_date === refMatch.start_date && m.end_date === refMatch.end_date)
+              .map(m => m.round);
+            
+            setJornadasActivas([...new Set(rondasConMismaFecha)]);
+          } else {
+            setJornadasActivas([currentPO.current_round]);
+          }
+        }
       }
     }
     fetch();
@@ -121,8 +138,6 @@ export default function CalendarioCompleto({ config }) {
           grupos.map(n => {
             const partidosDelGrupo = partidos.filter(p => (isPlayoffActive ? p.round : p.week) === n);
             
-            // --- FILTRO MEJORADO ---
-            // Identificamos la primera fase: es la que tiene el máximo número de partidos en el playoff
             const counts = isPlayoffActive ? partidos.reduce((acc, p) => { acc[p.round] = (acc[p.round] || 0) + 1; return acc; }, {}) : {};
             const maxP = Math.max(...Object.values(counts), 0);
             const esPrimeraFase = isPlayoffActive && counts[n] === maxP;

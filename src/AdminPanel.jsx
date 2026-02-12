@@ -91,6 +91,14 @@ export default function AdminPanel({ config, onConfigChange }) {
   const dbName = isProd ? "PRODUCCIÓN (Real)" : "TESTING (Pruebas)";
   const dbColor = isProd ? "#e74c3c" : "#3498db";
 
+
+  const [autoWeek, setAutoWeek] = useState(config?.auto_week_by_date || false);
+
+  // Sincroniza si la prop cambia desde fuera
+  useEffect(() => {
+    setAutoWeek(config?.auto_week_by_date || false);
+  }, [config?.auto_week_by_date]);
+
   useEffect(() => {
     fetchSeasons();
     fetchUsers();
@@ -298,41 +306,106 @@ export default function AdminPanel({ config, onConfigChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
       {/* 1. NAVEGACIÓN  */}
-      <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          Jornada Activa:
-          <button style={{ padding: '2px 8px' }} onClick={async () => {
-            await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
-            onConfigChange();
-          }}>-</button>
-          <strong style={{ margin: '0 10px' }}>{config?.current_week}</strong>
-          <button style={{ padding: '2px 8px' }} onClick={async () => {
-            await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
-            onConfigChange();
-          }}>+</button>
-        </div>
-        <div>
-          T. Activa:
-          <select
-            value={config?.current_season || ''}
-            onChange={async (e) => {
-              const nuevaSeason = parseInt(e.target.value);
-              // Usamos update con eq('id', 1) explícito
-              const { error } = await supabase
-                .from('config')
-                .update({ current_season: nuevaSeason, current_week: 1 })
-                .eq('id', 1);
+      <div style={{
+        background: '#f8f9fa',
+        padding: '15px',
+        borderRadius: '8px',
+        border: '1px solid #ddd',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span>Jornada Activa:</span>
+            <button
+              style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
+              disabled={config?.auto_week_by_date}
+              onClick={async () => {
+                await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
+                onConfigChange();
+              }}
+            >-</button>
 
-              if (error) {
-                console.error("Error al cambiar temporada:", error);
-                // Si el update falla, intentamos upsert como plan B
-                await supabase.from('config').upsert({ id: 1, current_season: nuevaSeason, current_week: 1 });
-              }
-              onConfigChange();
-            }}
-          >
-            {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
-          </select>
+            <strong style={{
+              margin: '0 5px',
+              color: config?.auto_week_by_date ? '#95a5a6' : '#2c3e50'
+            }}>
+              {config?.current_week}
+            </strong>
+
+            <button
+              style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
+              disabled={config?.auto_week_by_date}
+              onClick={async () => {
+                await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
+                onConfigChange();
+              }}
+            >+</button>
+
+            {config?.auto_week_by_date && (
+              <span style={{ fontSize: '0.65rem', color: '#2ecc71', fontWeight: 'bold' }}>
+                (AUTO)
+              </span>
+            )}
+          </div>
+
+          <div>
+            T. Activa:
+            <select
+              value={config?.current_season || ''}
+              style={{ marginLeft: '5px' }}
+              onChange={async (e) => {
+                const nuevaSeason = parseInt(e.target.value);
+                const { error } = await supabase
+                  .from('config')
+                  .update({ current_season: nuevaSeason, current_week: 1 })
+                  .eq('id', 1);
+                onConfigChange();
+              }}
+            >
+              {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* NUEVO: Checkbox de control automático */}
+        <div style={{ borderTop: '1px solid #eee', paddingTop: '10px' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            color: config?.auto_week_by_date ? '#2ecc71' : '#7f8c8d',
+            fontWeight: config?.auto_week_by_date ? 'bold' : 'normal'
+          }}>
+            <input
+              type="checkbox"
+              checked={autoWeek} // Usamos el estado local
+              onChange={async (e) => {
+                const checked = e.target.checked;
+
+                // 1. Cambio visual INSTANTÁNEO
+                setAutoWeek(checked);
+
+                // 2. Guardar en Base de Datos
+                const { error } = await supabase
+                  .from('config')
+                  .update({ auto_week_by_date: checked })
+                  .eq('id', 1);
+
+                if (error) {
+                  alert("Error al guardar en DB");
+                  setAutoWeek(!checked); // Revertimos si falla
+                } else {
+                  // 3. Informar al padre de forma silenciosa para actualizar el estado global
+                  onConfigChange();
+                }
+              }}
+            />
+            Actualizar jornada por fecha automáticamente
+          </label>
         </div>
       </div>
 

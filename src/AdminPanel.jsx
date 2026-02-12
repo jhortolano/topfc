@@ -687,10 +687,44 @@ function UserRow({ user, onRefresh }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`¿Borrar permanentemente a ${user.nick}?`)) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', user.id);
-    if (error) alert(error.message);
-    else onRefresh();
+    console.log("Intentando anonimizar usuario con ID:", user.id); // Para depurar
+
+    const confirmacion = window.confirm(
+      `¿Quieres eliminar visualmente a ${user.nick}? \n\nSe borrará su foto, email y teléfono, pero sus partidos se mantendrán como 'Usuario Retirado' para no romper la liga.`
+    );
+    if (!confirmacion) return;
+
+    setSaving(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          nick: `Retirado (${user.nick || 'Sin nombre'})`,
+          email: `retirado_${Date.now()}@liga.com`, // Email único para que no choque
+          telegram_user: null,
+          phone: null,
+          avatar_url: null // <--- Esto borra la foto en la base de datos
+        })
+        .eq('id', user.id)
+        .select(); // Forzamos a que devuelva el cambio para confirmar
+
+      if (error) {
+        console.error("Error detallado de Supabase:", error);
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        alert("Usuario anonimizado correctamente.");
+        onRefresh(); // Recarga la lista
+      } else {
+        alert("No se encontró el usuario o no tienes permisos para editarlo.");
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

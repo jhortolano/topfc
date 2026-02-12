@@ -78,7 +78,11 @@ export default function Clasificacion({ config }) {
         const { data } = await supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false });
         setLista(data || [])
       } else {
-        const { data } = await supabase.from('playoff_matches_detallados').select('*').eq('playoff_id', vD).order('start_date', { ascending: true });
+        const { data } = await supabase
+          .from('playoff_matches_detallados')
+          .select('*')
+          .eq('playoff_id', vD)
+          .order('match_order', { ascending: true }); // <--- CLAVE: Ordenar por posición en el cuadro
         setPlayoffMatches(data || [])
       }
     }

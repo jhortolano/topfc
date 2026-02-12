@@ -236,14 +236,34 @@ export default function AdminPanel({ config, onConfigChange }) {
   };
 
   const eliminarTemporada = async () => {
-    if (!seasonToDelete) return;
-    if (!window.confirm(`¿ESTÁS SEGURO?`)) return;
+    if (!seasonToDelete) return alert("Selecciona una temporada");
+    if (!window.confirm(`¿Seguro que quieres borrar la T${seasonToDelete}?`)) return;
+
     setLoading(true);
     const s = parseInt(seasonToDelete);
-    await supabase.from('matches').delete().eq('season', s);
-    await supabase.from('weeks_schedule').delete().eq('season', s);
-    await fetchSeasons();
-    onConfigChange();
+
+    // 1. Borrar partidos de liga
+    const { error: errorMatches } = await supabase
+      .from('matches')
+      .delete()
+      .eq('season', s);
+
+    // 2. Borrar calendario de fechas
+    const { error: errorWeeks } = await supabase
+      .from('weeks_schedule')
+      .delete()
+      .eq('season', s);
+
+    if (errorMatches || errorWeeks) {
+      console.error("Error al borrar:", errorMatches || errorWeeks);
+      alert("Error de base de datos al borrar");
+    } else {
+      alert(`Temporada ${s} eliminada de la base de datos.`);
+      // IMPORTANTE: Limpiar el estado de los partidos editables
+      setPartidosEdit([]);
+      await fetchSeasons();
+      onConfigChange();
+    }
     setLoading(false);
   };
 

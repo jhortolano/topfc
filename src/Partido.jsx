@@ -23,111 +23,108 @@ function TarjetaResultado({ partido, onUpdated }) {
   const isPlayoff = !!partido.playoff_id;
   const tabla = isPlayoff ? 'playoff_matches' : 'matches';
 
-const guardar = async () => {
-  
-  if (gL === '' || gV === '') return alert("Introduce los goles");
-  setEnviando(true);
+  const guardar = async () => {
+    if (gL === '' || gV === '') return alert("Introduce los goles");
+    setEnviando(true);
 
-  try {
-    const scoreL = parseInt(gL);
-    const scoreV = parseInt(gV);
-    
-    // --- MAPEO DE IDs (TABLA vs VISTA) ---
-    // Buscamos en home_team (tabla) O local_id (vista)
-    const idLocal = partido.home_team || partido.local_id;
-    // Buscamos en away_team (tabla) O visitante_id (vista)
-    const idVisitante = partido.away_team || partido.visitante_id;
+    try {
+      const scoreL = parseInt(gL);
+      const scoreV = parseInt(gV);
 
+      const idLocal = partido.home_team || partido.local_id;
+      const idVisitante = partido.away_team || partido.visitante_id;
 
-    if (!idLocal || !idVisitante) {
-      console.error("❌ ERROR: No se encuentran IDs de equipos en el objeto partido.", partido);
-      throw new Error("Faltan IDs de los equipos. Revisa si el objeto partido tiene local_id o home_team.");
-    }
+      if (!idLocal || !idVisitante) {
+        console.error("❌ ERROR: No se encuentran IDs", partido);
+        throw new Error("Faltan IDs de los equipos.");
+      }
 
-    // 1. Actualizar el partido actual (A la tabla, siempre home_team/away_team)
-    const { error: errorUpdate } = await supabase
-      .from('playoff_matches') // Asegúrate de que apunte a la tabla, no a la vista
-      .update({ 
-        home_score: scoreL, 
-        away_score: scoreV, 
-        played: true 
-      })
-      .eq('id', partido.id);
+      // Definimos qué datos enviar según si es liga o playoff
+      const datosAEnviar = isPlayoff
+        ? { home_score: scoreL, away_score: scoreV, played: true }
+        : { home_score: scoreL, away_score: scoreV, is_played: true };
 
-    if (errorUpdate) throw errorUpdate;
+      // 1. Actualizar el partido actual usando la variable 'tabla'
+      const { error: errorUpdate } = await supabase
+        .from(tabla) // <--- USA LA VARIABLE, NO EL TEXTO FIJO
+        .update(datosAEnviar) // <--- USA LOS DATOS DINÁMICOS
+        .eq('id', partido.id);
 
-    if (isPlayoff) {
-      const pId = String(partido.playoff_id);
-      const mOrder = parseInt(partido.match_order);
-      const faseActualNombre = partido.round;
-      const faseBase = faseActualNombre.split(' (')[0].trim();
+      if (errorUpdate) throw errorUpdate;
 
-      // 2. Buscar enfrentamientos
-      const { data: enfrentamiento } = await supabase
-        .from('playoff_matches')
-        .select('*')
-        .eq('playoff_id', pId)
-        .eq('match_order', String(mOrder));
+      // Solo ejecutamos la lógica de promoción si es playoff
+      if (isPlayoff) {
+        const pId = String(partido.playoff_id);
+        const mOrder = parseInt(partido.match_order);
+        const faseActualNombre = partido.round;
+        const faseBase = faseActualNombre.split(' (')[0].trim();
 
-      const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
-      let ganadorId = null;
+        // 2. Buscar enfrentamientos
+        const { data: enfrentamiento } = await supabase
+          .from('playoff_matches')
+          .select('*')
+          .eq('playoff_id', pId)
+          .eq('match_order', String(mOrder));
 
-      if (!esDoble) {
-        if (scoreL > scoreV) ganadorId = idLocal;
-        else if (scoreV > scoreL) ganadorId = idVisitante;
-      } else {
-        const otro = enfrentamiento?.find(m => m.id !== partido.id);
-        if (otro && (otro.played === true || otro.played === 'true')) {
-          const esIda = faseActualNombre.includes('(Ida)');
-          let gGlobL, gGlobV;
-          if (esIda) {
-            gGlobL = scoreL + (otro.away_score || 0);
-            gGlobV = scoreV + (otro.home_score || 0);
-            if (gGlobL > gGlobV) ganadorId = idLocal;
-            else if (gGlobV > gGlobL) ganadorId = idVisitante;
-          } else {
-            gGlobL = (otro.home_score || 0) + scoreL;
-            gGlobV = (otro.away_score || 0) + scoreV;
-            // Aquí 'otro' es la ida, sacamos los IDs de ahí
-            if (gGlobL > gGlobV) ganadorId = otro.home_team;
-            else if (gGlobV > gGlobL) ganadorId = otro.away_team;
+        const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
+        let ganadorId = null;
+
+        if (!esDoble) {
+          if (scoreL > scoreV) ganadorId = idLocal;
+          else if (scoreV > scoreL) ganadorId = idVisitante;
+        } else {
+          const otro = enfrentamiento?.find(m => m.id !== partido.id);
+          if (otro && (otro.played === true || otro.played === 'true')) {
+            const esIda = faseActualNombre.includes('(Ida)');
+            let gGlobL, gGlobV;
+            if (esIda) {
+              gGlobL = scoreL + (otro.away_score || 0);
+              gGlobV = scoreV + (otro.home_score || 0);
+              if (gGlobL > gGlobV) ganadorId = idLocal;
+              else if (gGlobV > gGlobL) ganadorId = idVisitante;
+            } else {
+              gGlobL = (otro.home_score || 0) + scoreL;
+              gGlobV = (otro.away_score || 0) + scoreV;
+              // Aquí 'otro' es la ida, sacamos los IDs de ahí
+              if (gGlobL > gGlobV) ganadorId = otro.home_team;
+              else if (gGlobV > gGlobL) ganadorId = otro.away_team;
+            }
+          }
+        }
+
+        // 3. PROMOCIÓN
+        if (ganadorId) {
+          const ordenRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
+          const idx = ordenRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
+          const sigRonda = ordenRondas[idx + 1];
+
+          if (sigRonda) {
+            const sigMatchOrder = String(Math.floor(mOrder / 2));
+            const esLocalNext = mOrder % 2 === 0;
+            const columna = esLocalNext ? 'home_team' : 'away_team'; // Siempre home_team/away_team en tabla
+
+            const { data: updateData, error: errorNext } = await supabase
+              .from('playoff_matches')
+              .update({ [columna]: ganadorId })
+              .eq('playoff_id', pId)
+              .eq('match_order', sigMatchOrder)
+              .ilike('round', `${sigRonda}%`)
+              .select();
+
+            if (errorNext) throw errorNext;
           }
         }
       }
 
-      // 3. PROMOCIÓN
-      if (ganadorId) {
-        const ordenRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
-        const idx = ordenRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
-        const sigRonda = ordenRondas[idx + 1];
-
-        if (sigRonda) {
-          const sigMatchOrder = String(Math.floor(mOrder / 2));
-          const esLocalNext = mOrder % 2 === 0;
-          const columna = esLocalNext ? 'home_team' : 'away_team'; // Siempre home_team/away_team en tabla
-
-          const { data: updateData, error: errorNext } = await supabase
-            .from('playoff_matches')
-            .update({ [columna]: ganadorId })
-            .eq('playoff_id', pId)
-            .eq('match_order', sigMatchOrder)
-            .ilike('round', `${sigRonda}%`)
-            .select();
-
-          if (errorNext) throw errorNext;
-        }
-      }
+      if (onUpdated) onUpdated();
+      alert("Guardado y actualizado.");
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setEnviando(false);
     }
-
-    if (onUpdated) onUpdated();
-    alert("Guardado y actualizado.");
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
-  } finally {
-    setEnviando(false);
-  }
-};
+  };
 
   return (
     <div style={{

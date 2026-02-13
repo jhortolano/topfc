@@ -99,17 +99,22 @@ function TarjetaResultado({ partido, onUpdated }) {
           if (sigRonda) {
             const sigMatchOrder = Math.floor(mOrder / 2);
             const esLocalNext = mOrder % 2 === 0;
-            // Columnas reales de tu dump: home_team / away_team
             const columnaDestino = esLocalNext ? 'home_team' : 'away_team';
 
             const { error: errorNext } = await supabase
               .from('playoff_matches')
-              .update({ [columnaDestino]: ganadorId })
+              .update({ [columnaDestino]: ganadorId }) // Solo enviamos el ID del ganador
               .eq('playoff_id', pId)
-              .eq('match_order', String(sigMatchOrder))
+              .eq('match_order', sigMatchOrder)
+              // Cambiamos ilike por un eq más limpio si es posible, 
+              // o nos aseguramos de que el round coincida exactamente
               .ilike('round', `${sigRonda}%`);
 
-            if (errorNext) throw errorNext;
+            if (errorNext) {
+              console.error("Error en promoción:", errorNext);
+              // No lanzamos throw aquí para que al menos el resultado del partido actual se quede guardado
+              alert("Resultado guardado, pero hubo un problema al promocionar al siguiente partido. Avisa al admin.");
+            }
           }
         }
       }

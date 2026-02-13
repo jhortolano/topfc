@@ -44,72 +44,80 @@ function TarjetaResultado({ partido, onUpdated }) {
         ? { home_score: scoreL, away_score: scoreV, played: true }
         : { home_score: scoreL, away_score: scoreV, is_played: true };
 
-      // 1. Actualizar el partido actual usando la variable 'tabla'
+      // ... (código anterior igual hasta el update del partido actual)
+
       const { error: errorUpdate } = await supabase
-        .from(tabla) // <--- USA LA VARIABLE, NO EL TEXTO FIJO
-        .update(datosAEnviar) // <--- USA LOS DATOS DINÁMICOS
+        .from(tabla)
+        .update(datosAEnviar)
         .eq('id', partido.id);
 
       if (errorUpdate) throw errorUpdate;
 
-      // Solo ejecutamos la lógica de promoción si es playoff
+      // --- LÓGICA DE PROMOCIÓN ---
       if (isPlayoff) {
         const pId = String(partido.playoff_id);
         const mOrder = parseInt(partido.match_order);
         const faseActualNombre = partido.round;
         const faseBase = faseActualNombre.split(' (')[0].trim();
+        const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
 
-        // 2. Buscar enfrentamientos
-        const { data: enfrentamiento } = await supabase
+        // Traer todos los partidos con el mismo match_order para esta fase
+        const { data: enfrentamientos } = await supabase
           .from('playoff_matches')
           .select('*')
           .eq('playoff_id', pId)
-          .eq('match_order', String(mOrder));
+          .eq('match_order', String(mOrder))
+          .ilike('round', `${faseBase}%`);
 
-        const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
         let ganadorId = null;
 
         if (!esDoble) {
+          // CASO PARTIDO ÚNICO
           if (scoreL > scoreV) ganadorId = idLocal;
           else if (scoreV > scoreL) ganadorId = idVisitante;
         } else {
-          const otro = enfrentamiento?.find(m => m.id !== partido.id);
-          if (otro && (otro.played === true || otro.played === 'true')) {
-            const esIda = faseActualNombre.includes('(Ida)');
-            let gGlobL, gGlobV;
-            if (esIda) {
-              gGlobL = scoreL + (otro.away_score || 0);
-              gGlobV = scoreV + (otro.home_score || 0);
-              if (gGlobL > gGlobV) ganadorId = idLocal;
-              else if (gGlobV > gGlobL) ganadorId = idVisitante;
-            } else {
-              gGlobL = (otro.home_score || 0) + scoreL;
-              gGlobV = (otro.away_score || 0) + scoreV;
-              // Aquí 'otro' es la ida, sacamos los IDs de ahí
-              if (gGlobL > gGlobV) ganadorId = otro.home_team;
-              else if (gGlobV > gGlobL) ganadorId = otro.away_team;
-            }
+          // CASO IDA Y VUELTA
+          const ida = enfrentamientos.find(m => m.round.includes('(Ida)'));
+          const vuelta = enfrentamientos.find(m => m.round.includes('(Vuelta)'));
+
+          // IMPORTANTE: Solo calcular si AMBOS están marcados como jugados
+          // Usamos los datos recién enviados para el partido actual porque el state de la DB puede tardar un ms
+          const idaJugada = ida?.id === partido.id ? true : ida?.played;
+          const vueltaJugada = vuelta?.id === partido.id ? true : vuelta?.played;
+
+          if (idaJugada && vueltaJugada) {
+            // Obtenemos goles (si es el actual usamos los inputs, si es el otro usamos la DB)
+            const gIdaL = ida.id === partido.id ? scoreL : (ida.home_score || 0);
+            const gIdaV = ida.id === partido.id ? scoreV : (ida.away_score || 0);
+            const gVueL = vuelta.id === partido.id ? scoreL : (vuelta.home_score || 0);
+            const gVueV = vuelta.id === partido.id ? scoreV : (vuelta.away_score || 0);
+
+            const totalLocal = gIdaL + gVueV; // Local de la ida es Visitante en la vuelta
+            const totalVisitante = gIdaV + gVueL;
+
+            if (totalLocal > totalVisitante) ganadorId = ida.home_team;
+            else if (totalVisitante > totalLocal) ganadorId = ida.away_team;
+            // Nota: Aquí podrías añadir lógica de penaltis o valor doble de goles si lo usas
           }
         }
 
-        // 3. PROMOCIÓN
+        // 3. EJECUTAR PROMOCIÓN SI HAY GANADOR
         if (ganadorId) {
           const ordenRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
           const idx = ordenRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
           const sigRonda = ordenRondas[idx + 1];
 
           if (sigRonda) {
-            const sigMatchOrder = String(Math.floor(mOrder / 2));
+            const sigMatchOrder = Math.floor(mOrder / 2);
             const esLocalNext = mOrder % 2 === 0;
-            const columna = esLocalNext ? 'home_team' : 'away_team'; // Siempre home_team/away_team en tabla
+            const columna = esLocalNext ? 'home_team' : 'away_team';
 
-            const { data: updateData, error: errorNext } = await supabase
+            const { error: errorNext } = await supabase
               .from('playoff_matches')
               .update({ [columna]: ganadorId })
               .eq('playoff_id', pId)
-              .eq('match_order', sigMatchOrder)
-              .ilike('round', `${sigRonda}%`)
-              .select();
+              .eq('match_order', String(sigMatchOrder))
+              .ilike('round', `${sigRonda}%`);
 
             if (errorNext) throw errorNext;
           }

@@ -22,6 +22,8 @@ function TarjetaResultado({ partido, onUpdated }) {
   // Identificamos si es un partido de playoff
   const isPlayoff = !!partido.playoff_id;
   const tabla = isPlayoff ? 'playoff_matches' : 'matches';
+  // Normalizamos el estado para que el botón desaparezca correctamente en ambos casos
+  const yaJugado = isPlayoff ? partido.played : partido.is_played;
 
   const guardar = async () => {
     if (gL === '' || gV === '') return alert("Introduce los goles");
@@ -31,20 +33,16 @@ function TarjetaResultado({ partido, onUpdated }) {
       const scoreL = parseInt(gL);
       const scoreV = parseInt(gV);
 
-      const idLocal = partido.home_team || partido.local_id;
-      const idVisitante = partido.away_team || partido.visitante_id;
+      // En playoff_matches_detallados (vista), los IDs reales son local_id y visitante_id
+      const idLocal = partido.local_id;
+      const idVisitante = partido.visitante_id;
 
-      if (!idLocal || !idVisitante) {
-        console.error("❌ ERROR: No se encuentran IDs", partido);
-        throw new Error("Faltan IDs de los equipos.");
-      }
+      if (!idLocal || !idVisitante) throw new Error("Faltan IDs de los equipos.");
 
-      // Definimos qué datos enviar según si es liga o playoff
+      // Datos según tabla (played vs is_played)
       const datosAEnviar = isPlayoff
         ? { home_score: scoreL, away_score: scoreV, played: true }
         : { home_score: scoreL, away_score: scoreV, is_played: true };
-
-      // ... (código anterior igual hasta el update del partido actual)
 
       const { error: errorUpdate } = await supabase
         .from(tabla)
@@ -53,7 +51,6 @@ function TarjetaResultado({ partido, onUpdated }) {
 
       if (errorUpdate) throw errorUpdate;
 
-      // --- LÓGICA DE PROMOCIÓN ---
       if (isPlayoff) {
         const pId = String(partido.playoff_id);
         const mOrder = parseInt(partido.match_order);
@@ -61,7 +58,7 @@ function TarjetaResultado({ partido, onUpdated }) {
         const faseBase = faseActualNombre.split(' (')[0].trim();
         const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
 
-        // Traer todos los partidos con el mismo match_order para esta fase
+        // Traemos los enfrentamientos para calcular el global
         const { data: enfrentamientos } = await supabase
           .from('playoff_matches')
           .select('*')
@@ -72,36 +69,28 @@ function TarjetaResultado({ partido, onUpdated }) {
         let ganadorId = null;
 
         if (!esDoble) {
-          // CASO PARTIDO ÚNICO
           if (scoreL > scoreV) ganadorId = idLocal;
           else if (scoreV > scoreL) ganadorId = idVisitante;
         } else {
-          // CASO IDA Y VUELTA
           const ida = enfrentamientos.find(m => m.round.includes('(Ida)'));
           const vuelta = enfrentamientos.find(m => m.round.includes('(Vuelta)'));
 
-          // IMPORTANTE: Solo calcular si AMBOS están marcados como jugados
-          // Usamos los datos recién enviados para el partido actual porque el state de la DB puede tardar un ms
-          const idaJugada = ida?.id === partido.id ? true : ida?.played;
-          const vueltaJugada = vuelta?.id === partido.id ? true : vuelta?.played;
+          // Consideramos el estado actual
+          const idaFinal = ida?.id === partido.id ? { ...ida, home_score: scoreL, away_score: scoreV, played: true } : ida;
+          const vueltaFinal = vuelta?.id === partido.id ? { ...vuelta, home_score: scoreL, away_score: scoreV, played: true } : vuelta;
 
-          if (idaJugada && vueltaJugada) {
-            // Obtenemos goles (si es el actual usamos los inputs, si es el otro usamos la DB)
-            const gIdaL = ida.id === partido.id ? scoreL : (ida.home_score || 0);
-            const gIdaV = ida.id === partido.id ? scoreV : (ida.away_score || 0);
-            const gVueL = vuelta.id === partido.id ? scoreL : (vuelta.home_score || 0);
-            const gVueV = vuelta.id === partido.id ? scoreV : (vuelta.away_score || 0);
+          if (idaFinal?.played && vueltaFinal?.played) {
+            // El ID del equipo no cambia aunque cambie de casa
+            // Local de Ida (ida.home_team) es Visitante de Vuelta (vuelta.away_team)
+            const globalLocal = (idaFinal.home_score || 0) + (vueltaFinal.away_score || 0);
+            const globalVisitante = (idaFinal.away_score || 0) + (vueltaFinal.home_score || 0);
 
-            const totalLocal = gIdaL + gVueV; // Local de la ida es Visitante en la vuelta
-            const totalVisitante = gIdaV + gVueL;
-
-            if (totalLocal > totalVisitante) ganadorId = ida.home_team;
-            else if (totalVisitante > totalLocal) ganadorId = ida.away_team;
-            // Nota: Aquí podrías añadir lógica de penaltis o valor doble de goles si lo usas
+            if (globalLocal > globalVisitante) ganadorId = idaFinal.home_team;
+            else if (globalVisitante > globalLocal) ganadorId = idaFinal.away_team;
           }
         }
 
-        // 3. EJECUTAR PROMOCIÓN SI HAY GANADOR
+        // PROMOCIÓN
         if (ganadorId) {
           const ordenRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
           const idx = ordenRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
@@ -110,11 +99,12 @@ function TarjetaResultado({ partido, onUpdated }) {
           if (sigRonda) {
             const sigMatchOrder = Math.floor(mOrder / 2);
             const esLocalNext = mOrder % 2 === 0;
-            const columna = esLocalNext ? 'home_team' : 'away_team';
+            // Columnas reales de tu dump: home_team / away_team
+            const columnaDestino = esLocalNext ? 'home_team' : 'away_team';
 
             const { error: errorNext } = await supabase
               .from('playoff_matches')
-              .update({ [columna]: ganadorId })
+              .update({ [columnaDestino]: ganadorId })
               .eq('playoff_id', pId)
               .eq('match_order', String(sigMatchOrder))
               .ilike('round', `${sigRonda}%`);

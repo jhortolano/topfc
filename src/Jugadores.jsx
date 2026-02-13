@@ -8,7 +8,7 @@ function CategorySelector({ current, onChange, season }) {
   useEffect(() => {
     async function load() {
       if (!season) return;
-      
+
       // 1. Cargar Divisiones desde 'matches'
       const { data: divData } = await supabase.from('matches').select('division').eq('season', season)
       const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : []
@@ -23,7 +23,7 @@ function CategorySelector({ current, onChange, season }) {
       ]
 
       setCategories(allCategories)
-      
+
       // Si el actual no existe en la lista, poner el primero por defecto
       if (allCategories.length > 0 && !allCategories.find(c => c.id === current)) {
         onChange(allCategories[0].id)
@@ -93,9 +93,15 @@ export default function Jugadores({ config }) {
     if (config?.current_season) fetchJugadores()
   }, [config, catActiva])
 
-  const usuariosFiltrados = usuarios.filter(u => 
-    u.nick?.toLowerCase().includes(filtro.toLowerCase())
-  )
+  const usuariosFiltrados = usuarios.filter(u => {
+    // 1. Filtro por el texto del buscador
+    const coincideTexto = u.nick?.toLowerCase().includes(filtro.toLowerCase());
+
+    // 2. Filtro de usuarios retirados (NO mostrar si el nick empieza por "Retirado")
+    const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
+
+    return coincideTexto && !esRetirado;
+  });
 
   const abrirTelegram = (u) => {
     if (u.telegram_user) {
@@ -112,21 +118,21 @@ export default function Jugadores({ config }) {
   return (
     <div>
       <h3 style={{ marginTop: 0, color: '#2c3e50', fontSize: '1.1rem' }}>Directorio de Jugadores</h3>
-      
-      <CategorySelector 
-        season={config?.current_season} 
-        current={catActiva} 
-        onChange={setCatActiva} 
+
+      <CategorySelector
+        season={config?.current_season}
+        current={catActiva}
+        onChange={setCatActiva}
       />
 
-      <input 
-        type="text" 
-        placeholder="Buscar por nick..." 
+      <input
+        type="text"
+        placeholder="Buscar por nick..."
         value={filtro}
         onChange={(e) => setFiltro(e.target.value)}
-        style={{ 
-          width: '100%', padding: '10px', borderRadius: '8px', 
-          border: '1px solid #ddd', marginBottom: '15px', fontSize: '0.9rem' 
+        style={{
+          width: '100%', padding: '10px', borderRadius: '8px',
+          border: '1px solid #ddd', marginBottom: '15px', fontSize: '0.9rem'
         }}
       />
 
@@ -135,13 +141,13 @@ export default function Jugadores({ config }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {usuariosFiltrados.map((u, i) => (
-            <div key={i} style={{ 
+            <div key={i} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '8px 12px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #eee'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ 
-                  width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', 
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden',
                   background: '#eee', border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
@@ -155,11 +161,11 @@ export default function Jugadores({ config }) {
               </div>
 
               {(u.telegram_user || u.phone) ? (
-                <button 
+                <button
                   onClick={() => abrirTelegram(u)}
-                  style={{ 
-                    background: '#0088cc', color: 'white', border: 'none', 
-                    borderRadius: '12px', padding: '0 12px', height: '32px', 
+                  style={{
+                    background: '#0088cc', color: 'white', border: 'none',
+                    borderRadius: '12px', padding: '0 12px', height: '32px',
                     display: 'flex', alignItems: 'center', gap: '5px',
                     cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold'
                   }}

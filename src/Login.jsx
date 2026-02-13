@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
 const COUNTRIES = [
@@ -36,11 +36,14 @@ const COUNTRIES = [
   { name: 'Colombia', code: '+57', flag: '🇨🇴' },
 ];
 
+const NICK_BLACKLIST = ['bye', 'tbd', 'null'];
+const NICK_FORBIDDEN_PREFIX = 'retirado';
+
 // Estilo común para las etiquetas
-const labelStyle = { 
-  fontSize: '0.85rem', 
-  fontWeight: 'bold', 
-  color: '#34495e', 
+const labelStyle = {
+  fontSize: '0.85rem',
+  fontWeight: 'bold',
+  color: '#34495e',
   marginBottom: '4px',
   display: 'block'
 };
@@ -53,16 +56,53 @@ function Login() {
   const [confirmPassword, setConfirmPassword] = useState(''); // Nueva contraseña
   const [loading, setLoading] = useState(false);
 
+  const [allowRegistration, setAllowRegistration] = useState(true);
+  const [checkingConfig, setCheckingConfig] = useState(true);
+
   const [countryCode, setCountryCode] = useState('+34');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
 
+  // Este código lee la base de datos al abrir la página
+  useEffect(() => {
+    async function checkConfig() {
+      const { data } = await supabase.from('config').select('allow_registration').single();
+      if (data) setAllowRegistration(data.allow_registration);
+      setCheckingConfig(false);
+    }
+    checkConfig();
+  }, []);
+
   const handleAuth = async (e) => {
     e.preventDefault();
-    
+
     if (isRegister && password !== confirmPassword) {
       alert("Las contraseñas no coinciden. Por favor, verifícalas.");
       return;
+    }
+    if (isRegister) {
+      const nickLower = nick.trim().toLowerCase();
+      
+      // 1. Comprobar si es una palabra prohibida exacta
+      if (NICK_BLACKLIST.includes(nickLower)) {
+        alert(`El nick "${nick}" no está permitido.`);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Comprobar si empieza por "retirado"
+      if (nickLower.startsWith(NICK_FORBIDDEN_PREFIX)) {
+        alert(`El nick no puede empezar por "${NICK_FORBIDDEN_PREFIX}".`);
+        setLoading(false);
+        return;
+      }
+      
+      // 3. (Opcional) Evitar nicks demasiado cortos
+      if (nickLower.length < 3) {
+        alert("El nick debe tener al menos 3 caracteres.");
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -72,10 +112,10 @@ function Login() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { 
+        options: {
           data: { nick: nick },
           // EVITA QUE ENTRE DIRECTO SIN CONFIRMAR
-          shouldCreateSession: false 
+          shouldCreateSession: false
         }
       });
 
@@ -84,11 +124,11 @@ function Login() {
       } else if (authData?.user) {
         // 2. CREACIÓN DE PERFIL
         const fullPhone = phone ? `${countryCode}${phone.replace(/\s/g, '')}` : null;
-        
+
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({ 
-            id: authData.user.id, 
+          .upsert({
+            id: authData.user.id,
             nick: nick,
             email: email,
             phone: fullPhone,
@@ -100,7 +140,7 @@ function Login() {
         // 3. LIMPIEZA Y RETORNO AL LOGIN
         await supabase.auth.signOut(); // Asegura que no quede sesión colgada
         alert("¡Registro completado! Por favor, confirma tu correo electrónico antes de iniciar sesión.");
-        
+
         // Limpiamos los campos y volvemos a la vista de login
         setNick('');
         setEmail('');
@@ -125,142 +165,150 @@ function Login() {
   }
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      minHeight: '80vh', // Centra el contenido verticalmente
-      padding: '20px' 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '80vh',
+      padding: '20px'
     }}>
-      {/* CONTENEDOR DEL LOGO CENTRADO */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        marginBottom: '20px',
-        marginTop: '10px' 
-      }}>
-        <img 
-          src="/topfc.png" 
-          alt="TOP FC Logo" 
-          style={{ 
-            width: '200px',      // Tamaño grande
-            height: 'auto', 
-            objectFit: 'contain',
-            filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.1))' // Sombra opcional para dar relieve
-          }} 
-        />
+      {/* LOGO */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', marginTop: '10px' }}>
+        <img src="/topfc.png" alt="TOP FC Logo" style={{ width: '200px', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.1))' }} />
       </div>
+
       <h2 style={{ fontSize: '1.2rem', marginBottom: '20px' }}>
         {isRegister ? 'Crear nueva cuenta' : 'Identifícate'}
       </h2>
-      
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
-        {/* NICK */}
-        {isRegister && (
-          <div>
-            <label style={labelStyle}>Nick de usuario:</label>
-            <input 
-              type="text" placeholder="ej: user1" 
-              value={nick} onChange={e => setNick(e.target.value)} required
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
-            />
-          </div>
-        )}
-        
-        {/* EMAIL O NICK LOGIN */}
-        <div>
-          <label style={labelStyle}>{isRegister ? 'Correo electrónico:' : 'Email o Nick:'}</label>
-          <input 
-            type="text" placeholder={isRegister ? "usuario@email.com" : "Tu email o nick"} 
-            value={email} onChange={e => setEmail(e.target.value)} required
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
-          />
-        </div>
 
-        {isRegister && (
-          <>
-            {/* PAÍS Y TELÉFONO */}
+      {/* --- BLOQUE DINÁMICO --- */}
+      {isRegister && !allowRegistration ? (
+        /* 1. MOSTRAR AVISO SI ESTÁ CERRADO EL REGISTRO */
+        <div style={{
+          background: '#f8d7da', color: '#721c24', padding: '20px', borderRadius: '12px',
+          textAlign: 'center', border: '1px solid #f5c6cb', maxWidth: '400px'
+        }}>
+          <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>🚫 Inscripciones cerradas</p>
+          <p style={{ fontSize: '0.9rem' }}>No están abiertas las inscripciones para la liga actualmente. Contacta con un administrador.</p>
+          <button 
+            onClick={() => setIsRegister(false)} 
+            style={{ marginTop: '15px', background: '#721c24', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            VOLVER AL LOGIN
+          </button>
+        </div>
+      ) : (
+        /* 2. MOSTRAR EL FORMULARIO SI ES LOGIN O SI EL REGISTRO ESTÁ ABIERTO */
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', maxWidth: '400px' }}>
+          
+          {/* NICK (Solo en registro) */}
+          {isRegister && (
             <div>
-              <label style={labelStyle}>Teléfono móvil (Opcional):</label>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <select 
-                  value={countryCode} 
-                  onChange={e => setCountryCode(e.target.value)}
-                  style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', width: '130px' }}
-                >
-                  {COUNTRIES.map(c => (
-                    <option key={c.code + c.name} value={c.code}>
-                      {c.flag} {c.code}
-                    </option>
-                  ))}
-                </select>
-                <input 
-                  type="tel" placeholder="600000000" 
-                  value={phone} onChange={e => setPhone(e.target.value)}
-                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
-                />
-              </div>
-            </div>
-            
-            {/* TELEGRAM */}
-            <div>
-              <label style={labelStyle}>Usuario de Telegram (Opcional):</label>
-              <input 
-                type="text" placeholder="@tu_usuario" 
-                value={telegram} onChange={e => setTelegram(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
+              <label style={labelStyle}>Nick de usuario:</label>
+              <input
+                type="text" placeholder="ej: user1"
+                value={nick} onChange={e => setNick(e.target.value)} required
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
               />
             </div>
-          </>
-        )}
+          )}
 
-        {/* CONTRASEÑA */}
-        <div>
-          <label style={labelStyle}>Contraseña:</label>
-          <input 
-            type="password" placeholder="••••••••" 
-            value={password} onChange={e => setPassword(e.target.value)} required
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} 
-          />
-        </div>
-
-        {/* CONFIRMAR CONTRASEÑA */}
-        {isRegister && (
+          {/* EMAIL */}
           <div>
-            <label style={labelStyle}>Repite la contraseña:</label>
-            <input 
-              type="password" placeholder="••••••••" 
-              value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-              style={{ 
-                width: '100%', padding: '12px', borderRadius: '8px', 
-                border: isRegister && confirmPassword && password !== confirmPassword ? '1px solid #e74c3c' : '1px solid #ddd' 
-              }} 
+            <label style={labelStyle}>{isRegister ? 'Correo electrónico:' : 'Email o Nick:'}</label>
+            <input
+              type="text" placeholder={isRegister ? "usuario@email.com" : "Tu email o nick"}
+              value={email} onChange={e => setEmail(e.target.value)} required
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
             />
-            {isRegister && confirmPassword && password !== confirmPassword && (
-              <span style={{ color: '#e74c3c', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                Las contraseñas no coinciden
-              </span>
-            )}
           </div>
-        )}
-        
-        <button 
-          type="submit" 
-          disabled={loading} 
-          style={{ 
-            background: '#2ecc71', color: 'white', padding: '14px', borderRadius: '8px', 
-            border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', marginTop: '10px' 
-          }}
-        >
-          {loading ? 'CARGANDO...' : (isRegister ? 'CREAR CUENTA' : 'INICIAR SESIÓN')}
-        </button>
-      </form>
 
+          {isRegister && (
+            <>
+              {/* TELÉFONO (Solo en registro) */}
+              <div>
+                <label style={labelStyle}>Teléfono móvil (Opcional):</label>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <select
+                    value={countryCode}
+                    onChange={e => setCountryCode(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', width: '130px' }}
+                  >
+                    {COUNTRIES.map(c => (
+                      <option key={c.code + c.name} value={c.code}>{c.flag} {c.code}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel" placeholder="600000000"
+                    value={phone} onChange={e => setPhone(e.target.value)}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                  />
+                </div>
+              </div>
+
+              {/* TELEGRAM (Solo en registro) */}
+              <div>
+                <label style={labelStyle}>Usuario de Telegram (Opcional):</label>
+                <input
+                  type="text" placeholder="@tu_usuario"
+                  value={telegram} onChange={e => setTelegram(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                />
+              </div>
+            </>
+          )}
+
+          {/* CONTRASEÑA */}
+          <div>
+            <label style={labelStyle}>Contraseña:</label>
+            <input
+              type="password" placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)} required
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+            />
+          </div>
+
+          {/* REPETIR CONTRASEÑA (Solo en registro) */}
+          {isRegister && (
+            <div>
+              <label style={labelStyle}>Repite la contraseña:</label>
+              <input
+                type="password" placeholder="••••••••"
+                value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '8px',
+                  border: confirmPassword && password !== confirmPassword ? '1px solid #e74c3c' : '1px solid #ddd'
+                }}
+              />
+              {confirmPassword && password !== confirmPassword && (
+                <span style={{ color: '#e74c3c', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  Las contraseñas no coinciden
+                </span>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              background: '#2ecc71', color: 'white', padding: '14px', borderRadius: '8px',
+              border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', marginTop: '10px'
+            }}
+          >
+            {loading ? 'CARGANDO...' : (isRegister ? 'CREAR CUENTA' : 'INICIAR SESIÓN')}
+          </button>
+        </form>
+      )}
+
+      {/* BOTÓN PARA CAMBIAR ENTRE LOGIN/REGISTRO */}
       <p style={{ marginTop: '20px', fontSize: '0.9rem', textAlign: 'center' }}>
-        {isRegister ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'} 
-        <button onClick={() => setIsRegister(!isRegister)} style={{ background: 'none', border: 'none', color: '#2ecc71', fontWeight: 'bold', cursor: 'pointer', marginLeft: '5px' }}>
+        {isRegister ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
+        <button 
+          onClick={() => setIsRegister(!isRegister)} 
+          style={{ background: 'none', border: 'none', color: '#2ecc71', fontWeight: 'bold', cursor: 'pointer', marginLeft: '5px' }}
+        >
           {isRegister ? 'Inicia sesión' : 'Regístrate aquí'}
         </button>
       </p>

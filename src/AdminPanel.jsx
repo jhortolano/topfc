@@ -93,6 +93,14 @@ export default function AdminPanel({ config, onConfigChange }) {
 
 
   const [autoWeek, setAutoWeek] = useState(config?.auto_week_by_date || false);
+  const [allowReg, setAllowReg] = useState(config?.allow_registration ?? true);
+
+  const [hideRetired, setHideRetired] = useState(true); // Por defecto seleccionado
+
+  // Sincronizar si la config cambia desde fuera
+  useEffect(() => {
+    setAllowReg(config?.allow_registration ?? true);
+  }, [config?.allow_registration]);
 
   // Sincroniza si la prop cambia desde fuera
   useEffect(() => {
@@ -471,11 +479,25 @@ export default function AdminPanel({ config, onConfigChange }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
               <div><small>REGISTRADOS</small>
-                {availableUsers.filter(u => !Object.values(assignments).flat().includes(u.id)).map(u => (
-                  <div key={u.id} style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
-                    {u.nick || "Sin Nick"} {[...Array(numDivisions)].map((_, i) => <button key={i} onClick={() => handleAssign(u.id, i + 1)}>D{i + 1}</button>)}
-                  </div>
-                ))}
+                {/* LISTA FILTRADA EN GESTIÓN DE USUARIOS */}
+                {availableUsers
+                  .filter(u => {
+                    // 1. Filtro por búsqueda (Nick o Email)
+                    const matchesSearch =
+                      (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                      (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+                    // 2. Filtro de usuarios retirados (AQUÍ ESTABA EL FALLO)
+                    // Comprobamos si el nick empieza por "Retirado" y si el checkbox 'hideRetired' está activo
+                    const isRetired = u.nick?.toLowerCase().startsWith("retirado");
+                    const matchesRetiredFilter = hideRetired ? !isRetired : true;
+
+                    return matchesSearch && matchesRetiredFilter;
+                  })
+                  .map(u => (
+                    <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
+                  ))
+                }
               </div>
               {[...Array(numDivisions)].map((_, i) => (
                 <div key={i} style={{ background: '#f0fff4', padding: '5px' }}>
@@ -534,6 +556,55 @@ export default function AdminPanel({ config, onConfigChange }) {
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios</h4>
 
+        {/* CONTROL DE REGISTRO DE NUEVOS USUARIOS */}
+        <div style={{
+          marginBottom: '15px',
+          padding: '10px',
+          background: allowReg ? '#f0fff4' : '#fff5f5',
+          borderRadius: '8px',
+          border: allowReg ? '1px solid #c6f6d5' : '1px solid #fed7d7',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            color: allowReg ? '#2f855a' : '#c53030'
+          }}>
+            <input
+              type="checkbox"
+              checked={!allowReg} // Marcamos si "impedimos" el registro
+              onChange={async (e) => {
+                const valueToBlock = e.target.checked; // Si está marcado, queremos bloquear (false)
+                const newValue = !valueToBlock;
+
+                setAllowReg(newValue); // Cambio visual rápido
+
+                const { error } = await supabase
+                  .from('config')
+                  .update({ allow_registration: newValue })
+                  .eq('id', 1);
+
+                if (error) {
+                  alert("Error al actualizar configuración");
+                  setAllowReg(!newValue);
+                } else {
+                  onConfigChange(); // Avisar al resto de la app
+                }
+              }}
+            />
+            BLOQUEAR NUEVOS REGISTROS
+          </label>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'normal' }}>
+            {allowReg ? "✅ Inscripciones abiertas" : "🚫 Inscripciones cerradas"}
+          </span>
+        </div>
+
         {/* BUSCADOR */}
         <div style={{ marginBottom: '15px' }}>
           <input
@@ -558,14 +629,41 @@ export default function AdminPanel({ config, onConfigChange }) {
 
           {/* LISTA FILTRADA */}
           {availableUsers
-            .filter(u =>
-              (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              (u.email?.toLowerCase().includes(searchTerm.toLowerCase()))
-            )
+            .filter(u => {
+              // 1. Filtro por el buscador (Nick o Email)
+              const coincideBusqueda =
+                (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+              // 2. Filtro de usuarios retirados
+              // Si hideRetired es true, filtramos los que NO empiezan por "Retirado"
+              const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
+              const pasaFiltroRetirados = hideRetired ? !esRetirado : true;
+
+              return coincideBusqueda && pasaFiltroRetirados;
+            })
             .map(u => (
               <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
             ))
           }
+        </div>
+        {/* CHECKBOX PARA OCULTAR RETIRADOS */}
+        <div style={{ marginTop: '15px', padding: '10px 5px', borderTop: '1px solid #eee' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            color: '#7f8c8d'
+          }}>
+            <input
+              type="checkbox"
+              checked={hideRetired}
+              onChange={(e) => setHideRetired(e.target.checked)}
+            />
+            Ocultar usuarios retirados
+          </label>
         </div>
       </div>
 

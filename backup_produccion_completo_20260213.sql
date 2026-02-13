@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bdhd44jI5KlFE1BCZY9h20RAn4yCDlSLbH6N8dW4ijqsE3mNkVyOFyjtkjEfWzg
+\restrict TSMJAJin9aCsYplnKq5ZYwHGD1mgLSizvt1k1p3JhR7PQjYJPGNzKvSHEqBFNMY
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -4011,7 +4011,7 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 --
 
 COPY public.config (id, current_week, current_season, auto_week_by_date, auto_playoff_by_date) FROM stdin;
-1	1	1	f	f
+1	2	1	f	f
 \.
 
 
@@ -4118,11 +4118,10 @@ COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_
 --
 
 COPY public.playoff_matches (id, playoff_id, round, match_order, home_team, away_team, home_score, away_score, winner_id, next_match_id, played, start_date, end_date) FROM stdin;
-4015bd2c-a5e5-4711-93da-0877f25a81a2	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Semifinales (Ida)	1	c9604bcf-9dd7-445a-9036-92e3013141e5	\N	\N	\N	\N	\N	f	2026-02-13 09:23:00+00	2026-02-20 09:23:00+00
-55d7e100-f527-44f4-b65b-9c0ce7a1190a	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Final (Ida)	0	\N	c9604bcf-9dd7-445a-9036-92e3013141e5	\N	\N	\N	\N	f	2026-02-27 10:24:00+00	2026-03-06 10:24:00+00
-e5b4deff-3351-4d86-b634-f1b1f78a2ee0	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Final (Vuelta)	0	\N	c9604bcf-9dd7-445a-9036-92e3013141e5	\N	\N	\N	\N	f	2026-03-06 10:25:00+00	2026-03-13 10:25:00+00
-ab5a00f0-e757-4110-a53a-d61c9cb551b6	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Semifinales (Vuelta)	0	3c68098c-1259-465a-b073-6626f755878f	c3047c54-a5b6-4308-902b-00acb9780ee9	5	0	\N	\N	t	2026-02-13 09:23:00+00	2026-02-20 09:23:00+00
-2921aa71-728a-49af-9d75-329153b5c5ec	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Semifinales (Ida)	0	c3047c54-a5b6-4308-902b-00acb9780ee9	3c68098c-1259-465a-b073-6626f755878f	1	1	\N	\N	t	2026-02-13 09:23:00+00	2026-02-20 09:23:00+00
+c5cc317f-4738-4510-bfe6-b81a7fbebd26	6bc71511-3e35-4d2c-8678-a8a56575ae94	Semifinales (Ida)	1	c9604bcf-9dd7-445a-9036-92e3013141e5	\N	\N	\N	\N	\N	f	2026-02-13 09:48:00+00	2026-02-20 09:48:00+00
+a7a6881e-846f-4415-b731-e30870e7d0d9	6bc71511-3e35-4d2c-8678-a8a56575ae94	Semifinales (Vuelta)	0	3c68098c-1259-465a-b073-6626f755878f	c3047c54-a5b6-4308-902b-00acb9780ee9	4	0	\N	\N	t	2026-02-13 09:48:00+00	2026-02-20 09:48:00+00
+10dc291b-9621-4a4b-a96c-c499713f0daf	6bc71511-3e35-4d2c-8678-a8a56575ae94	Semifinales (Ida)	0	c3047c54-a5b6-4308-902b-00acb9780ee9	3c68098c-1259-465a-b073-6626f755878f	1	1	\N	\N	t	2026-02-13 09:48:00+00	2026-02-20 09:48:00+00
+e10c4575-0a30-4638-a279-f24e430a29da	6bc71511-3e35-4d2c-8678-a8a56575ae94	Final	0	3c68098c-1259-465a-b073-6626f755878f	c9604bcf-9dd7-445a-9036-92e3013141e5	\N	\N	\N	\N	f	2026-02-27 10:49:00+00	2026-03-06 10:49:00+00
 \.
 
 
@@ -4131,7 +4130,7 @@ ab5a00f0-e757-4110-a53a-d61c9cb551b6	07dcaebf-409e-4c07-8cb2-7c5d5178e01d	Semifi
 --
 
 COPY public.playoffs (id, created_at, name, season, is_active, settings, current_round) FROM stdin;
-07dcaebf-409e-4c07-8cb2-7c5d5178e01d	2026-02-13 10:23:50.949833+00	45	1	t	{"Final": true, "Semifinales": true}	Semifinales (Ida)
+6bc71511-3e35-4d2c-8678-a8a56575ae94	2026-02-13 10:47:33.180932+00	50	1	t	{"Final": false, "Semifinales": true}	Semifinales (Ida)
 \.
 
 
@@ -5661,13 +5660,6 @@ CREATE POLICY "Admins pueden insertar partidos" ON public.matches FOR INSERT TO 
 
 
 --
--- Name: playoff_matches Jugadores pueden actualizar sus propios partidos; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Jugadores pueden actualizar sus propios partidos" ON public.playoff_matches FOR UPDATE TO authenticated USING (((auth.uid() = home_team) OR (auth.uid() = away_team))) WITH CHECK (((auth.uid() = home_team) OR (auth.uid() = away_team)));
-
-
---
 -- Name: config Lectura pública de configuración; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -5749,6 +5741,13 @@ CREATE POLICY "Permitir update a todos" ON public.matches FOR UPDATE USING (true
 --
 
 CREATE POLICY "Playoffs visibles para todos" ON public.playoffs FOR SELECT USING (true);
+
+
+--
+-- Name: playoff_matches Promocion_Abierta_Playoffs; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Promocion_Abierta_Playoffs" ON public.playoff_matches FOR UPDATE TO authenticated USING (((auth.uid() = home_team) OR (auth.uid() = away_team) OR (home_team IS NULL) OR (away_team IS NULL))) WITH CHECK (true);
 
 
 --
@@ -7408,5 +7407,5 @@ ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bdhd44jI5KlFE1BCZY9h20RAn4yCDlSLbH6N8dW4ijqsE3mNkVyOFyjtkjEfWzg
+\unrestrict TSMJAJin9aCsYplnKq5ZYwHGD1mgLSizvt1k1p3JhR7PQjYJPGNzKvSHEqBFNMY
 

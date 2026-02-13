@@ -34,10 +34,14 @@ function TarjetaResultado({ partido, onUpdated }) {
       const scoreV = parseInt(gV);
 
       // En playoff_matches_detallados (vista), los IDs reales son local_id y visitante_id
-      const idLocal = partido.local_id;
-      const idVisitante = partido.visitante_id;
+      // Intentamos capturar el ID de cualquier fuente posible (Vista o Tabla base)
+      const idLocal = partido.local_id || partido.home_team;
+      const idVisitante = partido.visitante_id || partido.away_team;
 
-      if (!idLocal || !idVisitante) throw new Error("Faltan IDs de los equipos.");
+      if (!idLocal || !idVisitante) {
+        console.error("Contenido de partido:", partido); // Para debug
+        throw new Error("Faltan IDs de los equipos.");
+      }
 
       // Datos según tabla (played vs is_played)
       const datosAEnviar = isPlayoff

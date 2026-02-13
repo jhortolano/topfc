@@ -47,7 +47,7 @@ function CategorySelector({ current, onChange, season }) {
   )
 }
 
-export default function Jugadores({ config }) { 
+export default function Jugadores({ config }) {
   const [usuarios, setUsuarios] = useState([])
   const [filtro, setFiltro] = useState('')
   const [catActiva, setCatActiva] = useState(1) // Puede ser número (DIV) o string (UUID de Playoff)

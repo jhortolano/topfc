@@ -82,7 +82,7 @@ function Login() {
     }
     if (isRegister) {
       const nickLower = nick.trim().toLowerCase();
-      
+
       // 1. Comprobar si es una palabra prohibida exacta
       if (NICK_BLACKLIST.includes(nickLower)) {
         alert(`El nick "${nick}" no está permitido.`);
@@ -96,7 +96,7 @@ function Login() {
         setLoading(false);
         return;
       }
-      
+
       // 3. (Opcional) Evitar nicks demasiado cortos
       if (nickLower.length < 3) {
         alert("El nick debe tener al menos 3 caracteres.");
@@ -120,6 +120,7 @@ function Login() {
       });
 
       if (authError) {
+        console.error("DEBUG AUTH ERROR:", authError); // AÑADIR ESTO
         alert(authError.message);
       } else if (authData?.user) {
         // 2. CREACIÓN DE PERFIL
@@ -191,8 +192,8 @@ function Login() {
         }}>
           <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>🚫 Inscripciones cerradas</p>
           <p style={{ fontSize: '0.9rem' }}>No están abiertas las inscripciones para la liga actualmente. Contacta con un administrador.</p>
-          <button 
-            onClick={() => setIsRegister(false)} 
+          <button
+            onClick={() => setIsRegister(false)}
             style={{ marginTop: '15px', background: '#721c24', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             VOLVER AL LOGIN
@@ -201,7 +202,7 @@ function Login() {
       ) : (
         /* 2. MOSTRAR EL FORMULARIO SI ES LOGIN O SI EL REGISTRO ESTÁ ABIERTO */
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', maxWidth: '400px' }}>
-          
+
           {/* NICK (Solo en registro) */}
           {isRegister && (
             <div>
@@ -305,8 +306,8 @@ function Login() {
       {/* BOTÓN PARA CAMBIAR ENTRE LOGIN/REGISTRO */}
       <p style={{ marginTop: '20px', fontSize: '0.9rem', textAlign: 'center' }}>
         {isRegister ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
-        <button 
-          onClick={() => setIsRegister(!isRegister)} 
+        <button
+          onClick={() => setIsRegister(!isRegister)}
           style={{ background: 'none', border: 'none', color: '#2ecc71', fontWeight: 'bold', cursor: 'pointer', marginLeft: '5px' }}
         >
           {isRegister ? 'Inicia sesión' : 'Regístrate aquí'}

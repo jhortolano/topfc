@@ -85,11 +85,26 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   const [isIdaVuelta, setIsIdaVuelta] = useState(true);
 
-  // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
+// --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
+  
+  // 1. Identificamos las bases de datos por su ID único
   const isProd = supabaseUrl.includes('nkecyqwcrsicsyladdhw');
-  const dbName = isProd ? "PRODUCCIÓN (Real)" : "TESTING (Pruebas)";
-  const dbColor = isProd ? "#e74c3c" : "#3498db";
+  const isSilver = supabaseUrl.includes('yzudeybjzjmzsnjlgsui'); // El ID de tu nueva DB
+
+  // 2. Definimos el nombre que se mostrará
+  let dbName = "DESCONOCIDO";
+  if (isProd) dbName = "PRODUCCIÓN (Real)";
+  else if (isSilver) dbName = "SILVER (Pre-Producción)";
+  else dbName = "LOCAL / TESTING";
+
+  // 3. Definimos el color (Silver suele ser un gris azulado o plateado)
+  let dbColor = "#95a5a6"; // Gris por defecto
+  if (isProd) dbColor = "#e74c3c"; // Rojo para Prod
+  if (isSilver) dbColor = "#7f8c8d"; // Plateado/Gris oscuro para Silver
+
+
+
 
 
   const [autoWeek, setAutoWeek] = useState(config?.auto_week_by_date || false);

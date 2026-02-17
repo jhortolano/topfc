@@ -47,7 +47,7 @@ function CategorySelector({ current, onChange, season }) {
   )
 }
 
-export default function Jugadores({ config }) { 
+export default function Jugadores({ config }) {
   const [usuarios, setUsuarios] = useState([])
   const [filtro, setFiltro] = useState('')
   const [catActiva, setCatActiva] = useState(1) // Puede ser número (DIV) o string (UUID de Playoff)
@@ -104,16 +104,15 @@ export default function Jugadores({ config }) {
   });
 
   const abrirTelegram = (u) => {
-    if (u.telegram_user) {
-      const cleanUser = u.telegram_user.replace('@', '');
-      window.open(`https://t.me/${cleanUser}`, '_blank');
-    } else if (u.phone) {
-      const cleanPhone = u.phone.replace(/\D/g, '');
-      window.open(`https://t.me/+${cleanPhone}`, '_blank');
-    } else {
-      alert("Este usuario no tiene contacto configurado");
-    }
-  }
+    const cleanUser = u.telegram_user.replace('@', '');
+    window.open(`https://t.me/${cleanUser}`, '_blank');
+  };
+
+  const abrirWhatsApp = (u) => {
+    // Elimina cualquier carácter que no sea un número para la URL de WhatsApp
+    const cleanPhone = u.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanPhone}`, '_blank');
+  };
 
   return (
     <div>
@@ -160,21 +159,33 @@ export default function Jugadores({ config }) {
                 <span style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem' }}>{u.nick}</span>
               </div>
 
-              {(u.telegram_user || u.phone) ? (
-                <button
-                  onClick={() => abrirTelegram(u)}
-                  style={{
-                    background: '#0088cc', color: 'white', border: 'none',
-                    borderRadius: '12px', padding: '0 12px', height: '32px',
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold'
-                  }}
-                >
-                  <span>✈</span> CONTACTAR
-                </button>
-              ) : (
-                <span style={{ fontSize: '0.65rem', color: '#bdc3c7', fontStyle: 'italic' }}>Sin contacto</span>
-              )}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {u.telegram_user && (
+                  <button
+                    onClick={() => abrirTelegram(u)}
+                    style={{
+                      background: '#0088cc', color: 'white', border: 'none',
+                      borderRadius: '12px', padding: '0 10px', height: '32px',
+                      cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold'
+                    }}
+                  >
+                    <span>✈</span> Telegram
+                  </button>
+                )}
+
+                {u.phone && (
+                  <button
+                    onClick={() => abrirWhatsApp(u)}
+                    style={{
+                      background: '#25D366', color: 'white', border: 'none',
+                      borderRadius: '12px', padding: '0 10px', height: '32px',
+                      cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold'
+                    }}
+                  >
+                    <span>📞</span> Whatsapp
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {usuariosFiltrados.length === 0 && (

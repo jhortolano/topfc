@@ -1,9 +1,9 @@
 --EXPORTING DATA FROM PROD
 -- COMMAND LINE -- 
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > backup_produccion_completo_20260216.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > backup_produccion_completo_20260217.sql
 
 --COMMAND LINE 2 --
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > usuarios_prod.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > usuarios_prod_20260217.sql
 
 
 -- BORRAR DATOS EN TESTING DATABASE
@@ -14,15 +14,15 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
 
 --CARGAR USUARIOS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f usuarios_prod.sql
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f usuarios_prod_20260217.sql
 
-SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f usuarios_prod.sql  
+SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f usuarios_prod_20260217.sql  
 
 
 --CARGAR TABLAS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_produccion_completo_20260216.sql
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f backup_produccion_completo_20260217.sql
 
-SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f backup_produccion_completo_20260216.sql
+SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f backup_produccion_completo_20260217.sql
 
 -SQL en testing:
 -- 1. Recargar el esquema para la API de PostgREST

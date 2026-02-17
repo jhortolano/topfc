@@ -85,9 +85,9 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   const [isIdaVuelta, setIsIdaVuelta] = useState(true);
 
-// --- LÓGICA DE DETECCIÓN DE ENTORNO ---
+  // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
-  
+
   // 1. Identificamos las bases de datos por su ID único
   const isProd = supabaseUrl.includes('nkecyqwcrsicsyladdhw');
   const isSilver = supabaseUrl.includes('yzudeybjzjmzsnjlgsui'); // El ID de tu nueva DB
@@ -492,40 +492,96 @@ export default function AdminPanel({ config, onConfigChange }) {
               /> Solo Ida
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, gap: '10px', marginTop: '10px' }}>
-              <div><small>REGISTRADOS</small>
-                {/* LISTA FILTRADA EN GESTIÓN DE USUARIOS */}
-                {availableUsers
-                  .filter(u => {
-                    // 1. Filtro por búsqueda (Nick o Email)
-                    const matchesSearch =
-                      (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                      (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+{/* CONTENEDOR GRID DE REPARTO */}
+<div style={{ 
+  display: 'grid', 
+  gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, 
+  gap: '15px', 
+  marginTop: '20px',
+  alignItems: 'start' 
+}}>
+  
+  {/* COLUMNA DE USUARIOS DISPONIBLES */}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+    <small style={{ fontWeight: 'bold', color: '#7f8c8d' }}>JUGADORES DISPONIBLES</small>
+    
+    {/* FILTRO RÁPIDO DENTRO DEL SELECTOR */}
+    <input 
+      type="text" 
+      placeholder="Filtrar..." 
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      style={{ padding: '5px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+    />
 
-                    // 2. Filtro de usuarios retirados (AQUÍ ESTABA EL FALLO)
-                    // Comprobamos si el nick empieza por "Retirado" y si el checkbox 'hideRetired' está activo
-                    const isRetired = u.nick?.toLowerCase().startsWith("retirado");
-                    const matchesRetiredFilter = hideRetired ? !isRetired : true;
-
-                    return matchesSearch && matchesRetiredFilter;
-                  })
-                  .map(u => (
-                    <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
-                  ))
-                }
-              </div>
-              {[...Array(numDivisions)].map((_, i) => (
-                <div key={i} style={{ background: '#f0fff4', padding: '5px' }}>
-                  <small>DIV {i + 1}</small>
-                  {assignments[i + 1].map(id => (
-                    <div key={id} style={{ fontSize: '0.7rem' }}>
-                      {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
-                      <button onClick={() => handleAssign(id, 0)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>x</button>
-                    </div>
-                  ))}
-                </div>
-              ))}
+    <div style={{ 
+      maxHeight: '300px', 
+      overflowY: 'auto', 
+      border: '1px solid #eee', 
+      padding: '5px', 
+      background: '#fafafa',
+      borderRadius: '4px' 
+    }}>
+      {availableUsers
+        .filter(u => {
+          const matchesSearch = (u.nick?.toLowerCase().includes(searchTerm.toLowerCase()));
+          const isRetired = u.nick?.toLowerCase().startsWith("retirado");
+          const matchesRetiredFilter = hideRetired ? !isRetired : true;
+          return matchesSearch && matchesRetiredFilter;
+        })
+        .map(u => (
+          <div key={u.id} style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            padding: '6px 4px', 
+            borderBottom: '1px solid #eee', 
+            fontSize: '0.75rem' 
+          }}>
+            <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
+              {u.nick || 'Sin Nick'}
+            </span>
+            <div style={{ display: 'flex', gap: '2px' }}>
+              <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
+              {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
+              {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
             </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  {/* COLUMNAS DE LAS DIVISIONES (DINÁMICAS) */}
+  {[...Array(numDivisions)].map((_, i) => (
+    <div key={i} style={{ 
+      background: '#f0fff4', 
+      padding: '10px', 
+      borderRadius: '6px', 
+      border: '1px solid #c6f6d5',
+      minHeight: '100px' 
+    }}>
+      <small style={{ fontWeight: 'bold', color: '#2f855a', display: 'block', marginBottom: '5px' }}>DIVISIÓN {i + 1}</small>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        {assignments[i + 1].map(id => (
+          <div key={id} style={{ 
+            fontSize: '0.75rem', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            background: 'white', 
+            padding: '3px 6px', 
+            borderRadius: '3px',
+            border: '1px solid #e2e8f0' 
+          }}>
+            {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
+            <button onClick={() => handleAssign(id, 0)} style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+          </div>
+        ))}
+        {assignments[i + 1].length === 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>Vacía...</span>}
+      </div>
+    </div>
+  ))}
+</div>
             <div style={{ marginTop: '15px' }}>
               <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
               <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>

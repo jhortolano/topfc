@@ -3,3 +3,14 @@ git commit -m "..."
 git push origin main 
 
 git push -u origin topfc-0.9
+
+
+--Upload to Silver and Merge in Main --
+git add .
+git commit -m "..."
+git push origin silver
+
+git checkout main
+git pull origin main
+git merge silver
+git push origin main

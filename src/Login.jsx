@@ -229,7 +229,7 @@ function Login() {
             <>
               {/* TELÉFONO (Solo en registro) */}
               <div>
-                <label style={labelStyle}>Teléfono móvil (Opcional):</label>
+                <label style={labelStyle}>Whatsapp (Opcional):</label>
                 <div style={{ display: 'flex', gap: '5px' }}>
                   <select
                     value={countryCode}

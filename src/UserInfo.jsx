@@ -136,7 +136,7 @@ export default function UserInfo({ profile, onUpdate }) {
         <label style={labelStyle}>Usuario de Telegram</label>
         <input style={editableInputStyle} type="text" value={telegram} onChange={e => setTelegram(e.target.value)} placeholder="@usuario" />
 
-        <label style={labelStyle}>Teléfono</label>
+        <label style={labelStyle}>Whatsapp</label>
         <input style={editableInputStyle} type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+34..." />
 
         {mensaje && <p style={{ fontSize: '0.85rem', textAlign: 'center', color: mensaje.startsWith('✅') ? '#27ae60' : '#e74c3c' }}>{mensaje}</p>}

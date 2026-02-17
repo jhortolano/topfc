@@ -48,6 +48,19 @@ const labelStyle = {
   display: 'block'
 };
 
+const mostrarPrivacidad = (e) => {
+  e.preventDefault();
+  alert(
+    "INFORMACIÓN BÁSICA SOBRE PROTECCIÓN DE DATOS\n\n" +
+    "- Responsable: Administrador de TOP FC\n" +
+    "- Finalidad: Gestión de la liga y permitir el contacto entre jugadores para disputar partidos.\n" +
+    "- Datos tratados: Nick, Email, WhatsApp y Telegram.\n" +
+    "- Legitimación: Tu consentimiento al marcar la casilla.\n" +
+    "- Destinatarios: Los datos solo serán visibles para otros usuarios registrados de la liga.\n" +
+    "- Derechos: Puedes solicitar el acceso, rectificación o borrado de tus datos contactando con el administrador."
+  );
+};
+
 function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -62,6 +75,8 @@ function Login() {
   const [countryCode, setCountryCode] = useState('+34');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
+
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Este código lee la base de datos al abrir la página
   useEffect(() => {
@@ -80,6 +95,12 @@ function Login() {
       alert("Las contraseñas no coinciden. Por favor, verifícalas.");
       return;
     }
+
+    if (isRegister && !acceptTerms) {
+      alert("Debes aceptar la política de tratamiento de datos para continuar.");
+      return;
+    }
+
     if (isRegister) {
       const nickLower = nick.trim().toLowerCase();
 
@@ -287,6 +308,40 @@ function Login() {
                   Las contraseñas no coinciden
                 </span>
               )}
+            </div>
+          )}
+
+          {isRegister && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              margin: '10px 0',
+              background: '#f8f9fa',
+              padding: '10px',
+              borderRadius: '8px',
+              border: '1px solid #eee'
+            }}>
+              <input
+                type="checkbox"
+                id="terms"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                style={{ marginTop: '4px', cursor: 'pointer' }}
+              />
+              <label htmlFor="terms" style={{ fontSize: '0.75rem', color: '#7f8c8d', lineHeight: '1.2' }}>
+                Acepto que mis datos (Nick, Email, WhatsApp y Telegram) sean visibles para otros participantes
+                de la liga con el fin de facilitar la organización y contacto de los partidos.
+                <button
+                  onClick={mostrarPrivacidad}
+                  style={{
+                    background: 'none', border: 'none', color: '#2ecc71',
+                    textDecoration: 'underline', cursor: 'pointer', padding: '0 5px', fontSize: '0.75rem'
+                  }}
+                >
+                  Leer más información.
+                </button>
+              </label>
             </div>
           )}
 

@@ -196,6 +196,8 @@ function ProximoPartido({ profile, config, onUpdated }) {
   const [partidosPlayoff, setPartidosPlayoff] = useState([])
   const [aviso, setAviso] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [encuestas, setEncuestas] = useState([]);
+  const [votosPropios, setVotosPropios] = useState({}); // { encuesta_id: opcion_seleccionada }
 
   const cargar = async () => {
     if (!config || !profile) return;
@@ -211,6 +213,28 @@ function ProximoPartido({ profile, config, onUpdated }) {
         .maybeSingle();
 
       setAviso(avisoData);
+
+      // --- 0.5 CARGAR ENCUESTAS ---
+      const { data: encData } = await supabase
+        .from('encuestas')
+        .select('*')
+        .eq('activa', true)
+        .order('created_at', { ascending: false });
+
+      if (encData && encData.length > 0) {
+        setEncuestas(encData);
+
+        // Cargar qué ha votado este usuario específicamente
+        const { data: misVotos } = await supabase
+          .from('votos_encuesta')
+          .select('encuesta_id, opcion_index')
+          .eq('usuario_id', profile.id)
+          .in('encuesta_id', encData.map(e => e.id));
+
+        const mapaVotos = {};
+        misVotos?.forEach(v => mapaVotos[v.encuesta_id] = v.opcion_index);
+        setVotosPropios(mapaVotos);
+      }
 
       // --- 1. CARGAR PARTIDOS DE LIGA ---
       const { data: currentWeekData } = await supabase
@@ -310,6 +334,28 @@ function ProximoPartido({ profile, config, onUpdated }) {
 
   const todosLosPartidos = [...partidosPlayoff, ...partidosLiga];
 
+  const votar = async (encuestaId, opcionIndex) => {
+    try {
+      const { error } = await supabase
+        .from('votos_encuesta')
+        .upsert(
+          {
+            encuesta_id: encuestaId,
+            usuario_id: profile.id,
+            opcion_index: opcionIndex
+          },
+          { onConflict: 'encuesta_id, usuario_id' } // <-- ESTA LÍNEA ES LA CLAVE
+        );
+
+      if (error) throw error;
+
+      setVotosPropios(prev => ({ ...prev, [encuestaId]: opcionIndex }));
+    } catch (error) {
+      console.error("Error completo:", error);
+      alert("Error al guardar el voto: " + error.message);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
@@ -331,6 +377,52 @@ function ProximoPartido({ profile, config, onUpdated }) {
           </div>
         </div>
       )}
+
+      {/* SECCIÓN DE ENCUESTAS */}
+      {encuestas.map(enc => (
+        <div key={enc.id} style={{
+          background: '#ffffff',
+          border: '1px solid #e1e8ed',
+          padding: '15px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+        }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#2c3e50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📊 {enc.pregunta}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {enc.opciones.map((opcion, idx) => {
+              const estaSeleccionado = votosPropios[enc.id] === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => votar(enc.id, idx)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: estaSeleccionado ? '2px solid #3498db' : '1px solid #ced4da',
+                    background: estaSeleccionado ? '#ebf5ff' : 'white',
+                    color: estaSeleccionado ? '#2980b9' : '#495057',
+                    fontWeight: estaSeleccionado ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s ease',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  <span style={{ marginRight: '8px' }}>{estaSeleccionado ? '✅' : '⚪'}</span>
+                  {opcion}
+                </button>
+              );
+            })}
+          </div>
+          {votosPropios[enc.id] !== undefined && (
+            <p style={{ fontSize: '0.7rem', color: '#95a5a6', marginTop: '10px', textAlign: 'center', fontStyle: 'italic' }}>
+              Voto registrado. Puedes cambiarlo pulsando otra opción.
+            </p>
+          )}
+        </div>
+      ))}
 
       {todosLosPartidos.length === 0 ? (
         <div style={{ color: '#95a5a6', fontSize: '0.8rem', textAlign: 'center', padding: '20px' }}>

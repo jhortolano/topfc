@@ -9,6 +9,7 @@ import UserInfo from './UserInfo'
 import Jugadores from './Jugadores'
 import Normas from './Normas'
 import AdminPlayoffs from './AdminPlayoffs'
+import AvisosAdmin from './AvisosAdmin'
 
 
 const globalStyles = `
@@ -230,6 +231,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
   if (isAdmin) {
     tabs.push({ id: 'admin', label: 'ADMIN' });
     tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
+    tabs.push({ id: 'avisos_admin', label: 'AVISOS' });
   }
 
   return (
@@ -342,6 +344,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
         {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} />}
+        {activeTab === 'avisos_admin' && <AvisosAdmin />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}
         {activeTab === 'normas' && <Normas />}

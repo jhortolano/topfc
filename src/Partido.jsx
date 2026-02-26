@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import ReactMarkdown from 'react-markdown'
 
 const Avatar = ({ url }) => (
   <div style={{
@@ -56,13 +57,15 @@ function TarjetaResultado({ partido, onUpdated }) {
       if (errorUpdate) throw errorUpdate;
 
       if (isPlayoff) {
+        // 1. Intentar actualizar el ganador_id en el partido actual si la columna existe
+        await supabase.from('playoff_matches').update({ winner_id: null }).eq('id', partido.id);
+
         const pId = String(partido.playoff_id);
         const mOrder = parseInt(partido.match_order);
         const faseActualNombre = partido.round;
         const faseBase = faseActualNombre.split(' (')[0].trim();
         const esDoble = faseActualNombre.includes('(Ida)') || faseActualNombre.includes('(Vuelta)');
 
-        // Traemos los enfrentamientos para calcular el global
         const { data: enfrentamientos } = await supabase
           .from('playoff_matches')
           .select('*')
@@ -79,13 +82,10 @@ function TarjetaResultado({ partido, onUpdated }) {
           const ida = enfrentamientos.find(m => m.round.includes('(Ida)'));
           const vuelta = enfrentamientos.find(m => m.round.includes('(Vuelta)'));
 
-          // Consideramos el estado actual
           const idaFinal = ida?.id === partido.id ? { ...ida, home_score: scoreL, away_score: scoreV, played: true } : ida;
           const vueltaFinal = vuelta?.id === partido.id ? { ...vuelta, home_score: scoreL, away_score: scoreV, played: true } : vuelta;
 
           if (idaFinal?.played && vueltaFinal?.played) {
-            // El ID del equipo no cambia aunque cambie de casa
-            // Local de Ida (ida.home_team) es Visitante de Vuelta (vuelta.away_team)
             const globalLocal = (idaFinal.home_score || 0) + (vueltaFinal.away_score || 0);
             const globalVisitante = (idaFinal.away_score || 0) + (vueltaFinal.home_score || 0);
 
@@ -94,7 +94,7 @@ function TarjetaResultado({ partido, onUpdated }) {
           }
         }
 
-        // PROMOCIÓN
+        // 3. EJECUTAR PROMOCIÓN
         if (ganadorId) {
           const ordenRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
           const idx = ordenRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
@@ -105,19 +105,19 @@ function TarjetaResultado({ partido, onUpdated }) {
             const esLocalNext = mOrder % 2 === 0;
             const columnaDestino = esLocalNext ? 'home_team' : 'away_team';
 
-            const { error: errorNext } = await supabase
-              .from('playoff_matches')
-              .update({ [columnaDestino]: ganadorId }) // Solo enviamos el ID del ganador
-              .eq('playoff_id', pId)
-              .eq('match_order', sigMatchOrder)
-              // Cambiamos ilike por un eq más limpio si es posible, 
-              // o nos aseguramos de que el round coincida exactamente
-              .ilike('round', `${sigRonda}%`);
+            // IMPORTANTE: Usamos un try/catch específico para la promoción
+            // para que si falla el RLS del siguiente partido, al menos el resultado actual se guarde
+            try {
+              const { error: errorNext } = await supabase
+                .from('playoff_matches')
+                .update({ [columnaDestino]: ganadorId })
+                .eq('playoff_id', pId)
+                .eq('match_order', String(sigMatchOrder))
+                .ilike('round', `${sigRonda}%`);
 
-            if (errorNext) {
-              console.error("Error en promoción:", errorNext);
-              // No lanzamos throw aquí para que al menos el resultado del partido actual se quede guardado
-              alert("Resultado guardado, pero hubo un problema al promocionar al siguiente partido. Avisa al admin.");
+              if (errorNext) console.warn("RLS bloqueó la promoción automática. El admin deberá asignar al ganador.");
+            } catch (e) {
+              console.error("Error promocionando:", e);
             }
           }
         }
@@ -194,6 +194,7 @@ function TarjetaResultado({ partido, onUpdated }) {
 function ProximoPartido({ profile, config, onUpdated }) {
   const [partidosLiga, setPartidosLiga] = useState([])
   const [partidosPlayoff, setPartidosPlayoff] = useState([])
+  const [aviso, setAviso] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const cargar = async () => {
@@ -201,6 +202,16 @@ function ProximoPartido({ profile, config, onUpdated }) {
     setLoading(true)
 
     try {
+      // --- 0. CARGAR AVISO ---
+      const { data: avisoData } = await supabase
+        .from('avisos')
+        .select('*')
+        .eq('id', 1)
+        .eq('mostrar', true) // Solo lo traemos si el checkbox está activo
+        .maybeSingle();
+
+      setAviso(avisoData);
+
       // --- 1. CARGAR PARTIDOS DE LIGA ---
       const { data: currentWeekData } = await supabase
         .from('weeks_schedule')
@@ -301,6 +312,26 @@ function ProximoPartido({ profile, config, onUpdated }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+      {/* SECCIÓN DE AVISO */}
+      {aviso && (
+        <div style={{
+          background: '#fff3cd',
+          border: '1px solid #ffeeba',
+          padding: '20px',
+          borderRadius: '12px',
+          color: '#856404',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+        }}>
+          <h2 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', color: '#664d03' }}>
+            {aviso.titulo}
+          </h2>
+          <div style={{ margin: 0, fontSize: '1rem', lineHeight: '1.4' }}>
+            <ReactMarkdown>{aviso.contenido}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+
       {todosLosPartidos.length === 0 ? (
         <div style={{ color: '#95a5a6', fontSize: '0.8rem', textAlign: 'center', padding: '20px' }}>
           No tienes partidos de Liga ni Playoff para esta semana.

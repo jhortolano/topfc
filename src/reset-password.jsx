@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { supabase } from './supabaseClient' // Ajusta la ruta si es necesario
-import { useNavigate } from 'react-router-dom' // O el router que uses
 
 export default function ResetPassword({ onFinish }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState('')
-  const navigate = useNavigate()
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault()

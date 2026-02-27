@@ -48,17 +48,41 @@ function App() {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false)
 
   useEffect(() => {
+    // 1. Estilos
     const styleSheet = document.createElement("style");
     styleSheet.innerText = globalStyles;
     document.head.appendChild(styleSheet);
-    if (window.location.hash.includes('type=recovery')) {
-      setIsRecoveryMode(true)
-    }
+
+    // 2. Función para detectar recuperación
+    const checkRecovery = () => {
+      console.log("Comprobando hash:", window.location.hash);
+      if (window.location.hash.includes('type=recovery')) {
+        console.log("¡Modo recuperación activado!");
+        setIsRecoveryMode(true);
+      }
+    };
+
+    // Ejecutar al cargar
+    checkRecovery();
+
+    // ESCUCHAR cambios en la URL sin recargar la página
+    window.addEventListener('hashchange', checkRecovery);
+
+    // 3. Supabase y Config
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session))
-    fetchConfig()
-    return () => subscription.unsubscribe()
-  }, [])
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      // Si el evento es PASSWORD_RECOVERY, también activamos el modo
+      if (_event === 'PASSWORD_RECOVERY') setIsRecoveryMode(true);
+    });
+
+    fetchConfig();
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('hashchange', checkRecovery); // Limpieza
+    };
+  }, []);
 
 
 
@@ -134,6 +158,16 @@ function App() {
     setLoading(false); // Terminamos de cargar
   }
 
+  if (isRecoveryMode) {
+    return (
+      <ResetPassword
+        onFinish={() => {
+          setIsRecoveryMode(false);
+          window.location.hash = ""; // Limpia la URL para que no reentre al recargar
+        }}
+      />
+    );
+  }
   // 1. Si no hay sesión, al Login
   if (!session) return <Login />
 

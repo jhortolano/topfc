@@ -58,7 +58,7 @@ export default function UserInfo({ profile, onUpdate }) {
           canvas.toBlob(async (blob) => {
             // Usamos un nombre fijo basado en el ID para que siempre sea el mismo archivo
             // Añadimos el nombre de la carpeta antes del nombre del archivo
-            const folderName = 'avatars'; 
+            const folderName = 'avatars';
             const filePath = `${folderName}/${profile.id}.webp`;
 
             const { error: uploadError } = await supabase.storage
@@ -99,32 +99,49 @@ export default function UserInfo({ profile, onUpdate }) {
     }
   }
 
+  const handleResetPassword = async () => {
+    setLoading(true)
+    setMensaje('Enviando enlace...')
+
+    // Enviamos el correo de recuperación al email del perfil
+    const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+      redirectTo: `${window.location.origin}/reset-password`, // Asegúrate de tener esta ruta o usa la base
+    })
+
+    if (error) {
+      setMensaje('❌ Error: ' + error.message)
+    } else {
+      setMensaje('✅ Email de recuperación enviado a ' + profile.email)
+    }
+    setLoading(false)
+  }
+
   return (
     <div style={{ maxWidth: '400px', margin: '0 auto', padding: '10px' }}>
       <h3 style={{ borderBottom: '2px solid #2ecc71', paddingBottom: '10px', color: '#2c3e50', marginTop: 0 }}>
         Configuración de Cuenta
       </h3>
-      
+
       <form onSubmit={handleSave}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
-        <div style={{ 
-          width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', 
-          background: '#eee', border: '3px solid #2ecc71', marginBottom: '10px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: '3rem', color: '#bdc3c7' }}>👤</span>
-          )}
-        </div>
-        <label style={{ 
-          background: '#34495e', color: 'white', padding: '6px 12px', borderRadius: '4px', 
-          fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' 
-        }}>
-          {uploading ? 'PROCESANDO...' : 'CAMBIAR FOTO'}
-          <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading} style={{ display: 'none' }} />
-        </label>
+          <div style={{
+            width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden',
+            background: '#eee', border: '3px solid #2ecc71', marginBottom: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: '3rem', color: '#bdc3c7' }}>👤</span>
+            )}
+          </div>
+          <label style={{
+            background: '#34495e', color: 'white', padding: '6px 12px', borderRadius: '4px',
+            fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold'
+          }}>
+            {uploading ? 'PROCESANDO...' : 'CAMBIAR FOTO'}
+            <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading} style={{ display: 'none' }} />
+          </label>
         </div>
 
         <label style={labelStyle}>Nick</label>
@@ -141,8 +158,8 @@ export default function UserInfo({ profile, onUpdate }) {
 
         {mensaje && <p style={{ fontSize: '0.85rem', textAlign: 'center', color: mensaje.startsWith('✅') ? '#27ae60' : '#e74c3c' }}>{mensaje}</p>}
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           style={{ width: '100%', background: '#2ecc71', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}
         >
@@ -151,11 +168,23 @@ export default function UserInfo({ profile, onUpdate }) {
       </form>
 
       <div style={{ borderTop: '1px solid #eee', marginTop: '20px', paddingTop: '20px' }}>
-        <button 
+        <button
+          onClick={handleResetPassword}
+          disabled={loading}
+          style={{
+            width: '100%', background: '#34495e', color: 'white', border: 'none',
+            padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer',
+            marginBottom: '10px'
+          }}
+        >
+          {loading ? 'ENVIANDO...' : 'CAMBIAR CONTRASEÑA'}
+        </button>
+        
+        <button
           onClick={() => supabase.auth.signOut()}
-          style={{ 
-            width: '100%', background: 'white', color: '#e74c3c', border: '1px solid #e74c3c', 
-            padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' 
+          style={{
+            width: '100%', background: 'white', color: '#e74c3c', border: '1px solid #e74c3c',
+            padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer'
           }}
         >
           CERRAR SESIÓN

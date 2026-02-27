@@ -105,7 +105,7 @@ export default function UserInfo({ profile, onUpdate }) {
 
     // Enviamos el correo de recuperación al email del perfil
     const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-      redirectTo: `${window.location.origin}/reset-password`, // Asegúrate de tener esta ruta o usa la base
+      redirectTo: `${window.location.origin}/`,
     })
 
     if (error) {
@@ -179,7 +179,7 @@ export default function UserInfo({ profile, onUpdate }) {
         >
           {loading ? 'ENVIANDO...' : 'CAMBIAR CONTRASEÑA'}
         </button>
-        
+
         <button
           onClick={() => supabase.auth.signOut()}
           style={{

@@ -10,6 +10,7 @@ import Jugadores from './Jugadores'
 import Normas from './Normas'
 import AdminPlayoffs from './AdminPlayoffs'
 import AvisosAdmin from './AvisosAdmin'
+import ResetPassword from './reset-password' // Asegúrate de que el nombre del archivo coincida
 
 
 const globalStyles = `
@@ -44,16 +45,22 @@ function App() {
   const [config, setConfig] = useState(null)
   const [isActivePlayer, setIsActivePlayer] = useState(false)
   const [loading, setLoading] = useState(true);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false)
 
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.innerText = globalStyles;
     document.head.appendChild(styleSheet);
+    if (window.location.hash.includes('type=recovery')) {
+      setIsRecoveryMode(true)
+    }
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session))
     fetchConfig()
     return () => subscription.unsubscribe()
   }, [])
+
+
 
   const fetchConfig = async () => {
     // 1. Traer la config actual

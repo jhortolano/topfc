@@ -84,7 +84,31 @@ function App() {
     };
   }, []);
 
+  // --- NUEVO: SISTEMA DE PRESENCIA (HEARTBEAT) ---
+  useEffect(() => {
+    const updatePresence = async () => {
+      // Solo intentamos actualizar si existe una sesión activa
+      if (session?.user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', session.user.id);
+      }
+    };
 
+    // Actualizar nada más detectar la sesión
+    if (session) {
+      updatePresence();
+    }
+
+    // Configurar el intervalo para cada 4 minutos (mientras la pestaña esté abierta)
+    const interval = setInterval(() => {
+      if (session) updatePresence();
+    }, 1000 * 60 * 4);
+
+    return () => clearInterval(interval);
+  }, [session]); // Se reinicia si la sesión cambia
+  // -----------------------------------------------
 
   const fetchConfig = async () => {
     // 1. Traer la config actual

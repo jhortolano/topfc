@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
+
+const getOnlineStatus = (lastSeen) => {
+  if (!lastSeen) return { dot: '#cbd5e0', text: 'Nunca', active: false };
+  const last = new Date(lastSeen);
+  const ahora = new Date();
+  const diffMs = ahora - last;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 5) return { dot: '#2ecc71', text: 'En línea', active: true };
+  if (diffMin < 60) return { dot: '#f1c40f', text: `Hace ${diffMin}m`, active: false };
+  if (diffMin < 1440) return { dot: '#95a5a6', text: `Hace ${Math.floor(diffMin / 60)}h`, active: false };
+  return { dot: '#d1d5db', text: last.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }), active: false };
+};
+
 // --- SUB-COMPONENTE PARA FILA DE PARTIDO ---
 function PartidoEditable({ partido, onUpdate }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
@@ -345,6 +359,20 @@ export default function AdminPanel({ config, onConfigChange }) {
     setLoading(false);
   };
 
+
+  const filteredUsers = availableUsers.filter(u => {
+    // 1. Filtro por el buscador (Nick o Email)
+    const coincideBusqueda =
+      (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // 2. Filtro de usuarios retirados
+    const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
+    const pasaFiltroRetirados = hideRetired ? !esRetirado : true;
+
+    return coincideBusqueda && pasaFiltroRetirados;
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
@@ -492,96 +520,96 @@ export default function AdminPanel({ config, onConfigChange }) {
               /> Solo Ida
             </label>
 
-{/* CONTENEDOR GRID DE REPARTO */}
-<div style={{ 
-  display: 'grid', 
-  gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`, 
-  gap: '15px', 
-  marginTop: '20px',
-  alignItems: 'start' 
-}}>
-  
-  {/* COLUMNA DE USUARIOS DISPONIBLES */}
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-    <small style={{ fontWeight: 'bold', color: '#7f8c8d' }}>JUGADORES DISPONIBLES</small>
-    
-    {/* FILTRO RÁPIDO DENTRO DEL SELECTOR */}
-    <input 
-      type="text" 
-      placeholder="Filtrar..." 
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      style={{ padding: '5px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
-    />
+            {/* CONTENEDOR GRID DE REPARTO */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`,
+              gap: '15px',
+              marginTop: '20px',
+              alignItems: 'start'
+            }}>
 
-    <div style={{ 
-      maxHeight: '300px', 
-      overflowY: 'auto', 
-      border: '1px solid #eee', 
-      padding: '5px', 
-      background: '#fafafa',
-      borderRadius: '4px' 
-    }}>
-      {availableUsers
-        .filter(u => {
-          const matchesSearch = (u.nick?.toLowerCase().includes(searchTerm.toLowerCase()));
-          const isRetired = u.nick?.toLowerCase().startsWith("retirado");
-          const matchesRetiredFilter = hideRetired ? !isRetired : true;
-          return matchesSearch && matchesRetiredFilter;
-        })
-        .map(u => (
-          <div key={u.id} style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: '6px 4px', 
-            borderBottom: '1px solid #eee', 
-            fontSize: '0.75rem' 
-          }}>
-            <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
-              {u.nick || 'Sin Nick'}
-            </span>
-            <div style={{ display: 'flex', gap: '2px' }}>
-              <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
-              {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
-              {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
+              {/* COLUMNA DE USUARIOS DISPONIBLES */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <small style={{ fontWeight: 'bold', color: '#7f8c8d' }}>JUGADORES DISPONIBLES</small>
+
+                {/* FILTRO RÁPIDO DENTRO DEL SELECTOR */}
+                <input
+                  type="text"
+                  placeholder="Filtrar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ padding: '5px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+
+                <div style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  border: '1px solid #eee',
+                  padding: '5px',
+                  background: '#fafafa',
+                  borderRadius: '4px'
+                }}>
+                  {availableUsers
+                    .filter(u => {
+                      const matchesSearch = (u.nick?.toLowerCase().includes(searchTerm.toLowerCase()));
+                      const isRetired = u.nick?.toLowerCase().startsWith("retirado");
+                      const matchesRetiredFilter = hideRetired ? !isRetired : true;
+                      return matchesSearch && matchesRetiredFilter;
+                    })
+                    .map(u => (
+                      <div key={u.id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '6px 4px',
+                        borderBottom: '1px solid #eee',
+                        fontSize: '0.75rem'
+                      }}>
+                        <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
+                          {u.nick || 'Sin Nick'}
+                        </span>
+                        <div style={{ display: 'flex', gap: '2px' }}>
+                          <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
+                          {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
+                          {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+
+              {/* COLUMNAS DE LAS DIVISIONES (DINÁMICAS) */}
+              {[...Array(numDivisions)].map((_, i) => (
+                <div key={i} style={{
+                  background: '#f0fff4',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #c6f6d5',
+                  minHeight: '100px'
+                }}>
+                  <small style={{ fontWeight: 'bold', color: '#2f855a', display: 'block', marginBottom: '5px' }}>DIVISIÓN {i + 1}</small>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {assignments[i + 1].map(id => (
+                      <div key={id} style={{
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        background: 'white',
+                        padding: '3px 6px',
+                        borderRadius: '3px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
+                        <button onClick={() => handleAssign(id, 0)} style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+                      </div>
+                    ))}
+                    {assignments[i + 1].length === 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>Vacía...</span>}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))
-      }
-    </div>
-  </div>
-
-  {/* COLUMNAS DE LAS DIVISIONES (DINÁMICAS) */}
-  {[...Array(numDivisions)].map((_, i) => (
-    <div key={i} style={{ 
-      background: '#f0fff4', 
-      padding: '10px', 
-      borderRadius: '6px', 
-      border: '1px solid #c6f6d5',
-      minHeight: '100px' 
-    }}>
-      <small style={{ fontWeight: 'bold', color: '#2f855a', display: 'block', marginBottom: '5px' }}>DIVISIÓN {i + 1}</small>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        {assignments[i + 1].map(id => (
-          <div key={id} style={{ 
-            fontSize: '0.75rem', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            background: 'white', 
-            padding: '3px 6px', 
-            borderRadius: '3px',
-            border: '1px solid #e2e8f0' 
-          }}>
-            {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
-            <button onClick={() => handleAssign(id, 0)} style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
-          </div>
-        ))}
-        {assignments[i + 1].length === 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>Vacía...</span>}
-      </div>
-    </div>
-  ))}
-</div>
             <div style={{ marginTop: '15px' }}>
               <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
               <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
@@ -625,7 +653,7 @@ export default function AdminPanel({ config, onConfigChange }) {
 
       {/* SECCIÓN GESTIÓN DE USUARIOS */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios</h4>
+        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios ({filteredUsers.length})</h4>
 
         {/* CONTROL DE REGISTRO DE NUEVOS USUARIOS */}
         <div style={{
@@ -699,24 +727,15 @@ export default function AdminPanel({ config, onConfigChange }) {
           </div>
 
           {/* LISTA FILTRADA */}
-          {availableUsers
-            .filter(u => {
-              // 1. Filtro por el buscador (Nick o Email)
-              const coincideBusqueda =
-                (u.nick?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-              // 2. Filtro de usuarios retirados
-              // Si hideRetired es true, filtramos los que NO empiezan por "Retirado"
-              const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
-              const pasaFiltroRetirados = hideRetired ? !esRetirado : true;
-
-              return coincideBusqueda && pasaFiltroRetirados;
-            })
-            .map(u => (
+          {filteredUsers.length === 0 ? (
+            <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#95a5a6', padding: '20px' }}>
+              No se han encontrado usuarios con estos filtros.
+            </p>
+          ) : (
+            filteredUsers.map(u => (
               <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
             ))
-          }
+          )}
         </div>
         {/* CHECKBOX PARA OCULTAR RETIRADOS */}
         <div style={{ marginTop: '15px', padding: '10px 5px', borderTop: '1px solid #eee' }}>
@@ -831,10 +850,11 @@ function UserRow({ user, onRefresh }) {
   const [editNick, setEditNick] = useState(user.nick || '');
   const [editEmail, setEditEmail] = useState(user.email || '');
   const [editTelegram, setEditTelegram] = useState(user.telegram_user || '');
-  const [editPhone, setEditPhone] = useState(user.phone || ''); // Nuevo
+  const [editPhone, setEditPhone] = useState(user.phone || '');
   const [saving, setSaving] = useState(false);
 
-  // Comprobar si hay cambios incluyendo el teléfono
+  const status = getOnlineStatus(user.last_seen);
+
   const hasChanges =
     editNick !== (user.nick || '') ||
     editEmail !== (user.email || '') ||
@@ -847,7 +867,7 @@ function UserRow({ user, onRefresh }) {
       nick: editNick,
       email: editEmail,
       telegram_user: editTelegram,
-      phone: editPhone // Guardar teléfono
+      phone: editPhone 
     }).eq('id', user.id);
 
     if (error) alert(error.message);
@@ -856,39 +876,24 @@ function UserRow({ user, onRefresh }) {
   };
 
   const handleDelete = async () => {
-    console.log("Intentando anonimizar usuario con ID:", user.id); // Para depurar
-
     const confirmacion = window.confirm(
-      `¿Quieres eliminar visualmente a ${user.nick}? \n\nSe borrará su foto, email y teléfono, pero sus partidos se mantendrán como 'Usuario Retirado' para no romper la liga.`
+      `¿Quieres eliminar visualmente a ${user.nick}? \n\nSe borrará su foto, email y teléfono, pero sus partidos se mantendrán como 'Usuario Retirado'.`
     );
     if (!confirmacion) return;
-
     setSaving(true);
-
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           nick: `Retirado (${user.nick || 'Sin nombre'})`,
-          email: `retirado_${Date.now()}@liga.com`, // Email único para que no choque
+          email: `retirado_${Date.now()}@liga.com`,
           telegram_user: null,
           phone: null,
-          avatar_url: null // <--- Esto borra la foto en la base de datos
+          avatar_url: null 
         })
-        .eq('id', user.id)
-        .select(); // Forzamos a que devuelva el cambio para confirmar
-
-      if (error) {
-        console.error("Error detallado de Supabase:", error);
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        alert("Usuario anonimizado correctamente.");
-        onRefresh(); // Recarga la lista
-      } else {
-        alert("No se encontró el usuario o no tienes permisos para editarlo.");
-      }
+        .eq('id', user.id);
+      if (error) throw error;
+      onRefresh();
     } catch (err) {
       alert("Error: " + err.message);
     } finally {
@@ -900,19 +905,60 @@ function UserRow({ user, onRefresh }) {
     <div style={{
       display: 'grid',
       gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
-      gap: '8px', padding: '8px',
-      borderBottom: '1px solid #eee', alignItems: 'center'
+      gap: '8px', padding: '14px 8px', // Más padding vertical para el texto de abajo
+      borderBottom: '1px solid #eee', alignItems: 'center',
+      background: status.active ? '#f0fff4' : 'transparent',
+      position: 'relative'
     }}>
-      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editNick} onChange={e => setEditNick(e.target.value)} />
-      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
-      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%' }} value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+34..." />
+      
+      {/* COLUMNA NICK CORREGIDA */}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* El punto ahora está DENTRO del área del input a la izquierda */}
+        <div style={{
+          position: 'absolute',
+          left: '8px',
+          zIndex: 2,
+          width: '8px', height: '8px', borderRadius: '50%',
+          backgroundColor: status.dot,
+          boxShadow: status.active ? '0 0 5px #2ecc71' : 'none'
+        }} />
+        
+        <input 
+          style={{ 
+            fontSize: '0.7rem', 
+            padding: '4px 4px 4px 22px', // Padding izquierdo extra para no tapar el texto con el punto
+            width: '100%', 
+            fontWeight: 'bold', 
+            border: '1px solid #ddd', 
+            borderRadius: '4px',
+            boxSizing: 'border-box'
+          }} 
+          value={editNick} 
+          onChange={e => setEditNick(e.target.value)} 
+        />
+
+        {/* Texto de estado debajo del input */}
+        <span style={{ 
+          position: 'absolute', 
+          bottom: '-15px', 
+          left: '4px',
+          fontSize: '0.55rem', 
+          color: '#95a5a6',
+          whiteSpace: 'nowrap'
+        }}>
+          {status.text}
+        </span>
+      </div>
+
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%', border: '1px solid #ddd', borderRadius: '4px' }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%', border: '1px solid #ddd', borderRadius: '4px' }} value={editTelegram} onChange={e => setEditTelegram(e.target.value)} placeholder="@Telegram" />
+      <input style={{ fontSize: '0.7rem', padding: '4px', width: '100%', border: '1px solid #ddd', borderRadius: '4px' }} value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+34..." />
 
       <div style={{ display: 'flex', gap: '4px' }}>
         <button
           onClick={handleUpdate}
           disabled={!hasChanges || saving}
-          style={{ background: hasChanges ? '#2ecc71' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 8px', cursor: hasChanges ? 'pointer' : 'default' }}
+          style={{ background: hasChanges ? '#2ecc71' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 8px', cursor: 'pointer' }}
         >
           {saving ? '...' : '✓'}
         </button>

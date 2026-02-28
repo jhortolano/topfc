@@ -61,6 +61,13 @@ const mostrarPrivacidad = (e) => {
   );
 };
 
+const normalizeNick = (text) => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, ''); // Elimina cualquier cosa que NO sea letra o número
+};
+
 function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -175,13 +182,41 @@ function Login() {
     } else {
       // LOGIN NORMAL
       let loginEmail = email;
+
       if (!email.includes('@')) {
+        // 1. Simplemente quitamos espacios a los lados y pasamos a minúsculas
+        // pero MANTENEMOS los puntos y signos que el usuario haya puesto.
+        const searchInput = email.trim();
+
+        // 2. Buscamos usando ILIKE (que ya ignora mayúsculas/minúsculas)
         const { data: profileData } = await supabase
-          .from('profiles').select('email').eq('nick', email).maybeSingle();
-        if (profileData) loginEmail = profileData.email;
+          .from('profiles')
+          .select('email')
+          .ilike('nick', searchInput) // Busca exactamente el texto pero ignora Mayus/Minus
+          .maybeSingle();
+
+        if (profileData) {
+          loginEmail = profileData.email;
+        } else {
+          // 3. SEGUNDO INTENTO: Por si el usuario no puso el punto
+          // Usamos el normalizeNick que ya tienes para una búsqueda más abierta
+          const cleanInput = normalizeNick(email);
+          const { data: fuzzyData } = await supabase
+            .from('profiles')
+            .select('email')
+            .ilike('nick', `%${cleanInput}%`)
+            .maybeSingle();
+
+          if (fuzzyData) loginEmail = fuzzyData.email;
+        }
       }
+
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-      if (error) alert("Error: " + error.message);
+      if (error) {
+        alert("Error: " + error.message);
+        setLoading(false); // <--- Muy importante aquí
+        return;
+      }
     }
     setLoading(false);
   }

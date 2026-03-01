@@ -21,13 +21,13 @@ function TarjetaResultado({ partido, onUpdated }) {
   const [enviando, setEnviando] = useState(false);
   const [urlStream, setUrlStream] = useState('');
 
+
   useEffect(() => {
     const cargarStreams = async () => {
-      if (isPlayoff) return;
       const { data } = await supabase
-        .from('match_streams')
+        .from(isPlayoff ? 'match_playoff_streams' : 'match_streams')
         .select('stream_url')
-        .eq('match_id', partido.id)
+        .eq(isPlayoff ? 'playoff_match_id' : 'match_id', partido.id)
         .maybeSingle();
 
       if (data) setUrlStream(data.stream_url || '');
@@ -38,12 +38,17 @@ function TarjetaResultado({ partido, onUpdated }) {
   // Identificamos si es un partido de playoff
   const isPlayoff = !!partido.playoff_id;
   const tabla = isPlayoff ? 'playoff_matches' : 'matches';
-  // Normalizamos el estado para que el botón desaparezca correctamente en ambos casos
-  const [jugadoLocal, setJugadoLocal] = useState(isPlayoff ? partido.played : partido.is_played);
+  const yaJugado = partido.played === true || partido.is_played === true;
+  const [jugadoLocal, setJugadoLocal] = useState(yaJugado);
 
   // Esto asegura que si cambias de jornada, el estado se resetee
   useEffect(() => {
-    setJugadoLocal(isPlayoff ? partido.played : partido.is_played);
+    // Detección universal para el reseteo
+    const yaJugado = partido.played === true || partido.is_played === true;
+
+    setJugadoLocal(yaJugado);
+    setGL(partido.home_score ?? '');
+    setGV(partido.away_score ?? '');
   }, [partido]);
 
   const guardar = async () => {
@@ -76,9 +81,13 @@ function TarjetaResultado({ partido, onUpdated }) {
 
       if (errorUpdate) throw errorUpdate;
 
-      if (!isPlayoff) {
-        await supabase.from('match_streams').upsert({
-          match_id: partido.id,
+      // Guardar URL del stream (tanto para Liga como para Playoff)
+      if (urlStream) {
+        const tablaStream = isPlayoff ? 'match_playoff_streams' : 'match_streams';
+        const columnaId = isPlayoff ? 'playoff_match_id' : 'match_id';
+
+        await supabase.from(tablaStream).upsert({
+          [columnaId]: partido.id,
           stream_url: urlStream,
           updated_at: new Date().toISOString()
         });
@@ -181,13 +190,13 @@ function TarjetaResultado({ partido, onUpdated }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {partido.is_played ? (
+          {jugadoLocal ? (
             <div style={{
               background: '#34495e', padding: '8px 15px', borderRadius: '8px',
               border: `2px solid ${isPlayoff ? '#9b59b6' : '#2ecc71'}`,
               fontWeight: 'bold', fontSize: '1.2rem', minWidth: '60px'
             }}>
-              {partido.home_score} - {partido.away_score}
+              {gL} - {gV}  {/* <-- Usamos los estados locales para respuesta inmediata */}
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
@@ -207,7 +216,7 @@ function TarjetaResultado({ partido, onUpdated }) {
       </div>
 
       {/* SECCIÓN DE STREAM */}
-      {!isPlayoff && (jugadoLocal ? !!urlStream : true) && (
+      {(jugadoLocal ? !!urlStream : true) && (
         <div style={{
           marginTop: '15px', marginBottom: '10px', paddingTop: '10px',
           borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex',
@@ -228,7 +237,8 @@ function TarjetaResultado({ partido, onUpdated }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    background: '#2ecc71', color: 'white', padding: '8px',
+                    background: isPlayoff ? '#9b59b6' : '#2ecc71',
+                    color: 'white', padding: '8px',
                     borderRadius: '6px', fontSize: '0.7rem', textDecoration: 'none',
                     fontWeight: 'bold', display: 'block', overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -281,7 +291,7 @@ function TarjetaResultado({ partido, onUpdated }) {
         </div>
       )}
 
-      {!partido.is_played && (
+      {!jugadoLocal && (
         <button onClick={guardar} disabled={enviando} style={{
           background: isPlayoff ? '#9b59b6' : '#2ecc71',
           color: 'white', border: 'none', padding: '12px', borderRadius: '8px',

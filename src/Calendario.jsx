@@ -79,26 +79,40 @@ export default function CalendarioCompleto({ config }) {
         } else { setJornadasActivas([]); }
 
       } else {
-        // --- LÓGICA PLAYOFF (CON MEJORA DE FECHAS JUNTAS) ---
+        // --- LÓGICA PLAYOFF CON STREAMS SEPARADOS ---
+        // 1. Traemos los partidos de la vista
         const { data: dataPlayoff } = await supabase
           .from('playoff_matches_detallados')
           .select('*')
           .eq('playoff_id', vD)
           .order('start_date', { ascending: true });
 
-        setPartidos(dataPlayoff || []);
+        // 2. Traemos todos los streams de la tabla de streams
+        const { data: dataStreams } = await supabase
+          .from('match_playoff_streams')
+          .select('*');
 
+        // 3. Cruzamos los datos manualmente (Match ID -> Stream URL)
+        const partidosConStream = dataPlayoff?.map(m => {
+          // Buscamos si este partido (m.id) tiene un stream en dataStreams
+          // NOTA: Asegúrate de que la columna en la tabla de streams se llame 'match_id'
+          const streamEncontrado = dataStreams?.find(s => s.playoff_match_id === m.id);
+          return {
+            ...m,
+            stream_url: streamEncontrado ? streamEncontrado.stream_url : null
+          };
+        }) || [];
+
+        setPartidos(partidosConStream);
+
+        // --- LÓGICA DE JORNADAS ACTIVAS (IGUAL QUE ANTES) ---
         const currentPO = playoffs.find(p => p.id === vD);
-        if (currentPO && dataPlayoff) {
-          // Buscamos el partido de referencia de la ronda actual para saber sus fechas
-          const refMatch = dataPlayoff.find(m => m.round === currentPO.current_round);
-
+        if (currentPO && partidosConStream.length > 0) {
+          const refMatch = partidosConStream.find(m => m.round === currentPO.current_round);
           if (refMatch && refMatch.start_date && refMatch.end_date) {
-            // Buscamos TODAS las rondas que tengan exactamente esa misma fecha de inicio y fin
-            const rondasConMismaFecha = dataPlayoff
+            const rondasConMismaFecha = partidosConStream
               .filter(m => m.start_date === refMatch.start_date && m.end_date === refMatch.end_date)
               .map(m => m.round);
-
             setJornadasActivas([...new Set(rondasConMismaFecha)]);
           } else {
             setJornadasActivas([currentPO.current_round]);

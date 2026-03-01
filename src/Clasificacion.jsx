@@ -15,6 +15,30 @@ const Avatar = ({ url, size = '30px' }) => (
   </div>
 );
 
+const StreamIcon = ({ url }) => {
+  if (!url || !url.startsWith('http')) return null;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: '#9b59b6', color: 'white', borderRadius: '4px',
+        padding: '2px 4px', fontSize: '0.6rem', textDecoration: 'none',
+        transition: 'transform 0.2s', marginLeft: '6px', cursor: 'pointer',
+        lineHeight: '1'
+      }}
+      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+      title="Ver retransmisión"
+    >
+      📺
+    </a>
+  );
+};
+
 // --- SELECTORES ---
 function CategorySelector({ current, onChange, season }) {
   const [categories, setCategories] = useState([])
@@ -78,12 +102,35 @@ export default function Clasificacion({ config }) {
         const { data } = await supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false });
         setLista(data || [])
       } else {
-        const { data } = await supabase
+        // 1. Cargamos partidos del playoff seleccionado
+        const { data: matches } = await supabase
           .from('playoff_matches_detallados')
           .select('*')
           .eq('playoff_id', vD)
-          .order('match_order', { ascending: true }); // <--- CLAVE: Ordenar por posición en el cuadro
-        setPlayoffMatches(data || [])
+          .order('match_order', { ascending: true });
+
+        // 2. Cargamos streams filtrando por los IDs de esos partidos específicamente
+        if (matches && matches.length > 0) {
+          const matchIds = matches.map(m => m.id);
+
+          const { data: streams } = await supabase
+            .from('match_playoff_streams')
+            .select('playoff_match_id, stream_url')
+            .in('playoff_match_id', matchIds);
+
+          // Unimos la URL al objeto del partido
+          const matchesWithStreams = matches.map(m => {
+            const streamEncontrado = streams?.find(s => s.playoff_match_id === m.id);
+            return {
+              ...m,
+              stream_url: streamEncontrado ? streamEncontrado.stream_url : null
+            };
+          });
+
+          setPlayoffMatches(matchesWithStreams);
+        } else {
+          setPlayoffMatches([]);
+        }
       }
     }
     if (vS) fetch();
@@ -246,17 +293,27 @@ export default function Clasificacion({ config }) {
                         </span>
                         <div style={{ height: '1px', background: isFinished ? '#bae6fd' : '#f1f5f9', flex: 1 }}></div>
                       </div>
-
                       <div style={{ display: 'flex', gap: '8px' }}>
+                        {/* CAJA PARTIDO 1 (IDA O FINAL) */}
                         <div style={{
                           flex: 1, textAlign: 'center',
                           background: isFinished ? '#e0f2fe' : '#f8fafc',
                           borderRadius: '8px', padding: '6px 0',
                           border: isFinished ? '1px solid #bae6fd' : '1px solid #f1f5f9'
                         }}>
-                          <span style={{ display: 'block', fontSize: '0.5rem', color: isFinished ? '#0369a1' : '#94a3b8', fontWeight: '800' }}>{m2 ? 'IDA' : 'FINAL'}</span>
-                          <span style={{ fontSize: '1rem', fontWeight: '900', color: isFinished ? '#0c4a6e' : '#1e293b' }}>{isBye ? '-' : (m1.home_score ?? '-')} : {isBye ? '-' : (m1.away_score ?? '-')}</span>
+                          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                            <span style={{ display: 'block', fontSize: '0.5rem', color: isFinished ? '#0369a1' : '#94a3b8', fontWeight: '800' }}>
+                              {m2 ? 'IDA' : 'FINAL'}
+                            </span>
+                            {/* AQUÍ VA EL ICONO DEL PRIMER PARTIDO */}
+                            <StreamIcon url={m1.stream_url} />
+                          </div>
+                          <span style={{ fontSize: '1rem', fontWeight: '900', color: isFinished ? '#0c4a6e' : '#1e293b' }}>
+                            {isBye ? '-' : (m1.home_score ?? '-')} : {isBye ? '-' : (m1.away_score ?? '-')}
+                          </span>
                         </div>
+
+                        {/* CAJA PARTIDO 2 (VUELTA) */}
                         {m2 && (
                           <div style={{
                             flex: 1, textAlign: 'center',
@@ -264,7 +321,11 @@ export default function Clasificacion({ config }) {
                             borderRadius: '8px', padding: '6px 0',
                             border: isFinished ? '1px solid #bae6fd' : '1px solid #f1f5f9'
                           }}>
-                            <span style={{ display: 'block', fontSize: '0.5rem', color: isFinished ? '#0369a1' : '#94a3b8', fontWeight: '800' }}>VTA</span>
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              <span style={{ display: 'block', fontSize: '0.5rem', color: isFinished ? '#0369a1' : '#94a3b8', fontWeight: '800' }}>VTA</span>
+                              {/* AQUÍ VA EL ICONO DEL SEGUNDO PARTIDO */}
+                              <StreamIcon url={m2.stream_url} />
+                            </div>
                             <span style={{ fontSize: '1rem', fontWeight: '900', color: isFinished ? '#0c4a6e' : '#1e293b' }}>
                               {isBye ? '-' : (m2.local_nick === m1.local_nick ? (m2.home_score ?? '-') : (m2.away_score ?? '-'))}
                               :

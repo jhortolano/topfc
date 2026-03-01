@@ -33,3 +33,12 @@ NOTIFY pgrst, 'reload schema';
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+
+
+
+
+
+-----DUMP DE LA BASE DE DATOS SILVER
+
+pg_dump -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres > SILVER.sql

@@ -87,6 +87,40 @@ function SeasonSelector({ current, onChange }) {
   )
 }
 
+const calcularBonusPorStream = (porcentaje, rules) => {
+  // Según el dump: bonus_min_percentage y bonus_points
+  const enabled = rules?.bonus_enabled ?? false;
+  const umbral = rules?.bonus_min_percentage ?? 80;
+  const puntosExtra = rules?.bonus_points ?? 1;
+
+  if (enabled && porcentaje >= umbral) {
+    return { puntos: puntosExtra, aplica: true };
+  }
+  return { puntos: 0, aplica: false };
+};
+
+const calcularStatsStreams = (jugadorId, allMatches, allPlayoffMatches, allStreams, allPlayoffStreams) => {
+  // 1. Filtrar partidos donde participa el jugador (Liga + Playoff)
+  const ligaMatches = allMatches.filter(m => m.home_team === jugadorId || m.away_team === jugadorId);
+  const poMatches = allPlayoffMatches.filter(m => m.local_id === jugadorId || m.visitante_id === jugadorId);
+
+  const totalPartidos = ligaMatches.length + poMatches.length;
+
+  // 2. Contar cuántos de esos tienen URL válida en las tablas de streams
+  const ligaStreamsCount = ligaMatches.filter(m =>
+    allStreams.some(s => s.match_id === m.id && s.stream_url?.startsWith('http'))
+  ).length;
+
+  const poStreamsCount = poMatches.filter(m =>
+    allPlayoffStreams.some(s => s.playoff_match_id === m.id && s.stream_url?.startsWith('http'))
+  ).length;
+
+  const totalStreams = ligaStreamsCount + poStreamsCount;
+  const porcentaje = totalPartidos > 0 ? Math.round((totalStreams / totalPartidos) * 100) : 0;
+
+  return { totalStreams, totalPartidos, porcentaje };
+};
+
 // --- COMPONENTE PRINCIPAL ---
 export default function Clasificacion({ config }) {
   const [vS, setVS] = useState(config?.current_season);
@@ -99,34 +133,61 @@ export default function Clasificacion({ config }) {
   useEffect(() => {
     async function fetch() {
       if (!esPlayoff) {
-        const { data } = await supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false });
-        setLista(data || [])
+        const { data: playoffsSeason } = await supabase
+          .from('playoffs')
+          .select('id')
+          .eq('season', vS);
+
+        const playoffIds = playoffsSeason?.map(p => p.id) || [];
+
+        // Añadimos la consulta a season_rules
+        const [clasi, matches, poMatches, streams, poStreams, rulesRes] = await Promise.all([
+          supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false }),
+          supabase.from('matches').select('id, home_team, away_team').eq('season', vS),
+          supabase.from('playoff_matches_detallados').select('id, local_id, visitante_id, playoff_id').in('playoff_id', playoffIds),
+          supabase.from('match_streams').select('match_id, stream_url'),
+          supabase.from('match_playoff_streams').select('playoff_match_id, stream_url'),
+          supabase.from('season_rules').select('*').eq('season', vS).maybeSingle()
+        ]);
+
+        const rules = rulesRes.data;
+
+        const listaEnriquecida = (clasi.data || []).map(jugador => {
+          const stats = calcularStatsStreams(jugador.user_id, matches.data || [], poMatches.data || [], streams.data || [], poStreams.data || []);
+
+          // Aplicamos la lógica del bonus
+          const bonus = calcularBonusPorStream(stats.porcentaje, rules);
+
+          return {
+            ...jugador,
+            streamStats: stats,
+            bonusStream: bonus,
+            total_pts: (jugador.pts ?? 0) + bonus.puntos
+          };
+        });
+
+        // Re-ordenamos por los nuevos puntos totales
+        const listaOrdenada = listaEnriquecida.sort((a, b) => b.total_pts - a.total_pts);
+        setLista(listaOrdenada);
       } else {
-        // 1. Cargamos partidos del playoff seleccionado
+        // Aquí mantén tu lógica de carga de playoffs normal...
         const { data: matches } = await supabase
           .from('playoff_matches_detallados')
           .select('*')
           .eq('playoff_id', vD)
           .order('match_order', { ascending: true });
 
-        // 2. Cargamos streams filtrando por los IDs de esos partidos específicamente
         if (matches && matches.length > 0) {
           const matchIds = matches.map(m => m.id);
-
           const { data: streams } = await supabase
             .from('match_playoff_streams')
             .select('playoff_match_id, stream_url')
             .in('playoff_match_id', matchIds);
 
-          // Unimos la URL al objeto del partido
-          const matchesWithStreams = matches.map(m => {
-            const streamEncontrado = streams?.find(s => s.playoff_match_id === m.id);
-            return {
-              ...m,
-              stream_url: streamEncontrado ? streamEncontrado.stream_url : null
-            };
-          });
-
+          const matchesWithStreams = matches.map(m => ({
+            ...m,
+            stream_url: streams?.find(s => s.playoff_match_id === m.id)?.stream_url || null
+          }));
           setPlayoffMatches(matchesWithStreams);
         } else {
           setPlayoffMatches([]);
@@ -357,22 +418,48 @@ export default function Clasificacion({ config }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
             <thead>
               <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Jugador</th>
-                <th>PTS</th><th>PJ</th><th>DG</th>
+                <th style={{ padding: '12px', textAlign: 'left' }}>JUGADOR</th>
+                <th style={{ padding: '10px' }}>PTS</th>
+                <th style={{ padding: '10px' }}>PJ</th>
+                <th style={{ padding: '10px' }}>PG</th>
+                <th style={{ padding: '10px' }}>PE</th>
+                <th style={{ padding: '10px' }}>GF</th>
+                <th style={{ padding: '10px' }}>GC</th>
+                <th style={{ padding: '10px' }}>DG</th>
+                <th style={{ padding: '10px' }}>📺</th>
               </tr>
             </thead>
             {/* ... dentro de !esPlayoff ... */}
             <tbody>
               {lista.map((j, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
+                <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
                   <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {/* Aquí usamos avatar_url que viene directamente de la vista vinculada a profiles */}
                     <Avatar url={j.avatar_url} size="24px" />
-                    {j.nick}
+                    <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
                   </td>
-                  <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.pts ?? 0}</td>
+                  <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
                   <td>{j.pj ?? 0}</td>
-                  <td>{j.dg ?? 0}</td>
+                  {/* Sumamos victorias de casa y fuera */}
+                  <td>{(j.pg_casa || 0) + (j.pg_fuera || 0)}</td>
+                  {/* Sumamos empates de casa y fuera */}
+                  <td>{(j.pe_casa || 0) + (j.pe_fuera || 0)}</td>
+                  {/* Cambiado: j.goles_fuera/casa por j.gf y j.gc */}
+                  <td>{j.gf ?? 0}</td>
+                  <td>{j.gc ?? 0}</td>
+                  <td style={{ color: (j.dg ?? 0) > 0 ? '#2ecc71' : (j.dg ?? 0) < 0 ? '#e74c3c' : '#7f8c8d', fontWeight: '600' }}>{j.dg ?? 0}</td>
+                  <td style={{ padding: '10px', color: '#64748b', fontWeight: 'bold' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem' }}>
+                      <span>{j.streamStats?.totalStreams || 0}/{j.streamStats?.totalPartidos || 0}</span>
+                      <span style={{ color: j.bonusStream?.aplica ? '#9b59b6' : '#94a3b8' }}>
+                        ({j.streamStats?.porcentaje || 0}%)
+                        {j.bonusStream?.aplica && (
+                          <span style={{ color: '#2ecc71', fontWeight: 'bold', marginLeft: '4px' }}>
+                            (+{j.bonusStream.puntos})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

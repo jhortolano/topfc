@@ -121,6 +121,10 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   const [isIdaVuelta, setIsIdaVuelta] = useState(true);
 
+  const [bonusEnabled, setBonusEnabled] = useState(false);
+  const [minPercentage, setMinPercentage] = useState(80);
+  const [extraPoints, setExtraPoints] = useState(1);
+
   // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
 
@@ -173,7 +177,9 @@ export default function AdminPanel({ config, onConfigChange }) {
 
   useEffect(() => {
     fetchPartidosParaEditar();
+    if (editSeason) loadSeasonRules(editSeason);
   }, [editSeason, editWeek, editDiv]);
+
 
   const fetchSeasons = async () => {
     const { data } = await supabase.from('matches').select('season');
@@ -201,6 +207,32 @@ export default function AdminPanel({ config, onConfigChange }) {
       .order('week', { ascending: true });
     setSchedule(data || []);
   };
+
+
+  const loadSeasonRules = async (seasonId) => {
+    const { data } = await supabase.from('season_rules').select('*').eq('season', seasonId).maybeSingle();
+    if (data) {
+      setBonusEnabled(data.bonus_enabled);
+      setMinPercentage(data.bonus_min_percentage);
+      setExtraPoints(data.bonus_points);
+    } else {
+      setBonusEnabled(false);
+      setMinPercentage(80);
+      setExtraPoints(1);
+    }
+  };
+
+  const handleSaveRules = async () => {
+    const { error } = await supabase.from('season_rules').upsert({
+      season: editSeason,
+      bonus_enabled: bonusEnabled,
+      bonus_min_percentage: minPercentage,
+      bonus_points: extraPoints
+    });
+    if (error) alert("Error: " + error.message);
+    else alert(`¡Reglas guardadas para la Temporada ${editSeason}!`);
+  };
+
 
   const fetchPartidosParaEditar = async () => {
     const { data, error } = await supabase
@@ -688,6 +720,56 @@ export default function AdminPanel({ config, onConfigChange }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* SECCIÓN REGLAS DE PUNTOS EXTRA */}
+      <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '20px' }}>
+        <h4 style={{ marginTop: 0, color: '#92400e' }}>🏆 Reglas de Bonus (Temporada {editSeason})</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+
+          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+            <span style={{ fontWeight: 'bold' }}>¿Activar Bonus?</span>
+            <input
+              type="checkbox"
+              checked={bonusEnabled}
+              onChange={e => setBonusEnabled(e.target.checked)}
+              style={{ width: '20px', height: '20px' }}
+            />
+          </label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+            <span style={{ fontWeight: 'bold' }}>% Mínimo de Directos</span>
+            <input
+              type="number"
+              value={minPercentage}
+              onChange={e => setMinPercentage(e.target.value)}
+              style={{ width: '80px', padding: '5px' }}
+            />
+          </label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+            <span style={{ fontWeight: 'bold' }}>Puntos Extra</span>
+            <input
+              type="number"
+              value={extraPoints}
+              onChange={e => setExtraPoints(e.target.value)}
+              style={{ width: '60px', padding: '5px' }}
+            />
+          </label>
+
+          <button
+            onClick={handleSaveRules}
+            style={{
+              background: '#f59e0b', color: 'white', border: 'none',
+              padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer'
+            }}
+          >
+            GUARDAR CONFIGURACIÓN
+          </button>
+        </div>
+        <p style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '10px' }}>
+          * Los jugadores que retransmitan al menos el <strong>{minPercentage}%</strong> de sus partidos recibirán <strong>+{extraPoints}</strong> puntos al final de la temporada.
+        </p>
       </div>
 
       {/* 3. EDITOR RESULTADOS (MEJORADO) */}

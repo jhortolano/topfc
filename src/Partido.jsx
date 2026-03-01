@@ -19,12 +19,32 @@ function TarjetaResultado({ partido, onUpdated }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
   const [gV, setGV] = useState(partido.away_score ?? '');
   const [enviando, setEnviando] = useState(false);
+  const [urlStream, setUrlStream] = useState('');
+
+  useEffect(() => {
+    const cargarStreams = async () => {
+      if (isPlayoff) return;
+      const { data } = await supabase
+        .from('match_streams')
+        .select('stream_url')
+        .eq('match_id', partido.id)
+        .maybeSingle();
+
+      if (data) setUrlStream(data.stream_url || '');
+    };
+    cargarStreams();
+  }, [partido.id]);
 
   // Identificamos si es un partido de playoff
   const isPlayoff = !!partido.playoff_id;
   const tabla = isPlayoff ? 'playoff_matches' : 'matches';
   // Normalizamos el estado para que el botón desaparezca correctamente en ambos casos
-  const yaJugado = isPlayoff ? partido.played : partido.is_played;
+  const [jugadoLocal, setJugadoLocal] = useState(isPlayoff ? partido.played : partido.is_played);
+
+  // Esto asegura que si cambias de jornada, el estado se resetee
+  useEffect(() => {
+    setJugadoLocal(isPlayoff ? partido.played : partido.is_played);
+  }, [partido]);
 
   const guardar = async () => {
     if (gL === '' || gV === '') return alert("Introduce los goles");
@@ -56,6 +76,14 @@ function TarjetaResultado({ partido, onUpdated }) {
 
       if (errorUpdate) throw errorUpdate;
 
+      if (!isPlayoff) {
+        await supabase.from('match_streams').upsert({
+          match_id: partido.id,
+          stream_url: urlStream,
+          updated_at: new Date().toISOString()
+        });
+      }
+      setJugadoLocal(true);
       if (isPlayoff) {
         // 1. Intentar actualizar el ganador_id en el partido actual si la columna existe
         await supabase.from('playoff_matches').update({ winner_id: null }).eq('id', partido.id);
@@ -177,6 +205,81 @@ function TarjetaResultado({ partido, onUpdated }) {
           </div>
         </div>
       </div>
+
+      {/* SECCIÓN DE STREAM */}
+      {!isPlayoff && (jugadoLocal ? !!urlStream : true) && (
+        <div style={{
+          marginTop: '15px', marginBottom: '10px', paddingTop: '10px',
+          borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex',
+          flexDirection: 'column', gap: '4px'
+        }}>
+          {/* Etiqueta que siempre aparece si hay algo que mostrar */}
+          <label style={{ fontSize: '0.65rem', color: '#bdc3c7', textAlign: 'left', marginLeft: '2px' }}>
+            Retransmisión:
+          </label>
+
+          {jugadoLocal ? (
+            /* MODO LECTURA */
+            urlStream && (
+              urlStream.includes('http') ? (
+                /* LINK VÁLIDO */
+                <a
+                  href={urlStream.trim()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: '#2ecc71', color: 'white', padding: '8px',
+                    borderRadius: '6px', fontSize: '0.7rem', textDecoration: 'none',
+                    fontWeight: 'bold', display: 'block', overflow: 'hidden',
+                    textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                  }}
+                >
+                  📺 {urlStream.replace('https://', '').replace('http://', '')}
+                </a>
+              ) : (
+                /* TEXTO NO VÁLIDO CON AVISO A LA DERECHA */
+                <div style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  fontSize: '0.7rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  border: '1px solid rgba(231, 76, 60, 0.3)'
+                }}>
+                  <span style={{ color: '#bdc3c7', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {urlStream}
+                  </span>
+                  <span style={{
+                    color: '#e74c3c',
+                    fontWeight: 'bold',
+                    fontSize: '0.6rem',
+                    marginLeft: '10px',
+                    whiteSpace: 'nowrap',
+                    textTransform: 'uppercase'
+                  }}>
+                    ⚠️ Link no válido, no contará
+                  </span>
+                </div>
+              )
+            )
+          ) : (
+            /* MODO EDICIÓN */
+            <input
+              type="text"
+              value={urlStream}
+              onChange={e => setUrlStream(e.target.value)}
+              placeholder="Link de Twitch/YouTube (Opcional)"
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px',
+                padding: '8px 10px', fontSize: '0.75rem', color: 'white'
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {!partido.is_played && (
         <button onClick={guardar} disabled={enviando} style={{

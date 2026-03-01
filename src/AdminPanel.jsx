@@ -19,63 +19,85 @@ const getOnlineStatus = (lastSeen) => {
 function PartidoEditable({ partido, onUpdate }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
   const [gV, setGV] = useState(partido.away_score ?? '');
+  const [streamUrl, setStreamUrl] = useState(partido.stream_url || '');
 
   // Sincronizar si el partido cambia desde fuera (ej: cambiar de jornada)
   useEffect(() => {
     setGL(partido.home_score ?? '');
     setGV(partido.away_score ?? '');
+    setStreamUrl(partido.stream_url || '');
   }, [partido]);
 
-  const modificado = gL != (partido.home_score ?? '') || gV != (partido.away_score ?? '');
+  const modificado = gL != (partido.home_score ?? '') ||
+    gV != (partido.away_score ?? '') ||
+    streamUrl !== (partido.stream_url || '');
+
+
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px',
+      display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', // Cambiado a column para el input debajo
       background: modificado ? '#ebf8ff' : '#f8f9fa',
       borderRadius: '10px', marginBottom: '8px', border: modificado ? '1px solid #4299e1' : '1px solid #edf2f7',
       transition: 'all 0.2s'
     }}>
-      <span style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.local_nick}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.local_nick}</span>
 
-      <div style={{ display: 'flex', gap: '5px' }}>
-        <input
-          type="number"
-          value={gL}
-          onChange={e => setGL(e.target.value)}
-          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-        />
-        <span style={{ fontWeight: 'bold', color: '#a0aec0' }}>-</span>
-        <input
-          type="number"
-          value={gV}
-          onChange={e => setGV(e.target.value)}
-          style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-        />
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <input
+            type="number"
+            value={gL}
+            onChange={e => setGL(e.target.value)}
+            style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+          />
+          <span style={{ fontWeight: 'bold', color: '#a0aec0' }}>-</span>
+          <input
+            type="number"
+            value={gV}
+            onChange={e => setGV(e.target.value)}
+            style={{ width: '35px', textAlign: 'center', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+          />
+        </div>
+
+        <span style={{ flex: 1, fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.visitante_nick}</span>
+
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <button
+            onClick={() => onUpdate(partido.id, gL, gV, true, streamUrl)} // Pasamos streamUrl
+            disabled={!modificado}
+            title="Guardar"
+            style={{
+              background: modificado ? '#2ecc71' : '#cbd5e0', color: 'white', border: 'none',
+              padding: '5px 10px', borderRadius: '4px', cursor: modificado ? 'pointer' : 'default'
+            }}
+          >✓</button>
+          <button
+            onClick={() => {
+              if (window.confirm("¿Resetear marcador y retransmisión?")) {
+                setGL(''); setGV(''); setStreamUrl('');
+                onUpdate(partido.id, '', '', false, '');
+              }
+            }}
+            title="Resetear"
+            style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+          >↺</button>
+        </div>
       </div>
 
-      <span style={{ flex: 1, fontWeight: 'bold', fontSize: '0.85rem' }}>{partido.visitante_nick}</span>
-
-      <div style={{ display: 'flex', gap: '5px' }}>
-        <button
-          onClick={() => onUpdate(partido.id, gL, gV, true)}
-          disabled={!modificado}
-          title="Guardar"
-          style={{
-            background: modificado ? '#2ecc71' : '#cbd5e0', color: 'white', border: 'none',
-            padding: '5px 10px', borderRadius: '4px', cursor: modificado ? 'pointer' : 'default'
-          }}
-        >✓</button>
-        <button
-          onClick={() => {
-            if (window.confirm("¿Resetear marcador?")) {
-              setGL(''); setGV('');
-              onUpdate(partido.id, '', '', false);
-            }
-          }}
-          title="Resetear"
-          style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
-        >↺</button>
-      </div>
+      {/* Nuevo input para la URL de retransmisión */}
+      <input
+        type="text"
+        placeholder="URL de retransmisión (Twitch, YouTube...)"
+        value={streamUrl}
+        onChange={e => {
+          setStreamUrl(e.target.value);
+        }}
+        style={{
+          fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px',
+          border: '1px solid #cbd5e0', width: '100%', boxSizing: 'border-box'
+        }}
+      />
     </div>
   );
 }
@@ -181,23 +203,73 @@ export default function AdminPanel({ config, onConfigChange }) {
   };
 
   const fetchPartidosParaEditar = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('partidos_detallados')
-      .select('*')
+      .select(`
+        *,
+        match_streams ( stream_url )
+      `)
       .eq('season', editSeason)
       .eq('week', editWeek)
       .eq('division', editDiv);
-    setPartidosEdit(data || []);
+
+    if (error) {
+      console.error("ERROR SUPABASE FETCH:", error);
+      return;
+    }
+
+    if (data) {
+      const formateados = data.map(p => {
+        // Acceso directo al objeto match_streams
+        const urlDeTabla = p.match_streams?.stream_url || '';
+
+        return {
+          ...p,               // 1º Metemos todo lo de la vista
+          stream_url: urlDeTabla // 2º SOBRESCRIBIMOS con la de la tabla (así ésta manda)
+        };
+      });
+      setPartidosEdit(formateados);
+    }
   };
 
-  const handleUpdateMatch = async (id, hScore, aScore, played) => {
-    const { error } = await supabase.from('matches').update({
-      home_score: hScore === '' ? null : parseInt(hScore),
-      away_score: aScore === '' ? null : parseInt(aScore),
-      is_played: played
-    }).eq('id', id);
+  const handleUpdateMatch = async (id, hScore, aScore, played, streamUrl) => {
 
-    if (!error) fetchPartidosParaEditar();
+    try {
+      // 1. Update Matches
+      const { error: errorMatch } = await supabase.from('matches').update({
+        home_score: hScore === '' ? null : parseInt(hScore),
+        away_score: aScore === '' ? null : parseInt(aScore),
+        is_played: played
+      }).eq('id', id);
+
+      if (errorMatch) {
+        console.error("ERROR ACTUALIZANDO MARCADOR:", errorMatch);
+        throw errorMatch;
+      }
+
+      // 2. Update Stream
+      if (streamUrl && streamUrl.trim() !== '') {
+        const { error: errorStream } = await supabase
+          .from('match_streams')
+          .upsert({
+            match_id: id,
+            stream_url: streamUrl.trim(),
+          }, { onConflict: 'match_id' });
+
+        if (errorStream) {
+          console.error("ERROR UPSERT STREAM:", errorStream);
+          throw errorStream;
+        }
+      } else {
+        await supabase.from('match_streams').delete().eq('match_id', id);
+      }
+
+      await fetchPartidosParaEditar();
+
+    } catch (err) {
+      console.error("FALLO GLOBAL EN UPDATE:", err);
+      alert("Error: " + err.message);
+    }
   };
 
   // --- LÓGICA DE FECHAS EN CASCADA ---
@@ -867,7 +939,7 @@ function UserRow({ user, onRefresh }) {
       nick: editNick,
       email: editEmail,
       telegram_user: editTelegram,
-      phone: editPhone 
+      phone: editPhone
     }).eq('id', user.id);
 
     if (error) alert(error.message);
@@ -889,7 +961,7 @@ function UserRow({ user, onRefresh }) {
           email: `retirado_${Date.now()}@liga.com`,
           telegram_user: null,
           phone: null,
-          avatar_url: null 
+          avatar_url: null
         })
         .eq('id', user.id);
       if (error) throw error;
@@ -910,7 +982,7 @@ function UserRow({ user, onRefresh }) {
       background: status.active ? '#f0fff4' : 'transparent',
       position: 'relative'
     }}>
-      
+
       {/* COLUMNA NICK CORREGIDA */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {/* El punto ahora está DENTRO del área del input a la izquierda */}
@@ -922,27 +994,27 @@ function UserRow({ user, onRefresh }) {
           backgroundColor: status.dot,
           boxShadow: status.active ? '0 0 5px #2ecc71' : 'none'
         }} />
-        
-        <input 
-          style={{ 
-            fontSize: '0.7rem', 
+
+        <input
+          style={{
+            fontSize: '0.7rem',
             padding: '4px 4px 4px 22px', // Padding izquierdo extra para no tapar el texto con el punto
-            width: '100%', 
-            fontWeight: 'bold', 
-            border: '1px solid #ddd', 
+            width: '100%',
+            fontWeight: 'bold',
+            border: '1px solid #ddd',
             borderRadius: '4px',
             boxSizing: 'border-box'
-          }} 
-          value={editNick} 
-          onChange={e => setEditNick(e.target.value)} 
+          }}
+          value={editNick}
+          onChange={e => setEditNick(e.target.value)}
         />
 
         {/* Texto de estado debajo del input */}
-        <span style={{ 
-          position: 'absolute', 
-          bottom: '-15px', 
+        <span style={{
+          position: 'absolute',
+          bottom: '-15px',
           left: '4px',
-          fontSize: '0.55rem', 
+          fontSize: '0.55rem',
           color: '#95a5a6',
           whiteSpace: 'nowrap'
         }}>

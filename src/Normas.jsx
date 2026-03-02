@@ -47,7 +47,7 @@ function Normas() {
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
           <strong>📺 Retransmisión:</strong>
           <div style={{ marginTop: '8px' }}>
-            Retransmitir los partidos da <strong>puntos extra</strong>. Si al menos el <strong>80%</strong> de tus partidos es retransmitido (Twitch/YouTube/etc) consigues <strong>2 puntos extra</strong> en la clasificación.
+            Retransmitir los partidos da <strong>puntos extra</strong>. Si al menos el <strong>80%</strong> de tus partidos durante la temporada es retransmitido (Twitch/YouTube/etc) consigues <strong>2 puntos extra</strong> en la clasificación.
           </div>
           <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '0.9rem' }}>Pasos para conseguir los puntos:</div>
           <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>

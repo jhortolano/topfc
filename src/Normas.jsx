@@ -44,9 +44,23 @@ function Normas() {
           </ul>
         </div>
 
-        {/* Retransmisión */}
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
-          <strong>📺 Retransmisión:</strong> Nos gusta ver los partidos, si puedes y te apetece, retransmite el partido y pega el enlace en el grupo de Telegram.
+          <strong>📺 Retransmisión:</strong>
+          <div style={{ marginTop: '8px' }}>
+            Retransmitir los partidos da <strong>puntos extra</strong>. Si al menos el <strong>80%</strong> de tus partidos es retransmitido (Twitch/YouTube/etc) consigues <strong>2 puntos extra</strong> en la clasificación.
+          </div>
+          <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '0.9rem' }}>Pasos para conseguir los puntos:</div>
+          <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
+            <li style={{ marginBottom: '5px' }}>
+              <strong>1)</strong> Antes del partido, pega el link de la retransmisión en el grupo de Whatsapp "Retransmisiones".
+            </li>
+            <li style={{ marginBottom: '5px' }}>
+              <strong>2)</strong> Después del partido, al guardar el resultado en la web, añade el link debajo del resultado.
+            </li>
+            <li>
+              <strong>3)</strong> No importa quién retransmita, una sola retransmisión contará para <strong>ambos jugadores</strong>.
+            </li>
+          </ul>
         </div>
 
       </div>

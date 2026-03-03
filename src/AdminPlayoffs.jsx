@@ -108,7 +108,6 @@ export default function AdminPlayoffs({ config }) {
 
         // SOLO actualizamos si es diferente para evitar bucles de red
         if (faseCandidata !== tp.current_round) {
-          console.log(`Auto-actualizando ${tp.name} a fase: ${faseCandidata}`);
           await updateCurrentRound(tp.id, faseCandidata);
         }
       }
@@ -116,12 +115,22 @@ export default function AdminPlayoffs({ config }) {
   };
 
   const fetchMatches = async (playoffId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('playoff_matches')
-      .select('*')
+      .select(`
+        *,
+        match_playoff_streams!fk_match_playoff (
+          stream_url
+        )
+      `) // <--- Añadido !fk_match_playoff para desempatar
       .eq('playoff_id', playoffId)
-      .order('start_date', { ascending: true }) // Ordenamos por fecha primero
+      .order('start_date', { ascending: true })
       .order('match_order', { ascending: true });
+
+    if (error) {
+      console.error("Error cargando partidos:", error);
+      return;
+    }
 
     setMatches(data || []);
 
@@ -572,6 +581,69 @@ export default function AdminPlayoffs({ config }) {
     }
   };
 
+  const saveStreamUrl = async (matchId, url) => {
+    if (!matchId) return;
+
+    try {
+      // IMPORTANTE: El objeto debe coincidir exactamente con las columnas de tu SQL
+      const { error } = await supabase
+        .from('match_playoff_streams')
+        .upsert({
+          playoff_match_id: matchId,
+          stream_url: url
+        }, { onConflict: 'playoff_match_id' }); // Esto requiere que match_id sea UNIQUE en tu DB
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("Error al guardar el stream:", err.message);
+    }
+  };
+
+  const borrarResultado = async (m) => {
+    if (!confirm("¿Borrar resultado de este partido?")) return;
+
+    try {
+      // 1. Limpiar el partido actual
+      const { error } = await supabase
+        .from('playoff_matches')
+        .update({ home_score: null, away_score: null, played: false })
+        .eq('id', m.id);
+
+      if (error) throw error;
+
+      // --- 1.5 Borrar el stream asociado ---
+    const { error: errorStream } = await supabase
+      .from('match_playoff_streams')
+      .delete()
+      .eq('playoff_match_id', m.id);
+
+    if (errorStream) {
+      console.warn("No se pudo borrar el stream o no existía:", errorStream.message);
+      // No lanzamos throw para que el resto del borrado (ronda siguiente) continúe
+    }
+
+      // 2. Limpiar la posición en la ronda siguiente
+      const faseBase = m.round.split(' (')[0].trim();
+      const idx = orderRondas.findIndex(r => r.toLowerCase() === faseBase.toLowerCase());
+      const sigRonda = orderRondas[idx + 1];
+
+      if (sigRonda) {
+        const sigMatchOrder = String(Math.floor(parseInt(m.match_order) / 2));
+        const columna = parseInt(m.match_order) % 2 === 0 ? 'home_team' : 'away_team';
+
+        await supabase.from('playoff_matches')
+          .update({ [columna]: null })
+          .eq('playoff_id', m.playoff_id)
+          .eq('match_order', sigMatchOrder)
+          .ilike('round', `${sigRonda}%`);
+      }
+
+      fetchMatches(viewBracket.id);
+    } catch (err) {
+      console.error("Error al borrar:", err);
+    }
+  };
+
   return (
     <div style={{ padding: '10px', fontSize: '0.85rem', color: '#333' }}>
       <h3 style={{ marginTop: 0 }}>🏆 Gestión de Eliminatorias</h3>
@@ -854,8 +926,34 @@ export default function AdminPlayoffs({ config }) {
                         {/* Iteramos sobre los partidos del grupo (Ida y Vuelta si los hay) */}
                         {matchGroup.map((m, mIdx) => (
                           <div key={m.id} style={{ borderBottom: mIdx === 0 && matchGroup.length > 1 ? '1px dashed #eee' : 'none', paddingBottom: '5px' }}>
-                            <div style={{ fontSize: '0.65rem', color: '#7f8c8d', marginBottom: '3px', fontWeight: 'bold' }}>
-                              {matchGroup.length > 1 ? (m.round.includes('Ida') ? 'IDA' : 'VUELTA') : 'ÚNICO'}
+                            <div style={{
+                              fontSize: '0.65rem',
+                              color: '#7f8c8d',
+                              marginBottom: '3px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>{matchGroup.length > 1 ? (m.round.includes('Ida') ? 'IDA' : 'VUELTA') : 'ÚNICO'}</span>
+
+                              {/* Botón de borrado: solo aparece si el partido tiene resultados (played === true) */}
+                              {m.played && (
+                                <button
+                                  onClick={() => borrarResultado(m)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#ff7675',
+                                    cursor: 'pointer',
+                                    fontSize: '0.6rem',
+                                    padding: '0 4px',
+                                    textDecoration: 'underline'
+                                  }}
+                                >
+                                  Borrar
+                                </button>
+                              )}
                             </div>
 
                             {/* Fila Local */}
@@ -893,6 +991,26 @@ export default function AdminPlayoffs({ config }) {
                                 defaultValue={m.away_score}
                                 onBlur={(e) => saveBracketScore(m, m.home_score, e.target.value)}
                                 style={{ width: '35px', textAlign: 'center', padding: '4px', border: '1px solid #3498db', borderRadius: '4px' }}
+                              />
+                            </div>
+                            {/* Caja de Stream para cada partido */}
+                            {/* Debajo del input de away_score */}
+                            <div style={{ marginTop: '8px', borderTop: '1px solid #eee', paddingTop: '5px' }}>
+                              <input
+                                type="text"
+                                placeholder="URL Directo (Twitch/YT)"
+                                // Usamos el nombre de la tabla que viene en la query
+                                defaultValue={m.match_playoff_streams?.stream_url || ''}
+                                onBlur={(e) => saveStreamUrl(m.id, e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  fontSize: '0.65rem',
+                                  padding: '3px 5px',
+                                  borderRadius: '3px',
+                                  border: '1px solid #ddd',
+                                  background: '#fafafa',
+                                  color: '#2c3e50'
+                                }}
                               />
                             </div>
                           </div>

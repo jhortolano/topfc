@@ -350,14 +350,16 @@ function ProximoPartido({ profile, config, onUpdated }) {
       }
 
       // --- 1. CARGAR PARTIDOS DE LIGA ---
-      const { data: currentWeekData } = await supabase
+      const { data: currentWeekData, error: weekError } = await supabase
         .from('weeks_schedule')
         .select('start_at, end_at')
         .eq('season', config.current_season)
         .eq('week', config.current_week)
-        .single();
+        .maybeSingle();
 
       let ligaTemp = [];
+
+      // Solo intentamos cargar partidos si encontramos la semana
       if (currentWeekData) {
         const { data: activeWeeks } = await supabase
           .from('weeks_schedule')
@@ -367,6 +369,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
           .eq('end_at', currentWeekData.end_at);
 
         const weekNumbers = activeWeeks.map(w => w.week);
+
         const { data } = await supabase
           .from('partidos_detallados')
           .select('*')
@@ -375,6 +378,8 @@ function ProximoPartido({ profile, config, onUpdated }) {
           .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
 
         ligaTemp = data || [];
+      } else {
+        console.warn("No se encontró configuración de fechas para la semana actual.");
       }
 
       // --- 2. CARGAR PARTIDOS DE PLAYOFF ---

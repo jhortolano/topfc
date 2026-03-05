@@ -1,19 +1,55 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
-// --- COMPONENTE AVATAR REUTILIZADO ---
-const Avatar = ({ url, size = '30px' }) => (
-  <div style={{
-    width: size, height: size, borderRadius: '50%', overflow: 'hidden',
-    background: '#34495e', border: '2px solid #2ecc71', flexShrink: 0
-  }}>
-    {url ? (
-      <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-    ) : (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.7rem', color: '#7f8c8d' }}>👤</div>
-    )}
-  </div>
-);
+// --- COMPONENTE AVATAR REUTILIZADO CON ZOOM ---
+const Avatar = ({ url, size = '30px' }) => {
+  // Creamos un ID único para el efecto de escala en dispositivos móviles
+  const [isTouched, setIsTouched] = useState(false);
+
+  return (
+    <div 
+      // Eventos para móvil (opcional, para forzar el estado si el CSS no basta)
+      onTouchStart={() => setIsTouched(true)}
+      onTouchEnd={() => setIsTouched(false)}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: '#34495e',
+        border: '2px solid #2ecc71',
+        flexShrink: 0,
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease-in-out, z-index 0.1s', // Animación suave
+        position: 'relative',
+        zIndex: isTouched ? 100 : 1, // Se pone al frente al tocarlo
+        transform: isTouched ? 'scale(2.5)' : 'scale(1)', // Escala en móvil
+        overflow: 'hidden' // Mantiene la imagen circular
+      }}
+      // Efecto para PC (Hover)
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(2.5)';
+        e.currentTarget.style.zIndex = '100';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.zIndex = '1';
+      }}
+    >
+      {url ? (
+        <img 
+          src={url} 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          alt="avatar"
+        />
+      ) : (
+        <div style={{ 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+          height: '100%', fontSize: '0.7rem', color: '#7f8c8d' 
+        }}>👤</div>
+      )}
+    </div>
+  );
+};
 
 const StreamIcon = ({ url }) => {
   if (!url || !url.startsWith('http')) return null;

@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "ACTUALIZACION - PERMITIR JORNADA 0"
+git commit -m "Zoom en avatares"
 git push origin silver
 
 git checkout main

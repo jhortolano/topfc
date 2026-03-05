@@ -1,6 +1,43 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
+// --- COMPONENTE PARA EL ZOOM DEL AVATAR ---
+const AvatarConZoom = ({ url, nick }) => {
+  const [isTouched, setIsTouched] = useState(false);
+
+  return (
+    <div 
+      onTouchStart={() => setIsTouched(true)}
+      onTouchEnd={() => setIsTouched(false)}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(3)'; // Un poco más de zoom aquí
+        e.currentTarget.style.zIndex = '100';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.zIndex = '1';
+        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+      }}
+      style={{
+        width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden',
+        background: '#eee', border: '2px solid #fff', 
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        flexShrink: 0, cursor: 'pointer', transition: 'all 0.25s ease-out',
+        position: 'relative', zIndex: isTouched ? 100 : 1,
+        transform: isTouched ? 'scale(3)' : 'scale(1)'
+      }}
+    >
+      {url ? (
+        <img src={url} alt={nick} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <span style={{ fontSize: '1.2rem', color: '#bdc3c7' }}>👤</span>
+      )}
+    </div>
+  );
+};
+
 // --- SELECTOR UNIFICADO: DIVISIONES + PLAYOFFS ---
 function CategorySelector({ current, onChange, season }) {
   const [categories, setCategories] = useState([])
@@ -145,17 +182,7 @@ export default function Jugadores({ config }) {
               padding: '8px 12px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #eee'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden',
-                  background: '#eee', border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  {u.avatar_url ? (
-                    <img src={u.avatar_url} alt={u.nick} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span style={{ fontSize: '1.2rem', color: '#bdc3c7' }}>👤</span>
-                  )}
-                </div>
+                <AvatarConZoom url={u.avatar_url} nick={u.nick} />
                 <span style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem' }}>{u.nick}</span>
               </div>
 

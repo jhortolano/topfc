@@ -1,6 +1,40 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
+// --- COMPONENTE PARA EL ZOOM ---
+const AvatarConZoom = ({ url }) => {
+  const [isTouched, setIsTouched] = useState(false);
+
+  return (
+    <div
+      onTouchStart={() => setIsTouched(true)}
+      onTouchEnd={() => setIsTouched(false)}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(2.8)';
+        e.currentTarget.style.zIndex = '100';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.zIndex = '1';
+      }}
+      style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        overflow: 'hidden', background: '#eee', border: '1px solid #ddd',
+        flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s ease-in-out',
+        position: 'relative',
+        zIndex: isTouched ? 100 : 1,
+        transform: isTouched ? 'scale(2.8)' : 'scale(1)'
+      }}
+    >
+      {url ? (
+        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <div style={{ fontSize: '0.6rem', color: '#bdc3c7', textAlign: 'center', lineHeight: '24px' }}>👤</div>
+      )}
+    </div>
+  );
+};
+
 // --- SELECTORES ---
 function SeasonSelector({ current, onChange }) {
   const [seasons, setSeasons] = useState([])
@@ -198,9 +232,7 @@ export default function CalendarioCompleto({ config }) {
                     {/* Local */}
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
-                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', background: '#eee', border: '1px solid #ddd', flexShrink: 0 }}>
-                        {p.local_avatar ? <img src={p.local_avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '0.6rem', color: '#bdc3c7', textAlign: 'center', lineHeight: '24px' }}>👤</div>}
-                      </div>
+                      <AvatarConZoom url={p.local_avatar} />
                     </div>
 
                     {/* Marcador */}
@@ -210,9 +242,7 @@ export default function CalendarioCompleto({ config }) {
 
                     {/* Visitante */}
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
-                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', background: '#eee', border: '1px solid #ddd', flexShrink: 0 }}>
-                        {p.visitante_avatar ? <img src={p.visitante_avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '0.6rem', color: '#bdc3c7', textAlign: 'center', lineHeight: '24px' }}>👤</div>}
-                      </div>
+                      <AvatarConZoom url={p.visitante_avatar} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
                     </div>
 

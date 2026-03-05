@@ -70,7 +70,7 @@ export default function CalendarioCompleto({ config }) {
           setFechasJornadas(mapa);
         }
 
-        if (vS === config?.current_season) {
+        if (vS === config?.current_season && config.current_week > 0) {
           const { data: curW } = await supabase.from('weeks_schedule').select('start_at, end_at').eq('season', vS).eq('week', config.current_week).single();
           if (curW) {
             const { data: activeW } = await supabase.from('weeks_schedule').select('week').eq('season', vS).eq('start_at', curW.start_at).eq('end_at', curW.end_at);

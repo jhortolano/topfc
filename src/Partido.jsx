@@ -350,36 +350,41 @@ function ProximoPartido({ profile, config, onUpdated }) {
       }
 
       // --- 1. CARGAR PARTIDOS DE LIGA ---
-      const { data: currentWeekData, error: weekError } = await supabase
-        .from('weeks_schedule')
-        .select('start_at, end_at')
-        .eq('season', config.current_season)
-        .eq('week', config.current_week)
-        .maybeSingle();
-
       let ligaTemp = [];
-
-      // Solo intentamos cargar partidos si encontramos la semana
-      if (currentWeekData) {
-        const { data: activeWeeks } = await supabase
+      if (config.current_week > 0) {
+        const { data: currentWeekData, error: weekError } = await supabase
           .from('weeks_schedule')
-          .select('week')
+          .select('start_at, end_at')
           .eq('season', config.current_season)
-          .eq('start_at', currentWeekData.start_at)
-          .eq('end_at', currentWeekData.end_at);
+          .eq('week', config.current_week)
+          .maybeSingle();
 
-        const weekNumbers = activeWeeks.map(w => w.week);
+        
 
-        const { data } = await supabase
-          .from('partidos_detallados')
-          .select('*')
-          .eq('season', config.current_season)
-          .in('week', weekNumbers)
-          .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
+        // Solo intentamos cargar partidos si encontramos la semana
+        if (currentWeekData) {
+          const { data: activeWeeks } = await supabase
+            .from('weeks_schedule')
+            .select('week')
+            .eq('season', config.current_season)
+            .eq('start_at', currentWeekData.start_at)
+            .eq('end_at', currentWeekData.end_at);
 
-        ligaTemp = data || [];
+          const weekNumbers = activeWeeks.map(w => w.week);
+
+          const { data } = await supabase
+            .from('partidos_detallados')
+            .select('*')
+            .eq('season', config.current_season)
+            .in('week', weekNumbers)
+            .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
+
+          ligaTemp = data || [];
+        } else {
+          console.warn("No se encontró configuración de fechas para la semana actual.");
+        }
       } else {
-        console.warn("No se encontró configuración de fechas para la semana actual.");
+        console.log("Temporada en preparación (Jornada 0).");
       }
 
       // --- 2. CARGAR PARTIDOS DE PLAYOFF ---

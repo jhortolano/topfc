@@ -31,12 +31,19 @@ const globalStyles = `
 `;
 
 const calcularJornadaReal = (schedule) => {
+  if (!schedule || schedule.length === 0) return 0;
+  
   const ahora = new Date();
-  // Buscamos la jornada actual: aquella donde el final es mayor a "ahora"
-  const encontrada = schedule.find(s => new Date(s.end_at) > ahora);
-  if (encontrada) return encontrada.week;
-  // Si todas han pasado, devolvemos la última
-  return schedule.length > 0 ? schedule[schedule.length - 1].week : 1;
+  
+  // LÓGICA NUEVA: Si "ahora" es antes que la fecha de inicio de la primera jornada
+  const primeraJornada = schedule.sort((a, b) => new Date(a.start_at) - new Date(b.start_at))[0];
+  if (ahora < new Date(primeraJornada.start_at)) {
+    return 0;
+  }
+
+  // Lógica actual: buscar la jornada activa
+  const encontrada = schedule.find(j => new Date(j.end_at) > ahora);
+  return encontrada ? encontrada.week : (schedule[schedule.length - 1]?.week || 0);
 };
 
 function App() {
@@ -119,7 +126,7 @@ function App() {
       if (configData.auto_week_by_date) {
         const { data: schedule } = await supabase
           .from('weeks_schedule')
-          .select('week, end_at')
+          .select('week, start_at, end_at')
           .eq('season', configData.current_season)
           .order('week', { ascending: true });
 

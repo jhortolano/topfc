@@ -62,7 +62,6 @@ function App() {
 
     // 2. Función para detectar recuperación
     const checkRecovery = () => {
-      console.log("Comprobando hash:", window.location.hash);
       if (window.location.hash.includes('type=recovery')) {
         console.log("¡Modo recuperación activado!");
         setIsRecoveryMode(true);

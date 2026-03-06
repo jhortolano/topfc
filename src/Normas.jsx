@@ -3,15 +3,28 @@ function Normas() {
     <div>
       <h2 style={{ color: '#2ecc71', marginBottom: '15px' }}>REGLAMENTO</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        
-        {/* Equipos */}
+
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
-          <strong>👕 Equipos Oficiales:</strong> Puedes jugar con cualquier equipo, pero con los jugadores oficiales de ese equipo. No es necesario que juegues todos los partidos con el mismo equipo, puedes cambiar.
+          <strong>👕 Equipos Oficiales:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
+            <li>Puedes jugar con cualquier equipo con sus jugadores oficiales.</li>
+            <li>Se permite cambiar de equipo entre partidos.</li>
+          </ul>
         </div>
 
-        {/* Respeto */}
+        {/* Respeto y Fair Play */}
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
-          <strong>🤝 Respeto:</strong> Jugamos por diversión. Respeta a tu adversario. En la medida de lo posible, intenta saltar la celebración de los goles.
+          <strong>🤝 Respeto y Fair Play:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
+            <li style={{ marginBottom: '8px' }}>Jugamos por diversión. Respeta a tu adversario e intenta saltar las celebraciones.</li>
+            <li style={{ marginBottom: '8px' }}>
+              <strong>Ajuste deportivo de marcadores:</strong> Con el fin de mantener la competitividad y un ambiente amistoso, el programa reseteará automáticamente los resultados con diferencias muy altas:
+              <ul style={{ marginTop: '5px', listStyleType: 'circle' }}>
+                <li>En <strong>Liga</strong>: Diferencia máxima de 3 goles (Ej: un 5-1 se registrará como 4-1).</li>
+                <li>En <strong>Playoffs</strong>: Diferencia máxima de 5 goles (Ej: un 2-9 se registrará como 2-7).</li>
+              </ul>
+            </li>
+          </ul>
         </div>
 
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>

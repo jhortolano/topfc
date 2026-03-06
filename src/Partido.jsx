@@ -15,11 +15,12 @@ const Avatar = ({ url }) => (
   </div>
 );
 
-function TarjetaResultado({ partido, onUpdated }) {
+function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
   const [gV, setGV] = useState(partido.away_score ?? '');
   const [enviando, setEnviando] = useState(false);
   const [urlStream, setUrlStream] = useState('');
+  const [ajustado, setAjustado] = useState(false);
 
 
   useEffect(() => {
@@ -56,8 +57,33 @@ function TarjetaResultado({ partido, onUpdated }) {
     setEnviando(true);
 
     try {
-      const scoreL = parseInt(gL);
-      const scoreV = parseInt(gV);
+      let scoreL = parseInt(gL);
+      let scoreV = parseInt(gV);
+      let huboAjuste = false;
+
+      // --- NUEVA LÓGICA DE RECORTE (LIGA + PLAYOFF) ---
+      let activo = false;
+      let maximo = 0;
+
+      if (isPlayoff) {
+        // Usamos los datos que inyectaste en el mapeo: po.limit_ga_enabled y po.max_ga_playoff
+        activo = String(partido.playoff_limit_ga) === 'true' || partido.playoff_limit_ga === true;
+        maximo = parseInt(partido.playoff_max_ga);
+      } else {
+        // Usamos las reglas de la liga que vienen por props
+        activo = String(limitGaEnabled) === 'true' || limitGaEnabled === true;
+        maximo = parseInt(maxGaLeague);
+      }
+
+      if (activo && maximo > 0) {
+        const diferenciaActual = Math.abs(scoreL - scoreV);
+        if (diferenciaActual > maximo) {
+          huboAjuste = true;
+          if (scoreL > scoreV) scoreL = scoreV + maximo;
+          else scoreV = scoreL + maximo;
+        }
+      }
+      // --- FIN LÓGICA DE RECORTE ---
 
       // En playoff_matches_detallados (vista), los IDs reales son local_id y visitante_id
       // Intentamos capturar el ID de cualquier fuente posible (Vista o Tabla base)
@@ -161,7 +187,8 @@ function TarjetaResultado({ partido, onUpdated }) {
       }
 
       if (onUpdated) onUpdated();
-      alert("Guardado y actualizado.");
+      if (huboAjuste) alert(`Resultado ajustado por normativa (Máx: ${maximo} goles)`);
+      else alert("Guardado correctamente.");
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -310,7 +337,30 @@ function ProximoPartido({ profile, config, onUpdated }) {
   const [aviso, setAviso] = useState(null)
   const [loading, setLoading] = useState(true)
   const [encuestas, setEncuestas] = useState([]);
-  const [votosPropios, setVotosPropios] = useState({}); // { encuesta_id: opcion_seleccionada }
+  const [votosPropios, setVotosPropios] = useState({});
+  const [reglas, setReglas] = useState({ limit_ga_enabled: false, max_ga_league: 0 });
+
+  useEffect(() => {
+    const cargarReglas = async () => {
+      const { data, error } = await supabase
+        .from('season_rules')
+        .select('*')
+        // CAMBIO AQUÍ: Usamos 'season' en lugar de 'id'
+        // Si el valor de la temporada es 1, lo dejamos así:
+        .eq('season', 1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error cargando season_rules:", error.message);
+        return;
+      }
+
+      if (data) {
+        setReglas(data);
+      }
+    };
+    cargarReglas();
+  }, []);
 
   const cargar = async () => {
     if (!config || !profile) return;
@@ -359,7 +409,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
           .eq('week', config.current_week)
           .maybeSingle();
 
-        
+
 
         // Solo intentamos cargar partidos si encontramos la semana
         if (currentWeekData) {
@@ -390,7 +440,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
       // --- 2. CARGAR PARTIDOS DE PLAYOFF ---
       const { data: playoffsActivos } = await supabase
         .from('playoffs')
-        .select('id, name, current_round')
+        .select('id, name, current_round, limit_ga_enabled, max_ga_playoff')
         .eq('season', config.current_season)
         .not('current_round', 'is', null)
         .neq('current_round', 'Finalizado');
@@ -427,7 +477,9 @@ function ProximoPartido({ profile, config, onUpdated }) {
               // 4. Los añadimos al listado temporal con el nombre del torneo
               const conNombre = partidosEnFecha.map(m => ({
                 ...m,
-                playoff_name: po.name
+                playoff_name: po.name,
+                playoff_limit_ga: po.limit_ga_enabled,
+                playoff_max_ga: po.max_ga_playoff
               }));
 
               playoffTemp = [...playoffTemp, ...conNombre];
@@ -553,7 +605,14 @@ function ProximoPartido({ profile, config, onUpdated }) {
         </div>
       ) : (
         todosLosPartidos.map(p => (
-          <TarjetaResultado key={p.playoff_id ? `po-${p.id}` : `li-${p.id}`} partido={p} onUpdated={cargar} />
+          <TarjetaResultado
+            key={p.playoff_id ? `po-${p.id}` : `li-${p.id}`}
+            partido={p}
+            onUpdated={cargar}
+            // Pasamos los datos del nuevo estado 'reglas'
+            limitGaEnabled={reglas.limit_ga_enabled}
+            maxGaLeague={reglas.max_ga_league}
+          />
         ))
       )}
     </div>

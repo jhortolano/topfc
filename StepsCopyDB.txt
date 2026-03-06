@@ -1,10 +1,10 @@
 --EXPORTING DATA FROM PROD
 -- COMMAND LINE -- 
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > bkDB/backup_produccion_completo_20260305-After.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > bkDB/backup_produccion_completo_20260306.sql
 
 
 --COMMAND LINE 2 --
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > bkDB/usuarios_prod_20260305-After.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > bkDB/usuarios_prod_20260306.sql
 
 
 -- BORRAR DATOS EN TESTING DATABASE
@@ -15,15 +15,15 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
 
 --CARGAR USUARIOS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/usuarios_prod_20260305-After.sql
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/usuarios_prod_20260306.sql
 
-SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f bkDB/usuarios_prod_20260305-After.sql  
+SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f bkDB/usuarios_prod_20260306.sql  
 
 
 --CARGAR TABLAS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/backup_produccion_completo_20260305-After.sql
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/backup_produccion_completo_20260306.sql
 
-SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f bkDB/backup_produccion_completo_20260305-After.sql
+SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f bkDB/backup_produccion_completo_20260306.sql
 
 -SQL en testing:
 -- 1. Recargar el esquema para la API de PostgREST

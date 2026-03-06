@@ -124,6 +124,8 @@ export default function AdminPanel({ config, onConfigChange }) {
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [minPercentage, setMinPercentage] = useState(80);
   const [extraPoints, setExtraPoints] = useState(1);
+  const [limitGaEnabled, setLimitGaEnabled] = useState(true); // Checkbox de activo
+  const [maxGaLeague, setMaxGaLeague] = useState(3);          // Diferencia máxima
 
   // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
@@ -215,10 +217,14 @@ export default function AdminPanel({ config, onConfigChange }) {
       setBonusEnabled(data.bonus_enabled);
       setMinPercentage(data.bonus_min_percentage);
       setExtraPoints(data.bonus_points);
+      setLimitGaEnabled(data.limit_ga_enabled ?? true);
+      setMaxGaLeague(data.max_ga_league ?? 3);
     } else {
       setBonusEnabled(false);
       setMinPercentage(80);
       setExtraPoints(1);
+      setLimitGaEnabled(true);
+      setMaxGaLeague(3);
     }
   };
 
@@ -227,7 +233,9 @@ export default function AdminPanel({ config, onConfigChange }) {
       season: editSeason,
       bonus_enabled: bonusEnabled,
       bonus_min_percentage: minPercentage,
-      bonus_points: extraPoints
+      bonus_points: extraPoints,
+      limit_ga_enabled: limitGaEnabled,
+      max_ga_league: maxGaLeague
     });
     if (error) alert("Error: " + error.message);
     else alert(`¡Reglas guardadas para la Temporada ${editSeason}!`);
@@ -722,38 +730,41 @@ export default function AdminPanel({ config, onConfigChange }) {
         )}
       </div>
 
-      {/* SECCIÓN REGLAS DE PUNTOS EXTRA */}
+      {/* SECCIÓN CONFIGURACIÓN DE COMPETICIÓN */}
       <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '20px' }}>
-        <h4 style={{ marginTop: 0, color: '#92400e' }}>🏆 Reglas de Bonus (Temporada {editSeason})</h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+        <h4 style={{ marginTop: 0, color: '#92400e' }}>⚙️ Configuración de Competición (T{editSeason})</h4>
 
+        {/* FILA 1: BONUS POR DIRECTOS */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '15px', borderBottom: '1px solid #fde68a', paddingBottom: '15px' }}>
           <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>¿Activar Bonus?</span>
-            <input
-              type="checkbox"
-              checked={bonusEnabled}
-              onChange={e => setBonusEnabled(e.target.checked)}
-              style={{ width: '20px', height: '20px' }}
-            />
+            <span style={{ fontWeight: 'bold' }}>¿Activar Bonus Directos?</span>
+            <input type="checkbox" checked={bonusEnabled} onChange={e => setBonusEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
           </label>
-
           <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>% Mínimo de Directos</span>
-            <input
-              type="number"
-              value={minPercentage}
-              onChange={e => setMinPercentage(e.target.value)}
-              style={{ width: '80px', padding: '5px' }}
-            />
+            <span style={{ fontWeight: 'bold' }}>% Mínimo</span>
+            <input type="number" value={minPercentage} onChange={e => setMinPercentage(e.target.value)} style={{ width: '80px', padding: '5px' }} />
           </label>
-
           <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
             <span style={{ fontWeight: 'bold' }}>Puntos Extra</span>
+            <input type="number" value={extraPoints} onChange={e => setExtraPoints(e.target.value)} style={{ width: '60px', padding: '5px' }} />
+          </label>
+        </div>
+
+        {/* FILA 2: FAIR PLAY (DIFERENCIA DE GOLES) */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+            <span style={{ fontWeight: 'bold' }}>¿Limitar Goles (Fair Play)?</span>
+            <input type="checkbox" checked={limitGaEnabled} onChange={e => setLimitGaEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
+          </label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+            <span style={{ fontWeight: 'bold' }}>Dif. Máxima Liga</span>
             <input
               type="number"
-              value={extraPoints}
-              onChange={e => setExtraPoints(e.target.value)}
-              style={{ width: '60px', padding: '5px' }}
+              min="1"
+              value={maxGaLeague}
+              onChange={e => setMaxGaLeague(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: '80px', padding: '5px', border: '1px solid #d1d5db', borderRadius: '4px' }}
             />
           </label>
 
@@ -761,15 +772,12 @@ export default function AdminPanel({ config, onConfigChange }) {
             onClick={handleSaveRules}
             style={{
               background: '#f59e0b', color: 'white', border: 'none',
-              padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer'
+              padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', marginLeft: 'auto'
             }}
           >
-            GUARDAR CONFIGURACIÓN
+            GUARDAR TODO
           </button>
         </div>
-        <p style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '10px' }}>
-          * Los jugadores que retransmitan al menos el <strong>{minPercentage}%</strong> de sus partidos recibirán <strong>+{extraPoints}</strong> puntos al final de la temporada.
-        </p>
       </div>
 
       {/* 3. EDITOR RESULTADOS (MEJORADO) */}

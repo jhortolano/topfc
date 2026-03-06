@@ -211,7 +211,13 @@ export default function AdminPlayoffs({ config }) {
 
   const crearTorneo = async () => {
     if (!nombre.trim()) return alert("Escribe un nombre");
-    const { error } = await supabase.from('playoffs').insert([{ name: nombre, season: temporadaSeleccionada, settings: roundSettings }]);
+    const { error } = await supabase.from('playoffs').insert([{
+      name: nombre,
+      season: temporadaSeleccionada,
+      settings: roundSettings,
+      limit_ga_enabled: true,
+      max_ga_playoff: 5
+    }]);
     if (error) alert(error.message); else { setNombre(''); fetchPlayoffs(); }
   };
 
@@ -219,6 +225,26 @@ export default function AdminPlayoffs({ config }) {
     if (!confirm("¿Eliminar torneo y sus partidos?")) return;
     await supabase.from('playoffs').delete().eq('id', id);
     fetchPlayoffs();
+  };
+
+  const saveGaSettings = async (playoffId, enabled, maxGa) => {
+    const { error } = await supabase
+      .from('playoffs')
+      .update({
+        limit_ga_enabled: enabled,
+        max_ga_playoff: maxGa
+      })
+      .eq('id', playoffId);
+
+    if (error) {
+      alert("Error al guardar ajustes: " + error.message);
+    } else {
+      // Actualizamos la lista local para reflejar que se guardó
+      setListaPlayoffs(listaPlayoffs.map(p =>
+        p.id === playoffId ? { ...p, limit_ga_enabled: enabled, max_ga_playoff: maxGa } : p
+      ));
+      alert("Ajustes de goles guardados correctamente.");
+    }
   };
 
   const updateMatchPlayer = async (roundBase, matchOrder, field, userId) => {
@@ -612,15 +638,15 @@ export default function AdminPlayoffs({ config }) {
       if (error) throw error;
 
       // --- 1.5 Borrar el stream asociado ---
-    const { error: errorStream } = await supabase
-      .from('match_playoff_streams')
-      .delete()
-      .eq('playoff_match_id', m.id);
+      const { error: errorStream } = await supabase
+        .from('match_playoff_streams')
+        .delete()
+        .eq('playoff_match_id', m.id);
 
-    if (errorStream) {
-      console.warn("No se pudo borrar el stream o no existía:", errorStream.message);
-      // No lanzamos throw para que el resto del borrado (ronda siguiente) continúe
-    }
+      if (errorStream) {
+        console.warn("No se pudo borrar el stream o no existía:", errorStream.message);
+        // No lanzamos throw para que el resto del borrado (ronda siguiente) continúe
+      }
 
       // 2. Limpiar la posición en la ronda siguiente
       const faseBase = m.round.split(' (')[0].trim();
@@ -816,6 +842,77 @@ export default function AdminPlayoffs({ config }) {
                   </label>
                 </div>
               )}
+              {/* --- SECCIÓN LÍMITE DE GOLES CON BOTÓN --- */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between', // Para separar el botón de los controles
+                gap: '15px',
+                padding: '10px 12px',
+                background: '#fcfcfc',
+                borderTop: '1px solid #eee',
+                fontSize: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      id={`limit-check-${tp.id}`}
+                      defaultChecked={tp.limit_ga_enabled ?? true}
+                      onChange={(e) => {
+                        // Esto solo sirve para mostrar/ocultar el input de "Máximo" visualmente
+                        const inputDiv = document.getElementById(`max-ga-container-${tp.id}`);
+                        if (inputDiv) inputDiv.style.display = e.target.checked ? 'flex' : 'none';
+                      }}
+                    />
+                    <span style={{ fontWeight: 'bold', color: '#34495e' }}>Limitar Goles (GA)</span>
+                  </label>
+
+                  <div
+                    id={`max-ga-container-${tp.id}`}
+                    style={{
+                      display: (tp.limit_ga_enabled ?? true) ? 'flex' : 'none',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <span style={{ color: '#7f8c8d' }}>Máximo:</span>
+                    <input
+                      type="number"
+                      id={`max-ga-input-${tp.id}`}
+                      defaultValue={tp.max_ga_playoff ?? 5}
+                      style={{
+                        width: '40px',
+                        padding: '2px',
+                        textAlign: 'center',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const isEnabled = document.getElementById(`limit-check-${tp.id}`).checked;
+                    const maxVal = parseInt(document.getElementById(`max-ga-input-${tp.id}`).value);
+                    saveGaSettings(tp.id, isEnabled, maxVal);
+                  }}
+                  style={{
+                    background: '#2ecc71',
+                    color: 'white',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  GUARDAR GA
+                </button>
+              </div>
+
             </div>
           ))}
         </div>

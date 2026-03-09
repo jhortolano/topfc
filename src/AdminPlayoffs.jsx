@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
-export default function AdminPlayoffs({ config }) {
+export default function AdminPlayoffs({ config, profile }) {
+  const isAdminReal = profile?.is_admin === true;
   const [nombre, setNombre] = useState('');
   const [temporadaSeleccionada, setTemporadaSeleccionada] = useState(config?.current_season);
   const [listaPlayoffs, setListaPlayoffs] = useState([]);
@@ -676,66 +677,74 @@ export default function AdminPlayoffs({ config }) {
 
       {!selectedTorneo && !viewBracket && !viewCalendar ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '12px', border: '1px solid #ddd' }}>
-            <select value={temporadaSeleccionada} onChange={(e) => setTemporadaSeleccionada(parseInt(e.target.value))} style={{ padding: '8px', width: '100%', marginBottom: '10px' }}>
-              {seasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
-            </select>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              <input type="text" placeholder="Nombre torneo..." value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ flex: 1, padding: '8px' }} />
-              <button onClick={crearTorneo} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px' }}>CREAR</button>
-            </div>
-          </div>
+          {isAdminReal && (
+            <>
+              <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '12px', border: '1px solid #ddd' }}>
+                <select value={temporadaSeleccionada} onChange={(e) => setTemporadaSeleccionada(parseInt(e.target.value))} style={{ padding: '8px', width: '100%', marginBottom: '10px' }}>
+                  {seasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
+                </select>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <input type="text" placeholder="Nombre torneo..." value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ flex: 1, padding: '8px' }} />
+                  <button onClick={crearTorneo} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px' }}>CREAR</button>
+                </div>
+              </div>
+            </>
+          )}
 
-          {/* --- CONTROL AUTOMÁTICO DE FASES --- */}
-          <div style={{
-            background: autoPlayoff ? '#e8f8f5' : '#fff',
-            padding: '12px 15px',
-            borderRadius: '12px',
-            border: autoPlayoff ? '1px solid #2ecc71' : '1px solid #ddd',
-            marginBottom: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.3s ease'
-          }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              color: autoPlayoff ? '#27ae60' : '#7f8c8d'
-            }}>
-              <input
-                type="checkbox"
-                checked={autoPlayoff}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                onChange={async (e) => {
-                  const checked = e.target.checked;
-                  setAutoPlayoff(checked); // Cambio visual instantáneo
+          {isAdminReal && (
+            <>
+              {/* --- CONTROL AUTOMÁTICO DE FASES --- */}
+              <div style={{
+                background: autoPlayoff ? '#e8f8f5' : '#fff',
+                padding: '12px 15px',
+                borderRadius: '12px',
+                border: autoPlayoff ? '1px solid #2ecc71' : '1px solid #ddd',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease'
+              }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  color: autoPlayoff ? '#27ae60' : '#7f8c8d'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={autoPlayoff}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      setAutoPlayoff(checked); // Cambio visual instantáneo
 
-                  const { error } = await supabase
-                    .from('config')
-                    .update({ auto_playoff_by_date: checked })
-                    .eq('id', 1);
+                      const { error } = await supabase
+                        .from('config')
+                        .update({ auto_playoff_by_date: checked })
+                        .eq('id', 1);
 
-                  if (error) {
-                    alert("Error al actualizar config");
-                    setAutoPlayoff(!checked);
-                  } else {
-                    // Avisamos al padre (App.jsx) para que refresque la config global
-                    if (props.onConfigChange) props.onConfigChange();
-                  }
-                }}
-              />
-              <span>Sincronizar fases automáticamente por fecha</span>
-            </label>
-            {autoPlayoff && (
-              <span style={{ fontSize: '0.65rem', color: '#27ae60', fontWeight: 'bold' }}>
-                MODO AUTO ACTIVO
-              </span>
-            )}
-          </div>
+                      if (error) {
+                        alert("Error al actualizar config");
+                        setAutoPlayoff(!checked);
+                      } else {
+                        // Avisamos al padre (App.jsx) para que refresque la config global
+                        if (props.onConfigChange) props.onConfigChange();
+                      }
+                    }}
+                  />
+                  <span>Sincronizar fases automáticamente por fecha</span>
+                </label>
+                {autoPlayoff && (
+                  <span style={{ fontSize: '0.65rem', color: '#27ae60', fontWeight: 'bold' }}>
+                    MODO AUTO ACTIVO
+                  </span>
+                )}
+              </div>
+            </>
+          )}
 
           {listaPlayoffs.map(tp => (
             <div key={tp.id} style={{
@@ -758,160 +767,171 @@ export default function AdminPlayoffs({ config }) {
                 <span style={{ fontWeight: 'bold' }}>{tp.name}</span>
                 <div style={{ display: 'flex', gap: '5px' }}>
                   <button onClick={() => { setViewBracket(tp); fetchMatches(tp.id); }} style={{ background: '#9b59b6', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>ESQUEMA</button>
-                  {playoffsConPartidos.has(tp.id) && (
-                    <button onClick={() => { setViewCalendar(tp); fetchMatches(tp.id); }} style={{ background: '#f39c12', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>FECHAS</button>
-                  )}
-                  {!playoffsConPartidos.has(tp.id) && (
-                    <button onClick={() => { setSelectedTorneo(tp); setRoundSettings(tp.settings || roundSettings); fetchMatches(tp.id); }} style={{ background: '#3498db', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>JUGADORES</button>
-                  )}
-                  <button onClick={() => eliminarTorneo(tp.id)} style={{ background: '#ff7675', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>BORRAR</button>
+                  {isAdminReal && (<>
+                    {playoffsConPartidos.has(tp.id) && (
+                      <button onClick={() => { setViewCalendar(tp); fetchMatches(tp.id); }} style={{ background: '#f39c12', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>FECHAS</button>
+                    )}
+                    {!playoffsConPartidos.has(tp.id) && (
+                      <button onClick={() => { setSelectedTorneo(tp); setRoundSettings(tp.settings || roundSettings); fetchMatches(tp.id); }} style={{ background: '#3498db', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>JUGADORES</button>
+                    )}
+                    <button onClick={() => eliminarTorneo(tp.id)} style={{ background: '#ff7675', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>BORRAR</button>
+                  </>)}
                 </div>
               </div>
-              {/* PARTE INFERIOR: Radio Buttons de Fase */}
-              {playoffsConPartidos.has(tp.id) && (
+
+              {isAdminReal && (<>
+                {/* PARTE INFERIOR: Radio Buttons de Fase */}
+                {playoffsConPartidos.has(tp.id) && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    background: '#fcfcfc',
+                    borderTop: '1px dashed #ddd',
+                    fontSize: '0.75rem'
+                  }}>
+                    <span style={{ width: '100%', color: '#7f8c8d', fontWeight: 'bold', marginBottom: '2px' }}>FASE ACTUAL:</span>
+
+                    {/* Usamos orderRondas pero solo mostramos las que REALMENTE tienen partidos en este playoff */}
+                    {orderRondas
+                      .filter(r => {
+                        // Buscamos si existe al menos un partido generado para esta ronda en este playoff
+                        // Nota: Esto asume que 'matches' contiene los partidos del playoff seleccionado.
+                        // Como 'matches' cambia según el botón pulsado, usaremos una lógica basada en el tamaño del torneo
+                        // o en los settings que tengan valor true/false.
+
+                        // Mejor opción: Si el torneo se generó, calculamos qué rondas debieron crearse según el número de jugadores
+                        // Pero para ser 100% precisos, comprobamos los settings que NO son undefined y pertenecen al rango.
+                        return tp.settings && tp.settings[r] !== undefined;
+                      })
+                      .map(r => {
+                        const isIdaVuelta = tp.settings[r];
+                        const labels = isIdaVuelta ? [`${r} (Ida)`, `${r} (Vuelta)`] : [r];
+
+                        return labels.map(label => (
+                          <label key={label} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: autoPlayoff ? 'not-allowed' : 'pointer', // Cambio de cursor
+                            background: tp.current_round === label ? '#e8f8f5' : 'transparent',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: tp.current_round === label ? '1px solid #2ecc71' : '1px solid transparent',
+                            transition: 'all 0.2s',
+                            opacity: autoPlayoff ? 0.7 : 1 // Opacidad para indicar bloqueo
+                          }}>
+                            <input
+                              type="radio"
+                              name={`round-${tp.id}`}
+                              checked={tp.current_round === label}
+                              disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
+                              onChange={() => updateCurrentRound(tp.id, label)}
+                            />
+                            {label}
+                          </label>
+                        ));
+                      })}
+
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: autoPlayoff ? 'not-allowed' : 'pointer',
+                      padding: '4px 8px',
+                      background: (!tp.current_round || tp.current_round === 'Finalizado') ? '#f1f2f6' : 'transparent',
+                      borderRadius: '4px',
+                      opacity: autoPlayoff ? 0.7 : 1
+                    }}>
+                      <input
+                        type="radio"
+                        name={`round-${tp.id}`}
+                        checked={!tp.current_round || tp.current_round === 'Finalizado'}
+                        disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
+                        onChange={() => updateCurrentRound(tp.id, 'Finalizado')}
+                      />
+                      Finalizado
+                    </label>
+                  </div>
+                )}
+              </>)}
+
+              {isAdminReal && (<>
+                {/* --- SECCIÓN LÍMITE DE GOLES CON BOTÓN --- */}
                 <div style={{
                   display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
+                  alignItems: 'center',
+                  justifyContent: 'space-between', // Para separar el botón de los controles
+                  gap: '15px',
                   padding: '10px 12px',
                   background: '#fcfcfc',
-                  borderTop: '1px dashed #ddd',
+                  borderTop: '1px solid #eee',
                   fontSize: '0.75rem'
                 }}>
-                  <span style={{ width: '100%', color: '#7f8c8d', fontWeight: 'bold', marginBottom: '2px' }}>FASE ACTUAL:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        id={`limit-check-${tp.id}`}
+                        defaultChecked={tp.limit_ga_enabled ?? true}
+                        onChange={(e) => {
+                          // Esto solo sirve para mostrar/ocultar el input de "Máximo" visualmente
+                          const inputDiv = document.getElementById(`max-ga-container-${tp.id}`);
+                          if (inputDiv) inputDiv.style.display = e.target.checked ? 'flex' : 'none';
+                        }}
+                      />
+                      <span style={{ fontWeight: 'bold', color: '#34495e' }}>Limitar Goles (GA)</span>
+                    </label>
 
-                  {/* Usamos orderRondas pero solo mostramos las que REALMENTE tienen partidos en este playoff */}
-                  {orderRondas
-                    .filter(r => {
-                      // Buscamos si existe al menos un partido generado para esta ronda en este playoff
-                      // Nota: Esto asume que 'matches' contiene los partidos del playoff seleccionado.
-                      // Como 'matches' cambia según el botón pulsado, usaremos una lógica basada en el tamaño del torneo
-                      // o en los settings que tengan valor true/false.
-
-                      // Mejor opción: Si el torneo se generó, calculamos qué rondas debieron crearse según el número de jugadores
-                      // Pero para ser 100% precisos, comprobamos los settings que NO son undefined y pertenecen al rango.
-                      return tp.settings && tp.settings[r] !== undefined;
-                    })
-                    .map(r => {
-                      const isIdaVuelta = tp.settings[r];
-                      const labels = isIdaVuelta ? [`${r} (Ida)`, `${r} (Vuelta)`] : [r];
-
-                      return labels.map(label => (
-                        <label key={label} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          cursor: autoPlayoff ? 'not-allowed' : 'pointer', // Cambio de cursor
-                          background: tp.current_round === label ? '#e8f8f5' : 'transparent',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          border: tp.current_round === label ? '1px solid #2ecc71' : '1px solid transparent',
-                          transition: 'all 0.2s',
-                          opacity: autoPlayoff ? 0.7 : 1 // Opacidad para indicar bloqueo
-                        }}>
-                          <input
-                            type="radio"
-                            name={`round-${tp.id}`}
-                            checked={tp.current_round === label}
-                            disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
-                            onChange={() => updateCurrentRound(tp.id, label)}
-                          />
-                          {label}
-                        </label>
-                      ));
-                    })}
-
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    cursor: autoPlayoff ? 'not-allowed' : 'pointer',
-                    padding: '4px 8px',
-                    background: (!tp.current_round || tp.current_round === 'Finalizado') ? '#f1f2f6' : 'transparent',
-                    borderRadius: '4px',
-                    opacity: autoPlayoff ? 0.7 : 1
-                  }}>
-                    <input
-                      type="radio"
-                      name={`round-${tp.id}`}
-                      checked={!tp.current_round || tp.current_round === 'Finalizado'}
-                      disabled={autoPlayoff} // <--- BLOQUEO AQUÍ
-                      onChange={() => updateCurrentRound(tp.id, 'Finalizado')}
-                    />
-                    Finalizado
-                  </label>
-                </div>
-              )}
-              {/* --- SECCIÓN LÍMITE DE GOLES CON BOTÓN --- */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between', // Para separar el botón de los controles
-                gap: '15px',
-                padding: '10px 12px',
-                background: '#fcfcfc',
-                borderTop: '1px solid #eee',
-                fontSize: '0.75rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      id={`limit-check-${tp.id}`}
-                      defaultChecked={tp.limit_ga_enabled ?? true}
-                      onChange={(e) => {
-                        // Esto solo sirve para mostrar/ocultar el input de "Máximo" visualmente
-                        const inputDiv = document.getElementById(`max-ga-container-${tp.id}`);
-                        if (inputDiv) inputDiv.style.display = e.target.checked ? 'flex' : 'none';
+                    <div
+                      id={`max-ga-container-${tp.id}`}
+                      style={{
+                        display: (tp.limit_ga_enabled ?? true) ? 'flex' : 'none',
+                        alignItems: 'center',
+                        gap: '5px'
                       }}
-                    />
-                    <span style={{ fontWeight: 'bold', color: '#34495e' }}>Limitar Goles (GA)</span>
-                  </label>
+                    >
+                      <span style={{ color: '#7f8c8d' }}>Máximo:</span>
+                      <input
+                        type="number"
+                        id={`max-ga-input-${tp.id}`}
+                        defaultValue={tp.max_ga_playoff ?? 5}
+                        style={{
+                          width: '40px',
+                          padding: '2px',
+                          textAlign: 'center',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px'
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                  <div
-                    id={`max-ga-container-${tp.id}`}
+                  <button
+                    onClick={() => {
+                      const isEnabled = document.getElementById(`limit-check-${tp.id}`).checked;
+                      const maxVal = parseInt(document.getElementById(`max-ga-input-${tp.id}`).value);
+                      saveGaSettings(tp.id, isEnabled, maxVal);
+                    }}
                     style={{
-                      display: (tp.limit_ga_enabled ?? true) ? 'flex' : 'none',
-                      alignItems: 'center',
-                      gap: '5px'
+                      background: '#2ecc71',
+                      color: 'white',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.65rem',
+                      fontWeight: 'bold'
                     }}
                   >
-                    <span style={{ color: '#7f8c8d' }}>Máximo:</span>
-                    <input
-                      type="number"
-                      id={`max-ga-input-${tp.id}`}
-                      defaultValue={tp.max_ga_playoff ?? 5}
-                      style={{
-                        width: '40px',
-                        padding: '2px',
-                        textAlign: 'center',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px'
-                      }}
-                    />
-                  </div>
+                    GUARDAR GA
+                  </button>
                 </div>
+              </>)}
 
-                <button
-                  onClick={() => {
-                    const isEnabled = document.getElementById(`limit-check-${tp.id}`).checked;
-                    const maxVal = parseInt(document.getElementById(`max-ga-input-${tp.id}`).value);
-                    saveGaSettings(tp.id, isEnabled, maxVal);
-                  }}
-                  style={{
-                    background: '#2ecc71',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.65rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  GUARDAR GA
-                </button>
-              </div>
+
+
 
             </div>
           ))}

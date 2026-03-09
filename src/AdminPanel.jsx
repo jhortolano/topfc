@@ -102,7 +102,8 @@ function PartidoEditable({ partido, onUpdate }) {
   );
 }
 
-export default function AdminPanel({ config, onConfigChange }) {
+export default function AdminPanel({ config, onConfigChange, profile }) {
+  const isAdminReal = profile?.is_admin === true;
   const [loading, setLoading] = useState(false);
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -126,6 +127,13 @@ export default function AdminPanel({ config, onConfigChange }) {
   const [extraPoints, setExtraPoints] = useState(1);
   const [limitGaEnabled, setLimitGaEnabled] = useState(true); // Checkbox de activo
   const [maxGaLeague, setMaxGaLeague] = useState(3);          // Diferencia máxima
+
+  // --- ESTADOS PARA COLABORADORES ---
+  const [colaboradorSearch, setColaboradorSearch] = useState('');
+  const [showColaboradorResults, setShowColaboradorResults] = useState(false);
+
+  // Lista de usuarios que ya son colaboradores
+  const colaboradores = availableUsers.filter(u => u.is_colaborador);
 
   // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
@@ -225,6 +233,23 @@ export default function AdminPanel({ config, onConfigChange }) {
       setExtraPoints(1);
       setLimitGaEnabled(true);
       setMaxGaLeague(3);
+    }
+  };
+
+  // Función para cambiar el estado de colaborador
+  const toggleColaborador = async (userId, status) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_colaborador: status })
+      .eq('id', userId);
+
+    if (error) {
+      alert("Error al actualizar colaborador");
+    } else {
+      // Refrescamos la lista de usuarios para que se actualice la UI
+      fetchUsers();
+      setColaboradorSearch('');
+      setShowColaboradorResults(false);
     }
   };
 
@@ -488,297 +513,316 @@ export default function AdminPanel({ config, onConfigChange }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
-      {/* 1. NAVEGACIÓN  */}
-      <div style={{
-        background: '#f8f9fa',
-        padding: '15px',
-        borderRadius: '8px',
-        border: '1px solid #ddd',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span>Jornada Activa:</span>
-            <button
-              style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
-              disabled={config?.auto_week_by_date}
-              onClick={async () => {
-                await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
-                onConfigChange();
-              }}
-            >-</button>
-
-            <strong style={{
-              margin: '0 5px',
-              color: config?.auto_week_by_date ? '#95a5a6' : '#2c3e50'
-            }}>
-              {config?.current_week}
-            </strong>
-
-            <button
-              style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
-              disabled={config?.auto_week_by_date}
-              onClick={async () => {
-                await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
-                onConfigChange();
-              }}
-            >+</button>
-
-            {config?.auto_week_by_date && (
-              <span style={{ fontSize: '0.65rem', color: '#2ecc71', fontWeight: 'bold' }}>
-                (AUTO)
-              </span>
-            )}
-          </div>
-
-          <div>
-            T. Activa:
-            <select
-              value={config?.current_season || ''}
-              style={{ marginLeft: '5px' }}
-              onChange={async (e) => {
-                const nuevaSeason = parseInt(e.target.value);
-                const { error } = await supabase
-                  .from('config')
-                  .update({ current_season: nuevaSeason, current_week: 1 })
-                  .eq('id', 1);
-                onConfigChange();
-              }}
-            >
-              {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* NUEVO: Checkbox de control automático */}
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '10px' }}>
-          <label style={{
+      {isAdminReal && (
+        <>
+          {/* 1. NAVEGACIÓN  */}
+          <div style={{
+            background: '#f8f9fa',
+            padding: '15px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
             display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            color: config?.auto_week_by_date ? '#2ecc71' : '#7f8c8d',
-            fontWeight: config?.auto_week_by_date ? 'bold' : 'normal'
+            flexDirection: 'column',
+            gap: '10px'
           }}>
-            <input
-              type="checkbox"
-              checked={autoWeek} // Usamos el estado local
-              onChange={async (e) => {
-                const checked = e.target.checked;
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span>Jornada Activa:</span>
+                <button
+                  style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
+                  disabled={config?.auto_week_by_date}
+                  onClick={async () => {
+                    await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
+                    onConfigChange();
+                  }}
+                >-</button>
 
-                // 1. Cambio visual INSTANTÁNEO
-                setAutoWeek(checked);
-
-                // 2. Guardar en Base de Datos
-                const { error } = await supabase
-                  .from('config')
-                  .update({ auto_week_by_date: checked })
-                  .eq('id', 1);
-
-                if (error) {
-                  alert("Error al guardar en DB");
-                  setAutoWeek(!checked); // Revertimos si falla
-                } else {
-                  // 3. Informar al padre de forma silenciosa para actualizar el estado global
-                  onConfigChange();
-                }
-              }}
-            />
-            Actualizar jornada por fecha automáticamente
-          </label>
-        </div>
-      </div>
-
-      {/* 2. GESTIÓN TEMPORADAS */}
-      <div style={{ background: '#fff5f5', padding: '15px', borderRadius: '8px', border: '1px solid #feb2b2' }}>
-        <h4 style={{ marginTop: 0 }}>Gestión de Temporadas</h4>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #fed7d7', paddingBottom: '15px' }}>
-          <button onClick={abrirSelectorUsuarios} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
-            + NUEVA TEMPORADA
-          </button>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <select value={seasonToDelete} onChange={e => setSeasonToDelete(e.target.value)} style={{ padding: '5px' }}>
-              {availableSeasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
-            </select>
-            <button onClick={eliminarTemporada} disabled={loading} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>
-              BORRAR
-            </button>
-          </div>
-        </div>
-
-        {showUserSelector && (
-          <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
-            <h3>Reparto de Divisiones</h3>
-            <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
-              <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
-            </select>
-
-            {/* CHECKBOXES DE MODALIDAD */}
-            <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="checkbox"
-                checked={isIdaVuelta}
-                onChange={() => setIsIdaVuelta(true)}
-              /> Ida y Vuelta
-            </label>
-            <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="checkbox"
-                checked={!isIdaVuelta}
-                onChange={() => setIsIdaVuelta(false)}
-              /> Solo Ida
-            </label>
-
-            {/* CONTENEDOR GRID DE REPARTO */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`,
-              gap: '15px',
-              marginTop: '20px',
-              alignItems: 'start'
-            }}>
-
-              {/* COLUMNA DE USUARIOS DISPONIBLES */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <small style={{ fontWeight: 'bold', color: '#7f8c8d' }}>JUGADORES DISPONIBLES</small>
-
-                {/* FILTRO RÁPIDO DENTRO DEL SELECTOR */}
-                <input
-                  type="text"
-                  placeholder="Filtrar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ padding: '5px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                />
-
-                <div style={{
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  border: '1px solid #eee',
-                  padding: '5px',
-                  background: '#fafafa',
-                  borderRadius: '4px'
+                <strong style={{
+                  margin: '0 5px',
+                  color: config?.auto_week_by_date ? '#95a5a6' : '#2c3e50'
                 }}>
-                  {availableUsers
-                    .filter(u => {
-                      const matchesSearch = (u.nick?.toLowerCase().includes(searchTerm.toLowerCase()));
-                      const isRetired = u.nick?.toLowerCase().startsWith("retirado");
-                      const matchesRetiredFilter = hideRetired ? !isRetired : true;
-                      return matchesSearch && matchesRetiredFilter;
-                    })
-                    .map(u => (
-                      <div key={u.id} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '6px 4px',
-                        borderBottom: '1px solid #eee',
-                        fontSize: '0.75rem'
-                      }}>
-                        <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
-                          {u.nick || 'Sin Nick'}
-                        </span>
-                        <div style={{ display: 'flex', gap: '2px' }}>
-                          <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
-                          {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
-                          {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
-                        </div>
-                      </div>
-                    ))
-                  }
-                </div>
+                  {config?.current_week}
+                </strong>
+
+                <button
+                  style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
+                  disabled={config?.auto_week_by_date}
+                  onClick={async () => {
+                    await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
+                    onConfigChange();
+                  }}
+                >+</button>
+
+                {config?.auto_week_by_date && (
+                  <span style={{ fontSize: '0.65rem', color: '#2ecc71', fontWeight: 'bold' }}>
+                    (AUTO)
+                  </span>
+                )}
               </div>
 
-              {/* COLUMNAS DE LAS DIVISIONES (DINÁMICAS) */}
-              {[...Array(numDivisions)].map((_, i) => (
-                <div key={i} style={{
-                  background: '#f0fff4',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  border: '1px solid #c6f6d5',
-                  minHeight: '100px'
-                }}>
-                  <small style={{ fontWeight: 'bold', color: '#2f855a', display: 'block', marginBottom: '5px' }}>DIVISIÓN {i + 1}</small>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {assignments[i + 1].map(id => (
-                      <div key={id} style={{
-                        fontSize: '0.75rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        background: 'white',
-                        padding: '3px 6px',
-                        borderRadius: '3px',
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
-                        <button onClick={() => handleAssign(id, 0)} style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
-                      </div>
-                    ))}
-                    {assignments[i + 1].length === 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>Vacía...</span>}
-                  </div>
-                </div>
-              ))}
+              <div>
+                T. Activa:
+                <select
+                  value={config?.current_season || ''}
+                  style={{ marginLeft: '5px' }}
+                  onChange={async (e) => {
+                    const nuevaSeason = parseInt(e.target.value);
+                    const { error } = await supabase
+                      .from('config')
+                      .update({ current_season: nuevaSeason, current_week: 1 })
+                      .eq('id', 1);
+                    onConfigChange();
+                  }}
+                >
+                  {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
+                </select>
+              </div>
             </div>
-            <div style={{ marginTop: '15px' }}>
-              <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
-              <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
+
+            {/* NUEVO: Checkbox de control automático */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: '10px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                color: config?.auto_week_by_date ? '#2ecc71' : '#7f8c8d',
+                fontWeight: config?.auto_week_by_date ? 'bold' : 'normal'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={autoWeek} // Usamos el estado local
+                  onChange={async (e) => {
+                    const checked = e.target.checked;
+
+                    // 1. Cambio visual INSTANTÁNEO
+                    setAutoWeek(checked);
+
+                    // 2. Guardar en Base de Datos
+                    const { error } = await supabase
+                      .from('config')
+                      .update({ auto_week_by_date: checked })
+                      .eq('id', 1);
+
+                    if (error) {
+                      alert("Error al guardar en DB");
+                      setAutoWeek(!checked); // Revertimos si falla
+                    } else {
+                      // 3. Informar al padre de forma silenciosa para actualizar el estado global
+                      onConfigChange();
+                    }
+                  }}
+                />
+                Actualizar jornada por fecha automáticamente
+              </label>
             </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* SECCIÓN CONFIGURACIÓN DE COMPETICIÓN */}
-      <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '20px' }}>
-        <h4 style={{ marginTop: 0, color: '#92400e' }}>⚙️ Configuración de Competición (T{editSeason})</h4>
 
-        {/* FILA 1: BONUS POR DIRECTOS */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '15px', borderBottom: '1px solid #fde68a', paddingBottom: '15px' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>¿Activar Bonus Directos?</span>
-            <input type="checkbox" checked={bonusEnabled} onChange={e => setBonusEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>% Mínimo</span>
-            <input type="number" value={minPercentage} onChange={e => setMinPercentage(e.target.value)} style={{ width: '80px', padding: '5px' }} />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>Puntos Extra</span>
-            <input type="number" value={extraPoints} onChange={e => setExtraPoints(e.target.value)} style={{ width: '60px', padding: '5px' }} />
-          </label>
-        </div>
 
-        {/* FILA 2: FAIR PLAY (DIFERENCIA DE GOLES) */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>¿Limitar Goles (Fair Play)?</span>
-            <input type="checkbox" checked={limitGaEnabled} onChange={e => setLimitGaEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
-          </label>
+      {isAdminReal && (
+        <>
+          {/* 2. GESTIÓN TEMPORADAS */}
+          <div style={{ background: '#fff5f5', padding: '15px', borderRadius: '8px', border: '1px solid #feb2b2' }}>
+            <h4 style={{ marginTop: 0 }}>Gestión de Temporadas</h4>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #fed7d7', paddingBottom: '15px' }}>
+              <button onClick={abrirSelectorUsuarios} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+                + NUEVA TEMPORADA
+              </button>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <select value={seasonToDelete} onChange={e => setSeasonToDelete(e.target.value)} style={{ padding: '5px' }}>
+                  {availableSeasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
+                </select>
+                <button onClick={eliminarTemporada} disabled={loading} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>
+                  BORRAR
+                </button>
+              </div>
+            </div>
 
-          <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-            <span style={{ fontWeight: 'bold' }}>Dif. Máxima Liga</span>
-            <input
-              type="number"
-              min="1"
-              value={maxGaLeague}
-              onChange={e => setMaxGaLeague(Math.max(1, parseInt(e.target.value) || 1))}
-              style={{ width: '80px', padding: '5px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-            />
-          </label>
+            {showUserSelector && (
+              <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                <h3>Reparto de Divisiones</h3>
+                <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
+                  <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
+                </select>
 
-          <button
-            onClick={handleSaveRules}
-            style={{
-              background: '#f59e0b', color: 'white', border: 'none',
-              padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', marginLeft: 'auto'
-            }}
-          >
-            GUARDAR TODO
-          </button>
-        </div>
-      </div>
+                {/* CHECKBOXES DE MODALIDAD */}
+                <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <input
+                    type="checkbox"
+                    checked={isIdaVuelta}
+                    onChange={() => setIsIdaVuelta(true)}
+                  /> Ida y Vuelta
+                </label>
+                <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <input
+                    type="checkbox"
+                    checked={!isIdaVuelta}
+                    onChange={() => setIsIdaVuelta(false)}
+                  /> Solo Ida
+                </label>
+
+                {/* CONTENEDOR GRID DE REPARTO */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`,
+                  gap: '15px',
+                  marginTop: '20px',
+                  alignItems: 'start'
+                }}>
+
+                  {/* COLUMNA DE USUARIOS DISPONIBLES */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <small style={{ fontWeight: 'bold', color: '#7f8c8d' }}>JUGADORES DISPONIBLES</small>
+
+                    {/* FILTRO RÁPIDO DENTRO DEL SELECTOR */}
+                    <input
+                      type="text"
+                      placeholder="Filtrar..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ padding: '5px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
+
+                    <div style={{
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      border: '1px solid #eee',
+                      padding: '5px',
+                      background: '#fafafa',
+                      borderRadius: '4px'
+                    }}>
+                      {availableUsers
+                        .filter(u => {
+                          const matchesSearch = (u.nick?.toLowerCase().includes(searchTerm.toLowerCase()));
+                          const isRetired = u.nick?.toLowerCase().startsWith("retirado");
+                          const matchesRetiredFilter = hideRetired ? !isRetired : true;
+                          return matchesSearch && matchesRetiredFilter;
+                        })
+                        .map(u => (
+                          <div key={u.id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '6px 4px',
+                            borderBottom: '1px solid #eee',
+                            fontSize: '0.75rem'
+                          }}>
+                            <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
+                              {u.nick || 'Sin Nick'}
+                            </span>
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                              <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
+                              {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
+                              {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+
+                  {/* COLUMNAS DE LAS DIVISIONES (DINÁMICAS) */}
+                  {[...Array(numDivisions)].map((_, i) => (
+                    <div key={i} style={{
+                      background: '#f0fff4',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #c6f6d5',
+                      minHeight: '100px'
+                    }}>
+                      <small style={{ fontWeight: 'bold', color: '#2f855a', display: 'block', marginBottom: '5px' }}>DIVISIÓN {i + 1}</small>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {assignments[i + 1].map(id => (
+                          <div key={id} style={{
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            background: 'white',
+                            padding: '3px 6px',
+                            borderRadius: '3px',
+                            border: '1px solid #e2e8f0'
+                          }}>
+                            {availableUsers.find(u => u.id === id)?.nick || "Sin Nick"}
+                            <button onClick={() => handleAssign(id, 0)} style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+                          </div>
+                        ))}
+                        {assignments[i + 1].length === 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>Vacía...</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: '15px' }}>
+                  <button onClick={confirmarCreacionTemporada} style={{ background: '#2ecc71', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>GENERAR</button>
+                  <button onClick={() => setShowUserSelector(false)} style={{ marginLeft: '5px', padding: '8px', cursor: 'pointer' }}>Cerrar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+
+
+      {isAdminReal && (
+        <>
+          {/* SECCIÓN CONFIGURACIÓN DE COMPETICIÓN */}
+          <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '20px' }}>
+            <h4 style={{ marginTop: 0, color: '#92400e' }}>⚙️ Configuración de Competición (T{editSeason})</h4>
+
+            {/* FILA 1: BONUS POR DIRECTOS */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '15px', borderBottom: '1px solid #fde68a', paddingBottom: '15px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>¿Activar Bonus Directos?</span>
+                <input type="checkbox" checked={bonusEnabled} onChange={e => setBonusEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>% Mínimo</span>
+                <input type="number" value={minPercentage} onChange={e => setMinPercentage(e.target.value)} style={{ width: '80px', padding: '5px' }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>Puntos Extra</span>
+                <input type="number" value={extraPoints} onChange={e => setExtraPoints(e.target.value)} style={{ width: '60px', padding: '5px' }} />
+              </label>
+            </div>
+
+            {/* FILA 2: FAIR PLAY (DIFERENCIA DE GOLES) */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>¿Limitar Goles (Fair Play)?</span>
+                <input type="checkbox" checked={limitGaEnabled} onChange={e => setLimitGaEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>Dif. Máxima Liga</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={maxGaLeague}
+                  onChange={e => setMaxGaLeague(Math.max(1, parseInt(e.target.value) || 1))}
+                  style={{ width: '80px', padding: '5px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                />
+              </label>
+
+              <button
+                onClick={handleSaveRules}
+                style={{
+                  background: '#f59e0b', color: 'white', border: 'none',
+                  padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', marginLeft: 'auto'
+                }}
+              >
+                GUARDAR TODO
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+
+
 
       {/* 3. EDITOR RESULTADOS (MEJORADO) */}
       <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
@@ -813,151 +857,273 @@ export default function AdminPanel({ config, onConfigChange }) {
         </div>
       </div>
 
-      {/* SECCIÓN GESTIÓN DE USUARIOS */}
-      <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios ({filteredUsers.length})</h4>
 
-        {/* CONTROL DE REGISTRO DE NUEVOS USUARIOS */}
-        <div style={{
-          marginBottom: '15px',
-          padding: '10px',
-          background: allowReg ? '#f0fff4' : '#fff5f5',
-          borderRadius: '8px',
-          border: allowReg ? '1px solid #c6f6d5' : '1px solid #fed7d7',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            color: allowReg ? '#2f855a' : '#c53030'
-          }}>
-            <input
-              type="checkbox"
-              checked={!allowReg} // Marcamos si "impedimos" el registro
-              onChange={async (e) => {
-                const valueToBlock = e.target.checked; // Si está marcado, queremos bloquear (false)
-                const newValue = !valueToBlock;
 
-                setAllowReg(newValue); // Cambio visual rápido
 
-                const { error } = await supabase
-                  .from('config')
-                  .update({ allow_registration: newValue })
-                  .eq('id', 1);
+      {isAdminReal && (
+        <>
+          {/* SECCIÓN GESTIÓN DE USUARIOS */}
+          <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>👥 Gestión de Usuarios ({filteredUsers.length})</h4>
 
-                if (error) {
-                  alert("Error al actualizar configuración");
-                  setAllowReg(!newValue);
-                } else {
-                  onConfigChange(); // Avisar al resto de la app
-                }
-              }}
-            />
-            BLOQUEAR NUEVOS REGISTROS
-          </label>
-          <span style={{ fontSize: '0.7rem', fontWeight: 'normal' }}>
-            {allowReg ? "✅ Inscripciones abiertas" : "🚫 Inscripciones cerradas"}
-          </span>
-        </div>
+            {/* CONTROL DE REGISTRO DE NUEVOS USUARIOS */}
+            <div style={{
+              marginBottom: '15px',
+              padding: '10px',
+              background: allowReg ? '#f0fff4' : '#fff5f5',
+              borderRadius: '8px',
+              border: allowReg ? '1px solid #c6f6d5' : '1px solid #fed7d7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                color: allowReg ? '#2f855a' : '#c53030'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={!allowReg} // Marcamos si "impedimos" el registro
+                  onChange={async (e) => {
+                    const valueToBlock = e.target.checked; // Si está marcado, queremos bloquear (false)
+                    const newValue = !valueToBlock;
 
-        {/* BUSCADOR */}
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="text"
-            placeholder="🔍 Filtrar por Nick o Email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.85rem' }}
-          />
-        </div>
+                    setAllowReg(newValue); // Cambio visual rápido
 
-        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-          {/* CABECERA (Añadido Teléfono) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
-            gap: '8px', padding: '8px',
-            background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.65rem'
-          }}>
-            <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>TELÉFONO</span><span>ACC.</span>
+                    const { error } = await supabase
+                      .from('config')
+                      .update({ allow_registration: newValue })
+                      .eq('id', 1);
+
+                    if (error) {
+                      alert("Error al actualizar configuración");
+                      setAllowReg(!newValue);
+                    } else {
+                      onConfigChange(); // Avisar al resto de la app
+                    }
+                  }}
+                />
+                BLOQUEAR NUEVOS REGISTROS
+              </label>
+              <span style={{ fontSize: '0.7rem', fontWeight: 'normal' }}>
+                {allowReg ? "✅ Inscripciones abiertas" : "🚫 Inscripciones cerradas"}
+              </span>
+            </div>
+
+            {/* BUSCADOR */}
+            <div style={{ marginBottom: '15px' }}>
+              <input
+                type="text"
+                placeholder="🔍 Filtrar por Nick o Email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {/* CABECERA (Añadido Teléfono) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
+                gap: '8px', padding: '8px',
+                background: '#f8f9fa', fontWeight: 'bold', fontSize: '0.65rem'
+              }}>
+                <span>NICK</span><span>EMAIL</span><span>TELEGRAM</span><span>TELÉFONO</span><span>ACC.</span>
+              </div>
+
+              {/* LISTA FILTRADA */}
+              {filteredUsers.length === 0 ? (
+                <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#95a5a6', padding: '20px' }}>
+                  No se han encontrado usuarios con estos filtros.
+                </p>
+              ) : (
+                filteredUsers.map(u => (
+                  <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
+                ))
+              )}
+            </div>
+            {/* CHECKBOX PARA OCULTAR RETIRADOS */}
+            <div style={{ marginTop: '15px', padding: '10px 5px', borderTop: '1px solid #eee' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                color: '#7f8c8d'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={hideRetired}
+                  onChange={(e) => setHideRetired(e.target.checked)}
+                />
+                Ocultar usuarios retirados
+              </label>
+            </div>
           </div>
 
-          {/* LISTA FILTRADA */}
-          {filteredUsers.length === 0 ? (
-            <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#95a5a6', padding: '20px' }}>
-              No se han encontrado usuarios con estos filtros.
-            </p>
-          ) : (
-            filteredUsers.map(u => (
-              <UserRow key={u.id} user={u} onRefresh={fetchUsers} />
-            ))
-          )}
-        </div>
-        {/* CHECKBOX PARA OCULTAR RETIRADOS */}
-        <div style={{ marginTop: '15px', padding: '10px 5px', borderTop: '1px solid #eee' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            color: '#7f8c8d'
+          {/* SECCIÓN COLABORADORES */}
+          <div style={{
+            background: 'white',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid #ddd',
+            marginBottom: '20px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
           }}>
-            <input
-              type="checkbox"
-              checked={hideRetired}
-              onChange={(e) => setHideRetired(e.target.checked)}
-            />
-            Ocultar usuarios retirados
-          </label>
-        </div>
-      </div>
+            <h4 style={{
+              marginTop: 0,
+              color: '#2c3e50',
+              borderBottom: '2px solid #3498db',
+              paddingBottom: '10px'
+            }}>
+              🤝 Gestión de Colaboradores
+            </h4>
+
+            {/* Buscador de nuevos colaboradores */}
+            <div style={{ position: 'relative', marginBottom: '15px', marginTop: '15px' }}>
+              <input
+                type="text"
+                placeholder="🔍 Buscar usuario para hacer colaborador..."
+                value={colaboradorSearch}
+                onChange={(e) => {
+                  setColaboradorSearch(e.target.value);
+                  setShowColaboradorResults(e.target.value.length > 0);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: '1px solid #ddd',
+                  fontSize: '0.9rem'
+                }}
+              />
+
+              {showColaboradorResults && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                  background: 'white', border: '1px solid #ddd', borderRadius: '8px',
+                  maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  {availableUsers
+                    .filter(u => u.nick?.toLowerCase().includes(colaboradorSearch.toLowerCase()) && !u.is_colaborador)
+                    .map(u => (
+                      <div key={u.id}
+                        onClick={() => toggleColaborador(u.id, true)}
+                        style={{
+                          padding: '12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #eee',
+                          fontSize: '0.85rem',
+                          color: '#2c3e50'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                        onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                      >
+                        ➕ Añadir <b>{u.nick}</b>
+                      </div>
+                    ))}
+                  {availableUsers.filter(u => u.nick?.toLowerCase().includes(colaboradorSearch.toLowerCase()) && !u.is_colaborador).length === 0 && (
+                    <div style={{ padding: '12px', fontSize: '0.8rem', color: '#95a5a6' }}>No se encontraron usuarios...</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Lista de colaboradores actuales */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {colaboradores.length === 0 ? (
+                <span style={{ fontSize: '0.8rem', color: '#95a5a6', fontStyle: 'italic' }}>
+                  No hay colaboradores asignados actualmente.
+                </span>
+              ) : (
+                colaboradores.map(c => (
+                  <div key={c.id} style={{
+                    background: '#f8f9fa',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    border: '1px solid #3498db',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    color: '#3498db'
+                  }}>
+                    {c.nick}
+                    <button
+                      onClick={() => toggleColaborador(c.id, false)}
+                      title="Quitar colaborador"
+                      style={{
+                        background: 'none', border: 'none', color: '#e74c3c',
+                        cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem',
+                        padding: '0', display: 'flex', alignItems: 'center'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {isAdminReal && (
+        <>
+          {/* 4. CALENDARIO DE FECHAS */}
+          <div style={{ background: '#eef2f7', padding: '15px', borderRadius: '8px', border: '1px solid #d1d9e6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h4 style={{ margin: 0 }}>📅 Calendario T{config?.current_season}</h4>
+              <button onClick={resetCalendarioSemanas} style={{ fontSize: '0.7rem', background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Resetear a 1 Semana</button>
+            </div>
+            <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
+              <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid #ccc' }}><th>J</th><th>Unir</th><th>Apertura</th><th>Cierre Plazo</th></tr></thead>
+              <tbody>
+                {schedule.map((s, i) => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '8px 0' }}>J{s.week}</td>
+                    <td>{i > 0 && <input type="checkbox" checked={s.is_linked} onChange={() => toggleLink(i)} />}</td>
+                    <td><input type="datetime-local" value={toLocalISO(s.start_at)} disabled={s.is_linked} onChange={(e) => handleDateChange(i, 'start_at', new Date(e.target.value).toISOString())} /></td>
+                    <td><input type="datetime-local" value={toLocalISO(s.end_at)} onChange={(e) => handleDateChange(i, 'end_at', new Date(e.target.value).toISOString())} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
 
-      {/* 4. CALENDARIO DE FECHAS */}
-      <div style={{ background: '#eef2f7', padding: '15px', borderRadius: '8px', border: '1px solid #d1d9e6' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h4 style={{ margin: 0 }}>📅 Calendario T{config?.current_season}</h4>
-          <button onClick={resetCalendarioSemanas} style={{ fontSize: '0.7rem', background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Resetear a 1 Semana</button>
-        </div>
-        <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid #ccc' }}><th>J</th><th>Unir</th><th>Apertura</th><th>Cierre Plazo</th></tr></thead>
-          <tbody>
-            {schedule.map((s, i) => (
-              <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '8px 0' }}>J{s.week}</td>
-                <td>{i > 0 && <input type="checkbox" checked={s.is_linked} onChange={() => toggleLink(i)} />}</td>
-                <td><input type="datetime-local" value={toLocalISO(s.start_at)} disabled={s.is_linked} onChange={(e) => handleDateChange(i, 'start_at', new Date(e.target.value).toISOString())} /></td>
-                <td><input type="datetime-local" value={toLocalISO(s.end_at)} onChange={(e) => handleDateChange(i, 'end_at', new Date(e.target.value).toISOString())} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
-      {/* 5. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
-      <div style={{
-        marginTop: '10px',
-        padding: '15px',
-        borderRadius: '10px',
-        textAlign: 'center',
-        background: '#f8f9fa',
-        border: `2px solid ${dbColor}`,
-        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ color: dbColor, fontWeight: 'bold', fontSize: '1rem', marginBottom: '4px' }}>
-          🔌 CONECTADO A: {dbName}
-        </div>
-        <div style={{ color: '#95a5a6', fontSize: '0.7rem', fontFamily: 'monospace' }}>
-          {supabaseUrl}
-        </div>
-      </div>
+      {isAdminReal && (
+        <>
+          {/* 5. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
+          <div style={{
+            marginTop: '10px',
+            padding: '15px',
+            borderRadius: '10px',
+            textAlign: 'center',
+            background: '#f8f9fa',
+            border: `2px solid ${dbColor}`,
+            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{ color: dbColor, fontWeight: 'bold', fontSize: '1rem', marginBottom: '4px' }}>
+              🔌 CONECTADO A: {dbName}
+            </div>
+            <div style={{ color: '#95a5a6', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+              {supabaseUrl}
+            </div>
+          </div>
+        </>
+      )}
 
     </div>
   );

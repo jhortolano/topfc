@@ -32,9 +32,9 @@ const globalStyles = `
 
 const calcularJornadaReal = (schedule) => {
   if (!schedule || schedule.length === 0) return 0;
-  
+
   const ahora = new Date();
-  
+
   // LÓGICA NUEVA: Si "ahora" es antes que la fecha de inicio de la primera jornada
   const primeraJornada = schedule.sort((a, b) => new Date(a.start_at) - new Date(b.start_at))[0];
   if (ahora < new Date(primeraJornada.start_at)) {
@@ -268,7 +268,8 @@ function App() {
 function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer }) {
 
   const isAdmin = profile?.is_admin === true;
-
+  const isColaborador = profile?.is_colaborador === true;
+  
   // 2. Inicializamos el estado con esa pestaña dinámica
   const [activeTab, setActiveTab] = useState(() => {
     // 1. Miramos si hay una pestaña guardada de antes
@@ -299,9 +300,13 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
   tabs.push({ id: 'normas', label: 'NORMAS' });
 
   // Añadir ADMIN solo si es administrador
-  if (isAdmin) {
+  if (isAdmin || isColaborador) {
     tabs.push({ id: 'admin', label: 'ADMIN' });
     tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
+
+  }
+
+  if (isAdmin) {
     tabs.push({ id: 'avisos_admin', label: 'AVISOS' });
   }
 
@@ -413,8 +418,8 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'partido' && (<ProximoPartido profile={profile} config={config} onUpdated={onConfigChange} />)}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
-        {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} />}
-        {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} />}
+        {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} profile={profile}/>}
+        {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} profile={profile}/>}
         {activeTab === 'avisos_admin' && <AvisosAdmin />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}

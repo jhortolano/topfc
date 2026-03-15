@@ -12,6 +12,7 @@ import AdminPlayoffs from './AdminPlayoffs'
 import AvisosAdmin from './AvisosAdmin'
 import ResetPassword from './reset-password' // Asegúrate de que el nombre del archivo coincida
 
+let playoffsActualizadosEnSesion = false; // Control de ejecución única
 
 const globalStyles = `
   * { box-sizing: border-box; }
@@ -44,6 +45,28 @@ const calcularJornadaReal = (schedule) => {
   // Lógica actual: buscar la jornada activa
   const encontrada = schedule.find(j => new Date(j.end_at) > ahora);
   return encontrada ? encontrada.week : (schedule[schedule.length - 1]?.week || 0);
+};
+
+const calcularRondaPlayoff = (configFechas) => {
+  if (!configFechas || Object.keys(configFechas).length === 0) return null;
+
+  const ahora = new Date();
+
+  const fases = Object.entries(configFechas)
+    .map(([nombre, rango]) => {
+      // Usamos start_at para saber cuándo empieza la ronda
+      const fechaInicio = rango.start_at ? new Date(rango.start_at) : new Date(NaN);
+      return { nombre, fecha: fechaInicio };
+    })
+    // Filtramos fechas no válidas
+    .filter(f => !isNaN(f.fecha.getTime()))
+    // Ordenamos de la más lejana en el futuro a la más antigua
+    .sort((a, b) => b.fecha - a.fecha);
+
+  // Buscamos la primera fase que ya haya comenzado (la más reciente respecto a hoy)
+  const faseActual = fases.find(f => ahora >= f.fecha);
+
+  return faseActual ? faseActual.nombre : null;
 };
 
 function App() {
@@ -147,6 +170,30 @@ function App() {
           }
         }
       }
+      if (!playoffsActualizadosEnSesion) {
+        playoffsActualizadosEnSesion = true; // Bloqueamos futuras ejecuciones
+
+        const { data: playoffsActivos } = await supabase
+          .from('playoffs_extra')
+          .select('id, current_round, config_fechas')
+          .eq('estado', 'activo')
+          .eq('use_auto_round', true);
+
+        if (playoffsActivos && playoffsActivos.length > 0) {
+          for (const po of playoffsActivos) {
+            const rondaQueToca = calcularRondaPlayoff(po.config_fechas);
+            // Solo actualizamos si hemos encontrado una ronda válida y es distinta a la actual
+            if (rondaQueToca && rondaQueToca !== po.current_round) {
+              console.log(`Auto-Round Playoff ${po.id}: ${po.current_round} -> ${rondaQueToca}`);
+              await supabase
+                .from('playoffs_extra')
+                .update({ current_round: rondaQueToca })
+                .eq('id', po.id);
+            }
+          }
+        }
+      }
+
       setConfig(configData);
     }
   };
@@ -269,7 +316,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   const isAdmin = profile?.is_admin === true;
   const isColaborador = profile?.is_colaborador === true;
-  
+
   // 2. Inicializamos el estado con esa pestaña dinámica
   const [activeTab, setActiveTab] = useState(() => {
     // 1. Miramos si hay una pestaña guardada de antes
@@ -418,8 +465,8 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'partido' && (<ProximoPartido profile={profile} config={config} onUpdated={onConfigChange} />)}
         {activeTab === 'clasificacion' && <Clasificacion config={config} />}
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
-        {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} profile={profile}/>}
-        {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} profile={profile}/>}
+        {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} profile={profile} />}
+        {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} profile={profile} />}
         {activeTab === 'avisos_admin' && <AvisosAdmin />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}

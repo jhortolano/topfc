@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import ReactMarkdown from 'react-markdown'
+import PartidoExtraPlayoff from './extraplayoff/PartidoExtraPlayoff';
 
 const Avatar = ({ url }) => (
   <div style={{
@@ -23,22 +24,26 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
   const [ajustado, setAjustado] = useState(false);
 
 
-  useEffect(() => {
-    const cargarStreams = async () => {
-      const { data } = await supabase
-        .from(isPlayoff ? 'match_playoff_streams' : 'match_streams')
-        .select('stream_url')
-        .eq(isPlayoff ? 'playoff_match_id' : 'match_id', partido.id)
-        .maybeSingle();
 
-      if (data) setUrlStream(data.stream_url || '');
-    };
-    cargarStreams();
-  }, [partido.id]);
+  useEffect(() => {
+    const yaJugado = partido.played === true || partido.is_played === true;
+
+    setJugadoLocal(yaJugado);
+    setGL(partido.home_score ?? '');
+    setGV(partido.away_score ?? '');
+
+    // Ahora el stream_url viene incluido en el objeto del partido
+    setUrlStream(partido.stream_url || '');
+  }, [partido]);
 
   // Identificamos si es un partido de playoff
   const isPlayoff = !!partido.playoff_id;
-  const tabla = isPlayoff ? 'playoff_matches' : 'matches';
+  const isExtraLiguilla = !!partido.is_extra_liguilla;
+  const isExtraPlayoff = !!partido.is_extra_playoff;
+  let tabla = 'matches';
+  if (isPlayoff) tabla = 'playoff_matches';
+  if (isExtraLiguilla) tabla = 'extra_matches';
+  if (isExtraPlayoff) tabla = 'extra_playoffs_matches';
   const yaJugado = partido.played === true || partido.is_played === true;
   const [jugadoLocal, setJugadoLocal] = useState(yaJugado);
 
@@ -95,11 +100,21 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
         throw new Error("Faltan IDs de los equipos.");
       }
 
-      // Datos según tabla (played vs is_played)
-      const datosAEnviar = isPlayoff
-        ? { home_score: scoreL, away_score: scoreV, played: true }
-        : { home_score: scoreL, away_score: scoreV, is_played: true };
 
+      // 1. Preparamos los datos del resultado
+      const datosAEnviar = (isExtraLiguilla || isExtraPlayoff)
+        ? {
+          score1: scoreL,
+          score2: scoreV,
+          is_played: true,
+          stream_url: urlStream  // <--- Solo aquí existe la columna
+        }
+        : (isPlayoff
+          ? { home_score: scoreL, away_score: scoreV, played: true } // Quitamos stream_url de aquí
+          : { home_score: scoreL, away_score: scoreV, is_played: true } // Y de aquí
+        );
+
+      // 2. Actualizamos la tabla del partido
       const { error: errorUpdate } = await supabase
         .from(tabla)
         .update(datosAEnviar)
@@ -107,8 +122,8 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
 
       if (errorUpdate) throw errorUpdate;
 
-      // Guardar URL del stream (tanto para Liga como para Playoff)
-      if (urlStream) {
+      // 3. Si NO es extra, guardamos el stream en su tabla correspondiente
+      if (!isExtraLiguilla && !isExtraPlayoff && urlStream) {
         const tablaStream = isPlayoff ? 'match_playoff_streams' : 'match_streams';
         const columnaId = isPlayoff ? 'playoff_match_id' : 'match_id';
 
@@ -118,6 +133,10 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
           updated_at: new Date().toISOString()
         });
       }
+
+
+
+      // Guardar URL del stream (tanto para Liga como para Playoff)
       setJugadoLocal(true);
       if (isPlayoff) {
         // 1. Intentar actualizar el ganador_id en el partido actual si la columna existe
@@ -339,28 +358,6 @@ function ProximoPartido({ profile, config, onUpdated }) {
   const [encuestas, setEncuestas] = useState([]);
   const [votosPropios, setVotosPropios] = useState({});
   const [reglas, setReglas] = useState({ limit_ga_enabled: false, max_ga_league: 0 });
-
-  useEffect(() => {
-    const cargarReglas = async () => {
-      const { data, error } = await supabase
-        .from('season_rules')
-        .select('*')
-        // CAMBIO AQUÍ: Usamos 'season' en lugar de 'id'
-        // Si el valor de la temporada es 1, lo dejamos así:
-        .eq('season', 1)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error cargando season_rules:", error.message);
-        return;
-      }
-
-      if (data) {
-        setReglas(data);
-      }
-    };
-    cargarReglas();
-  }, []);
 
   const cargar = async () => {
     if (!config || !profile) return;
@@ -598,6 +595,21 @@ function ProximoPartido({ profile, config, onUpdated }) {
           )}
         </div>
       ))}
+
+      {/* PARTIDOS DE TORNEOS EXTRA (Liguillas/Playoffs Extra) */}
+      <PartidoExtraPlayoff
+        profile={profile}
+        config={config}
+        renderTarjeta={(p, refresh) => (
+          <TarjetaResultado
+            key={`extra-${p.id}`}
+            partido={p}
+            onUpdated={() => { cargar(); refresh(); }}
+            limitGaEnabled={false} // Ajustar si los extra tienen límites
+          />
+        )}
+      />
+
 
       {todosLosPartidos.length === 0 ? (
         <div style={{ color: '#95a5a6', fontSize: '0.8rem', textAlign: 'center', padding: '20px' }}>

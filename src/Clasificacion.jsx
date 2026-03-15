@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import ClasificacionExtraPlayoff from './extraplayoff/ClasificacionExtraPlayoff'
 
 // --- COMPONENTE AVATAR REUTILIZADO CON ZOOM ---
 const Avatar = ({ url, size = '30px' }) => {
@@ -7,7 +8,7 @@ const Avatar = ({ url, size = '30px' }) => {
   const [isTouched, setIsTouched] = useState(false);
 
   return (
-    <div 
+    <div
       // Eventos para móvil (opcional, para forzar el estado si el CSS no basta)
       onTouchStart={() => setIsTouched(true)}
       onTouchEnd={() => setIsTouched(false)}
@@ -36,15 +37,15 @@ const Avatar = ({ url, size = '30px' }) => {
       }}
     >
       {url ? (
-        <img 
-          src={url} 
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+        <img
+          src={url}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           alt="avatar"
         />
       ) : (
-        <div style={{ 
-          display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          height: '100%', fontSize: '0.7rem', color: '#7f8c8d' 
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100%', fontSize: '0.7rem', color: '#7f8c8d'
         }}>👤</div>
       )}
     </div>
@@ -85,7 +86,13 @@ function CategorySelector({ current, onChange, season }) {
       const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : []
       const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season)
       const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : []
-      const all = [...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })), ...formattedPlayoffs]
+      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season)
+      const formattedExtras = extraData ? extraData.map(e => ({
+        id: `extra-${e.id}`,
+        label: e.nombre.toUpperCase(),
+        type: 'extra'
+      })) : []
+      const all = [...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })), ...formattedPlayoffs, ...formattedExtras]
       setCategories(all)
       if (all.length > 0 && !all.find(c => c.id === current)) onChange(all[0].id)
     }
@@ -206,6 +213,8 @@ export default function Clasificacion({ config }) {
         const listaOrdenada = listaEnriquecida.sort((a, b) => b.total_pts - a.total_pts);
         setLista(listaOrdenada);
       } else {
+        // Si el ID es un extra, no ejecutamos esta lógica porque ya la hace el hijo
+        if (vD.toString().startsWith('extra-')) return;
         // Aquí mantén tu lógica de carga de playoffs normal...
         const { data: matches } = await supabase
           .from('playoff_matches_detallados')
@@ -449,63 +458,79 @@ export default function Clasificacion({ config }) {
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
 
-      {!esPlayoff ? (
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
-                <th style={{ padding: '12px', textAlign: 'left' }}>JUGADOR</th>
-                <th style={{ padding: '10px' }}>PTS</th>
-                <th style={{ padding: '10px' }}>PJ</th>
-                <th style={{ padding: '10px' }}>PG</th>
-                <th style={{ padding: '10px' }}>PE</th>
-                <th style={{ padding: '10px' }}>GF</th>
-                <th style={{ padding: '10px' }}>GC</th>
-                <th style={{ padding: '10px' }}>DG</th>
-                <th style={{ padding: '10px' }}>📺</th>
-              </tr>
-            </thead>
-            {/* ... dentro de !esPlayoff ... */}
-            <tbody>
-              {lista.map((j, i) => (
-                <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
-                  <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Avatar url={j.avatar_url} size="24px" />
-                    <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
-                  </td>
-                  <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
-                  <td>{j.pj ?? 0}</td>
-                  {/* Sumamos victorias de casa y fuera */}
-                  <td>{(j.pg_casa || 0) + (j.pg_fuera || 0)}</td>
-                  {/* Sumamos empates de casa y fuera */}
-                  <td>{(j.pe_casa || 0) + (j.pe_fuera || 0)}</td>
-                  {/* Cambiado: j.goles_fuera/casa por j.gf y j.gc */}
-                  <td>{j.gf ?? 0}</td>
-                  <td>{j.gc ?? 0}</td>
-                  <td style={{ color: (j.dg ?? 0) > 0 ? '#2ecc71' : (j.dg ?? 0) < 0 ? '#e74c3c' : '#7f8c8d', fontWeight: '600' }}>{j.dg ?? 0}</td>
-                  <td style={{ padding: '10px', color: '#64748b', fontWeight: 'bold' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem' }}>
-                      <span>{j.streamStats?.totalStreams || 0}/{j.streamStats?.totalPartidos || 0}</span>
-                      <span style={{ color: j.bonusStream?.aplica ? '#9b59b6' : '#94a3b8' }}>
-                        ({j.streamStats?.porcentaje || 0}%)
-                        {j.bonusStream?.aplica && (
-                          <span style={{ color: '#2ecc71', fontWeight: 'bold', marginLeft: '4px' }}>
-                            (+{j.bonusStream.puntos})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </td>
+
+      {(() => {
+        // CASO 1: Es un Extra Playoff (ID con prefijo "extra-")
+        if (typeof vD === 'string' && vD.startsWith('extra-')) {
+          // Quitamos el prefijo para pasarle solo el ID numérico al componente
+          const extraId = vD.replace('extra-', '');
+          return <ClasificacionExtraPlayoff season={vS} id={extraId} />;
+        }
+
+        // CASO 2: Es un Playoff normal (Brackets)
+        if (esPlayoff) {
+          return (
+            <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+              {renderPlayoffBrackets()}
+            </div>
+          );
+        }
+
+        // CASO 3: Es Liga normal (Tabla de clasificación)
+        return (
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
+                  <th style={{ padding: '12px', textAlign: 'left' }}>JUGADOR</th>
+                  <th style={{ padding: '10px' }}>PTS</th>
+                  <th style={{ padding: '10px' }}>PJ</th>
+                  <th style={{ padding: '10px' }}>PG</th>
+                  <th style={{ padding: '10px' }}>PE</th>
+                  <th style={{ padding: '10px' }}>GF</th>
+                  <th style={{ padding: '10px' }}>GC</th>
+                  <th style={{ padding: '10px' }}>DG</th>
+                  <th style={{ padding: '10px' }}>📺</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-          {renderPlayoffBrackets()}
-        </div>
-      )}
+              </thead>
+              {/* ... dentro de !esPlayoff ... */}
+              <tbody>
+                {lista.map((j, i) => (
+                  <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
+                    <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Avatar url={j.avatar_url} size="24px" />
+                      <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
+                    </td>
+                    <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
+                    <td>{j.pj ?? 0}</td>
+                    {/* Sumamos victorias de casa y fuera */}
+                    <td>{(j.pg_casa || 0) + (j.pg_fuera || 0)}</td>
+                    {/* Sumamos empates de casa y fuera */}
+                    <td>{(j.pe_casa || 0) + (j.pe_fuera || 0)}</td>
+                    {/* Cambiado: j.goles_fuera/casa por j.gf y j.gc */}
+                    <td>{j.gf ?? 0}</td>
+                    <td>{j.gc ?? 0}</td>
+                    <td style={{ color: (j.dg ?? 0) > 0 ? '#2ecc71' : (j.dg ?? 0) < 0 ? '#e74c3c' : '#7f8c8d', fontWeight: '600' }}>{j.dg ?? 0}</td>
+                    <td style={{ padding: '10px', color: '#64748b', fontWeight: 'bold' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem' }}>
+                        <span>{j.streamStats?.totalStreams || 0}/{j.streamStats?.totalPartidos || 0}</span>
+                        <span style={{ color: j.bonusStream?.aplica ? '#9b59b6' : '#94a3b8' }}>
+                          ({j.streamStats?.porcentaje || 0}%)
+                          {j.bonusStream?.aplica && (
+                            <span style={{ color: '#2ecc71', fontWeight: 'bold', marginLeft: '4px' }}>
+                              (+{j.bonusStream.puntos})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
     </div>
   )
 }

@@ -1,0 +1,1169 @@
+-- 1. Cabecera del Torneo Extra
+CREATE TABLE playoffs_extra (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  season_id INTEGER REFERENCES season_rules(season) ON DELETE CASCADE,
+  nombre TEXT NOT NULL, 
+  tipo_format TEXT DEFAULT 'ida', -- 'ida' o 'ida_vuelta'
+  jugadores_por_grupo INTEGER DEFAULT 4,
+  estado TEXT DEFAULT 'configurando', 
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Grupos (Bloques de 4 o 3 jugadores)
+CREATE TABLE extra_groups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  extra_id UUID REFERENCES playoffs_extra(id) ON DELETE CASCADE,
+  nombre_grupo TEXT NOT NULL, 
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Partidos (Liguilla y Cuadro Final)
+CREATE TABLE extra_matches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  extra_id UUID REFERENCES playoffs_extra(id) ON DELETE CASCADE,
+  group_id UUID REFERENCES extra_groups(id) ON DELETE SET NULL,
+  
+  -- Referencia a tus perfiles usando la columna 'id' de la tabla 'profiles'
+  player1_id UUID REFERENCES profiles(id), 
+  player2_id UUID REFERENCES profiles(id),
+  
+  score1 INTEGER DEFAULT NULL,
+  score2 INTEGER DEFAULT NULL,
+  
+  fecha_inicio TIMESTAMP WITH TIME ZONE,
+  fecha_fin TIMESTAMP WITH TIME ZONE,
+  
+  fase TEXT DEFAULT 'group', -- 'group', 'octavos', 'cuartos', 'semis', 'final'
+  numero_jornada INTEGER,
+  is_played BOOLEAN DEFAULT FALSE,
+  
+  next_match_id UUID REFERENCES extra_matches(id)
+);
+
+
+-- 1. Activar RLS
+ALTER TABLE playoffs_extra ENABLE ROW LEVEL SECURITY;
+ALTER TABLE extra_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE extra_matches ENABLE ROW LEVEL SECURITY;
+
+-- 2. Políticas para playoffs_extra
+CREATE POLICY "Lectura pública extra" ON playoffs_extra FOR SELECT USING (true);
+CREATE POLICY "Admin insert extra" ON playoffs_extra FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin update extra" ON playoffs_extra FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin delete extra" ON playoffs_extra FOR DELETE USING (auth.role() = 'authenticated');
+
+-- 3. Políticas para extra_groups (Corregida la sintaxis ALL)
+CREATE POLICY "Lectura pública grupos" ON extra_groups FOR SELECT USING (true);
+CREATE POLICY "Admin gestión grupos" ON extra_groups FOR ALL USING (auth.role() = 'authenticated');
+
+-- 4. Políticas para extra_matches
+CREATE POLICY "Lectura pública partidos" ON extra_matches FOR SELECT USING (true);
+CREATE POLICY "Admin gestión partidos" ON extra_matches FOR ALL USING (auth.role() = 'authenticated');
+
+
+
+-- Añadir columna de retransmisión a los partidos
+ALTER TABLE extra_matches 
+ADD COLUMN IF NOT EXISTS stream_url TEXT;
+
+-- Añadir columna para guardar la configuración de eliminatorias (formato ida/vuelta por fase)
+ALTER TABLE playoffs_extra 
+ADD COLUMN IF NOT EXISTS config_eliminatorias JSONB DEFAULT '{
+  "octavos": "ida",
+  "cuartos": "ida",
+  "semis": "ida",
+  "final": "ida"
+}'::jsonb;
+
+
+ALTER TABLE playoffs_extra 
+ADD COLUMN config_fechas JSONB DEFAULT '{}'::jsonb;
+
+
+ALTER TABLE playoffs_extra 
+ADD COLUMN num_grupos INTEGER DEFAULT 2;
+
+ALTER TABLE playoffs_extra 
+ADD COLUMN pasan_por_grupo INTEGER DEFAULT 2;
+
+ALTER TABLE playoffs_extra 
+ADD COLUMN current_round TEXT DEFAULT 'j1',
+ADD COLUMN use_auto_round BOOLEAN DEFAULT true;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. ELIMINAR VISTAS PREVIAS (Para asegurar una instalación limpia)
+DROP VIEW IF EXISTS public.extra_playoffs_clasificacion;
+DROP VIEW IF EXISTS public.extra_playoffs_matches;
+
+
+
+
+
+
+
+-- 2. CREAR VISTA DE CLASIFICACIÓN (LIGUILLA)
+CREATE OR REPLACE VIEW public.extra_playoffs_clasificacion 
+WITH (security_invoker = true) AS
+WITH stats_base AS (
+    -- Estadísticas como Local
+    SELECT 
+        extra_id AS playoff_extra_id,
+        group_id AS grupo_id,
+        player1_id AS player_id,
+        score1 AS gf,
+        score2 AS gc,
+        CASE 
+            WHEN score1 > score2 THEN 3
+            WHEN score1 = score2 THEN 1
+            ELSE 0
+        END AS pts,
+        stream_url
+    FROM public.extra_matches
+    WHERE is_played = true 
+      AND player1_id IS NOT NULL 
+      AND player2_id IS NOT NULL
+      AND group_id IS NOT NULL
+    
+    UNION ALL
+    
+    -- Estadísticas como Visitante
+    SELECT 
+        extra_id AS playoff_extra_id,
+        group_id AS grupo_id,
+        player2_id AS player_id,
+        score2 AS gf,
+        score1 AS gc,
+        CASE 
+            WHEN score2 > score1 THEN 3
+            WHEN score2 = score1 THEN 1
+            ELSE 0
+        END AS pts,
+        stream_url
+    FROM public.extra_matches
+    WHERE is_played = true 
+      AND player1_id IS NOT NULL 
+      AND player2_id IS NOT NULL
+      AND group_id IS NOT NULL
+)
+SELECT 
+    sb.playoff_extra_id,
+    sb.grupo_id,
+    p.nick,
+    p.avatar_url,
+    MAX(sb.stream_url) AS last_stream_url,
+    COUNT(*) as pj,
+    SUM(sb.pts) as pts,
+    SUM(sb.gf) as gf,
+    SUM(sb.gc) as gc,
+    (SUM(sb.gf) - SUM(sb.gc)) as dg
+FROM stats_base sb
+JOIN public.profiles p ON sb.player_id = p.id
+GROUP BY sb.playoff_extra_id, sb.grupo_id, p.id, p.nick, p.avatar_url
+ORDER BY pts DESC, dg DESC, gf DESC;
+
+-- 3. CREAR VISTA DE PARTIDOS (ELIMINATORIAS)
+CREATE OR REPLACE VIEW public.extra_playoffs_matches 
+WITH (security_invoker = true) AS
+SELECT 
+    m.id,
+    m.extra_id AS playoff_extra_id,
+    m.numero_jornada,
+    p1.nick as player1_nick,
+    p2.nick as player2_nick,
+    m.score1,
+    m.score2,
+    m.is_played,
+    m.stream_url
+FROM public.extra_matches m
+LEFT JOIN public.profiles p1 ON m.player1_id = p1.id
+LEFT JOIN public.profiles p2 ON m.player2_id = p2.id
+WHERE m.group_id IS NULL;
+
+-- 4. PERMISOS DE ACCESO
+-- Otorgar permisos de lectura a los roles que usa la web
+GRANT SELECT ON public.extra_playoffs_clasificacion TO anon, authenticated;
+GRANT SELECT ON public.extra_playoffs_matches TO anon, authenticated;
+
+-- Asegurar que las tablas base tienen RLS y política de lectura
+ALTER TABLE public.extra_matches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Si no existen las políticas de lectura, las creamos (uso IF NOT EXISTS para evitar errores)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Lectura pública extra_matches') THEN
+        CREATE POLICY "Lectura pública extra_matches" ON public.extra_matches FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Lectura pública profiles') THEN
+        CREATE POLICY "Lectura pública profiles" ON public.profiles FOR SELECT USING (true);
+    END IF;
+END
+$$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. ELIMINAR VISTA PARA RECONSTRUIR
+DROP VIEW IF EXISTS public.extra_playoffs_clasificacion;
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 2. CREAR VISTA DE CLASIFICACIÓN
+CREATE OR REPLACE VIEW public.extra_playoffs_clasificacion 
+WITH (security_invoker = true) AS
+WITH partidos_normalizados AS (
+    -- Desglosamos cada partido: local
+    SELECT 
+        extra_id,
+        group_id,
+        player1_id AS p_id,
+        score1 AS gf,
+        score2 AS gc,
+        CASE WHEN score1 > score2 THEN 1 ELSE 0 END as pg,
+        CASE WHEN score1 = score2 THEN 1 ELSE 0 END as pe,
+        CASE WHEN score1 < score2 THEN 1 ELSE 0 END as pp
+    FROM public.extra_matches
+    WHERE is_played = true AND group_id IS NOT NULL
+    
+    UNION ALL
+    
+    -- Desglosamos cada partido: visitante
+    SELECT 
+        extra_id,
+        group_id,
+        player2_id AS p_id,
+        score2 AS gf,
+        score1 AS gc,
+        CASE WHEN score2 > score1 THEN 1 ELSE 0 END as pg,
+        CASE WHEN score2 = score1 THEN 1 ELSE 0 END as pe,
+        CASE WHEN score2 < score1 THEN 1 ELSE 0 END as pp
+    FROM public.extra_matches
+    WHERE is_played = true AND group_id IS NOT NULL
+),
+universo_jugadores AS (
+    -- Obtenemos todos los jugadores que aparecen en los partidos de este torneo
+    -- (ya sean partidos jugados o pendientes)
+    SELECT DISTINCT extra_id, group_id, player1_id as user_id FROM public.extra_matches WHERE group_id IS NOT NULL
+    UNION
+    SELECT DISTINCT extra_id, group_id, player2_id as user_id FROM public.extra_matches WHERE group_id IS NOT NULL
+)
+SELECT 
+    uj.extra_id AS playoff_extra_id,
+    uj.group_id AS grupo_id,
+    p.nick,
+    p.avatar_url,
+    COALESCE(COUNT(pn.p_id), 0) AS pj,
+    COALESCE(SUM(pn.pg), 0) AS pg,
+    COALESCE(SUM(pn.pe), 0) AS pe,
+    COALESCE(SUM(pn.pp), 0) AS pp,
+    COALESCE(SUM(CASE WHEN pn.pg = 1 THEN 3 WHEN pn.pe = 1 THEN 1 ELSE 0 END), 0) AS pts,
+    COALESCE(SUM(pn.gf), 0) AS gf,
+    COALESCE(SUM(pn.gc), 0) AS gc,
+    COALESCE(SUM(pn.gf) - SUM(pn.gc), 0) AS dg
+FROM universo_jugadores uj
+JOIN public.profiles p ON uj.user_id = p.id
+LEFT JOIN partidos_normalizados pn ON uj.extra_id = pn.extra_id AND uj.user_id = pn.p_id
+GROUP BY uj.extra_id, uj.group_id, p.id, p.nick, p.avatar_url
+ORDER BY pts DESC, dg DESC, gf DESC;
+
+-- 3. PERMISOS
+GRANT SELECT ON public.extra_playoffs_clasificacion TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. ELIMINAR VISTA PARA RECONSTRUIR
+DROP VIEW IF EXISTS public.extra_playoffs_clasificacion;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE VIEW public.extra_playoffs_clasificacion 
+WITH (security_invoker = true) AS
+WITH partidos_normalizados AS (
+    SELECT 
+        extra_id, group_id, player1_id AS p_id, score1 AS gf, score2 AS gc,
+        CASE WHEN score1 > score2 THEN 1 ELSE 0 END as pg,
+        CASE WHEN score1 = score2 THEN 1 ELSE 0 END as pe,
+        CASE WHEN score1 < score2 THEN 1 ELSE 0 END as pp
+    FROM public.extra_matches WHERE is_played = true AND group_id IS NOT NULL
+    UNION ALL
+    SELECT 
+        extra_id, group_id, player2_id AS p_id, score2 AS gf, score1 AS gc,
+        CASE WHEN score2 > score1 THEN 1 ELSE 0 END as pg,
+        CASE WHEN score2 = score1 THEN 1 ELSE 0 END as pe,
+        CASE WHEN score2 < score1 THEN 1 ELSE 0 END as pp
+    FROM public.extra_matches WHERE is_played = true AND group_id IS NOT NULL
+),
+universo_jugadores AS (
+    SELECT DISTINCT extra_id, group_id, player1_id as user_id FROM public.extra_matches WHERE group_id IS NOT NULL
+    UNION
+    SELECT DISTINCT extra_id, group_id, player2_id as user_id FROM public.extra_matches WHERE group_id IS NOT NULL
+)
+SELECT 
+    uj.extra_id AS playoff_extra_id,
+    uj.group_id, -- Columna clave para el dinamismo
+    COALESCE(g.nombre_grupo, 'Grupo ' || uj.group_id::text) AS nombre_grupo_texto, 
+    p.nick,
+    p.avatar_url,
+    p.id as user_id,
+    COALESCE(COUNT(pn.p_id), 0) AS pj,
+    COALESCE(SUM(pn.pg), 0) AS pg,
+    COALESCE(SUM(pn.pe), 0) AS pe,
+    COALESCE(SUM(pn.pp), 0) AS pp,
+    COALESCE(SUM(CASE WHEN pn.pg = 1 THEN 3 WHEN pn.pe = 1 THEN 1 ELSE 0 END), 0) AS pts,
+    COALESCE(SUM(pn.gf), 0) AS gf,
+    COALESCE(SUM(pn.gc), 0) AS gc,
+    COALESCE(SUM(pn.gf) - SUM(pn.gc), 0) AS dg
+FROM universo_jugadores uj
+JOIN public.profiles p ON uj.user_id = p.id
+JOIN public.extra_groups g ON uj.group_id = g.id 
+LEFT JOIN partidos_normalizados pn ON uj.extra_id = pn.extra_id AND uj.user_id = pn.p_id
+GROUP BY uj.extra_id, uj.group_id, g.nombre_grupo, p.id, p.nick, p.avatar_url;
+
+GRANT SELECT ON public.extra_playoffs_clasificacion TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Aseguramos que la FK sea explícita
+ALTER TABLE public.extra_matches 
+DROP CONSTRAINT IF EXISTS extra_matches_group_id_fkey,
+ADD CONSTRAINT extra_matches_group_id_fkey 
+FOREIGN KEY (group_id) REFERENCES extra_groups(id) ON DELETE SET NULL;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE VIEW public.v_posiciones_dinamicas AS
+SELECT 
+    playoff_extra_id,
+    group_id,
+    user_id,
+    nick,
+    ROW_NUMBER() OVER (
+        PARTITION BY playoff_extra_id, group_id 
+        ORDER BY pts DESC, dg DESC, gf DESC
+    ) as posicion_ranking
+FROM public.extra_playoffs_clasificacion;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP VIEW IF EXISTS public.extra_playoffs_matches CASCADE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. Limpieza total por si acaso
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico CASCADE;
+DROP TABLE IF EXISTS public.extra_playoffs_matches CASCADE;
+
+-- 2. Creación con tipos UUID correctos
+CREATE TABLE public.extra_playoffs_matches (
+    id SERIAL PRIMARY KEY,
+    playoff_extra_id UUID REFERENCES public.playoffs_extra(id) ON DELETE CASCADE,
+    numero_jornada TEXT,
+    
+    -- Lógica Jugador 1 (Cambiado a UUID)
+    player1_id UUID REFERENCES public.profiles(id), 
+    group_id_p1 UUID REFERENCES public.extra_groups(id), 
+    posicion_p1 INT, 
+    
+    -- Lógica Jugador 2 (Cambiado a UUID)
+    player2_id UUID REFERENCES public.profiles(id),
+    group_id_p2 UUID REFERENCES public.extra_groups(id),
+    posicion_p2 INT,
+    
+    score1 INT DEFAULT NULL,
+    score2 INT DEFAULT NULL,
+    is_played BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Volvemos a crear la vista dinámica
+CREATE OR REPLACE VIEW public.v_extra_playoffs_bracket_dinamico AS
+WITH posiciones AS (
+    SELECT 
+        playoff_extra_id,
+        group_id,
+        user_id,
+        nick,
+        ROW_NUMBER() OVER (
+            PARTITION BY playoff_extra_id, group_id 
+            ORDER BY pts DESC, dg DESC, gf DESC
+        ) as ranking
+    FROM public.extra_playoffs_clasificacion
+)
+SELECT 
+    m.*,
+    COALESCE(
+        (SELECT nick FROM public.profiles WHERE id = m.player1_id),
+        (SELECT nick FROM posiciones WHERE group_id = m.group_id_p1 AND ranking = m.posicion_p1 AND playoff_extra_id = m.playoff_extra_id),
+        'Esperando ' || m.posicion_p1 || 'º ' || (SELECT nombre_grupo FROM extra_groups WHERE id = m.group_id_p1)
+    ) as p1_nombre,
+    COALESCE(
+        (SELECT nick FROM public.profiles WHERE id = m.player2_id),
+        (SELECT nick FROM posiciones WHERE group_id = m.group_id_p2 AND ranking = m.posicion_p2 AND playoff_extra_id = m.playoff_extra_id),
+        'Esperando ' || m.posicion_p2 || 'º ' || (SELECT nombre_grupo FROM extra_groups WHERE id = m.group_id_p2)
+    ) as p2_nombre
+FROM public.extra_playoffs_matches m;
+
+GRANT ALL ON public.extra_playoffs_matches TO anon, authenticated, service_role;
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated;
+
+
+-- Habilitar RLS por si acaso está encendido
+ALTER TABLE public.extra_playoffs_matches ENABLE ROW LEVEL SECURITY;
+
+-- Permitir TODO a usuarios autenticados (Insert, Update, Delete, Select)
+CREATE POLICY "Permitir todo a autenticados" 
+ON public.extra_playoffs_matches 
+FOR ALL 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+
+-- Permitir lectura a todo el mundo (anon y auth)
+CREATE POLICY "Permitir lectura a todos" 
+ON public.extra_playoffs_matches 
+FOR SELECT 
+TO anon, authenticated 
+USING (true);
+
+-- Forzamos la desactivación de seguridad para esta tabla específica
+ALTER TABLE IF EXISTS public.extra_playoffs_matches DISABLE ROW LEVEL SECURITY;
+
+-- Por si acaso, damos permisos totales al rol autenticado y anónimo
+GRANT ALL ON TABLE public.extra_playoffs_matches TO postgres, anon, authenticated, service_role;
+
+-- 1. Aseguramos que el RLS esté fuera
+ALTER TABLE public.extra_playoffs_matches DISABLE ROW LEVEL SECURITY;
+
+-- 2. Damos permisos explícitos a todos los roles de la API
+GRANT ALL ON TABLE public.extra_playoffs_matches TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE extra_playoffs_matches_id_seq TO anon, authenticated, service_role;
+
+-- 3. FORZAR RECARGA DE LA CACHÉ DE LA API (Esto es clave para el error 403)
+NOTIFY pgrst, 'reload schema';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. Borramos la vista actual para evitar conflictos de estructura
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+-- 2. La creamos con la lógica de posiciones reales
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS
+WITH ranking_actual AS (
+    SELECT 
+        playoff_extra_id,
+        group_id,
+        user_id,
+        nick,
+        ROW_NUMBER() OVER (
+            PARTITION BY group_id 
+            ORDER BY pts DESC, dg DESC, gf DESC
+        ) as posicion_real
+    FROM public.extra_playoffs_clasificacion
+)
+SELECT 
+    m.id as match_id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.is_played,
+    m.score1,
+    m.score2,
+    -- Datos Jugador 1
+    COALESCE(r1.nick, 'Esperando ' || m.posicion_p1 || 'º ' || g1.nombre_grupo) as p1_nick,
+    r1.user_id as p1_id,
+    -- Datos Jugador 2
+    COALESCE(r2.nick, 'Esperando ' || m.posicion_p2 || 'º ' || g2.nombre_grupo) as p2_nick,
+    r2.user_id as p2_id
+FROM public.extra_playoffs_matches m
+LEFT JOIN public.extra_groups g1 ON m.group_id_p1 = g1.id
+LEFT JOIN public.extra_groups g2 ON m.group_id_p2 = g2.id
+LEFT JOIN ranking_actual r1 ON m.group_id_p1 = r1.group_id AND m.posicion_p1 = r1.posicion_real
+LEFT JOIN ranking_actual r2 ON m.group_id_p2 = r2.group_id AND m.posicion_p2 = r2.posicion_real;
+
+-- 3. Volvemos a dar permisos
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER TABLE public.extra_playoffs_matches 
+ADD COLUMN IF NOT EXISTS p1_from_match_id INTEGER REFERENCES public.extra_playoffs_matches(id),
+ADD COLUMN IF NOT EXISTS p2_from_match_id INTEGER REFERENCES public.extra_playoffs_matches(id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. Borramos la versión anterior
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+-- 2. Creamos la vista corregida
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS
+WITH ranking_actual AS (
+    SELECT 
+        playoff_extra_id,
+        group_id,
+        user_id,
+        nick,
+        ROW_NUMBER() OVER (
+            PARTITION BY group_id 
+            ORDER BY pts DESC, dg DESC, gf DESC
+        ) as posicion_real
+    FROM public.extra_playoffs_clasificacion
+)
+SELECT 
+    m.id as match_id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.is_played,
+    m.score1,
+    m.score2,
+    -- LÓGICA PARA JUGADOR 1
+    CASE 
+        WHEN m.p1_from_match_id IS NOT NULL THEN 
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Partido ' || m.p1_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p1_from_match_id), 
+                'Pendiente...'
+            )
+        ELSE 
+            COALESCE(r1.nick, 'Esperando ' || m.posicion_p1 || 'º ' || g1.nombre_grupo)
+    END as p1_nick,
+    
+    -- LÓGICA PARA JUGADOR 2
+    CASE 
+        WHEN m.p2_from_match_id IS NOT NULL THEN 
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Partido ' || m.p2_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p2_from_match_id), 
+                'Pendiente...'
+            )
+        ELSE 
+            COALESCE(r2.nick, 'Esperando ' || m.posicion_p2 || 'º ' || g2.nombre_grupo)
+    END as p2_nick
+
+FROM public.extra_playoffs_matches m
+LEFT JOIN public.extra_groups g1 ON m.group_id_p1 = g1.id
+LEFT JOIN public.extra_groups g2 ON m.group_id_p2 = g2.id
+LEFT JOIN ranking_actual r1 ON m.group_id_p1 = r1.group_id AND m.posicion_p1 = r1.posicion_real
+LEFT JOIN ranking_actual r2 ON m.group_id_p2 = r2.group_id AND m.posicion_p2 = r2.posicion_real;
+
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 1. Borramos la versión anterior
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+-- 2. Creamos la vista con validación de "Grupo Completo"
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS
+WITH control_grupos AS (
+    -- Contamos cuántos partidos hay y cuántos se han jugado por cada grupo
+    SELECT 
+        group_id,
+        COUNT(*) as total_partidos,
+        SUM(CASE WHEN is_played = true THEN 1 ELSE 0 END) as partidos_jugados
+    FROM public.extra_matches
+    GROUP BY group_id
+),
+ranking_actual AS (
+    -- Obtenemos el ranking pero solo si el grupo está terminado
+    SELECT 
+        clasi.playoff_extra_id,
+        clasi.group_id,
+        clasi.user_id,
+        clasi.nick,
+        ROW_NUMBER() OVER (
+            PARTITION BY clasi.group_id 
+            ORDER BY clasi.pts DESC, clasi.dg DESC, clasi.gf DESC
+        ) as posicion_real,
+        ctrl.total_partidos,
+        ctrl.partidos_jugados
+    FROM public.extra_playoffs_clasificacion clasi
+    JOIN control_grupos ctrl ON clasi.group_id = ctrl.group_id
+)
+SELECT 
+    m.id as match_id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.is_played,
+    m.score1,
+    m.score2,
+    
+    -- LÓGICA JUGADOR 1
+    CASE 
+        WHEN m.p1_from_match_id IS NOT NULL THEN 
+            -- Lógica para ganadores de eliminatorias previas (se mantiene igual)
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Partido ' || m.p1_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p1_from_match_id), 
+                'Pendiente...'
+            )
+        ELSE 
+            -- Solo muestra el nick si partidos_jugados == total_partidos
+            CASE 
+                WHEN r1.partidos_jugados = r1.total_partidos THEN r1.nick 
+                ELSE 'Esperando ' || m.posicion_p1 || 'º ' || g1.nombre_grupo || ' (' || r1.partidos_jugados || '/' || r1.total_partidos || ')'
+            END
+    END as p1_nick,
+
+    -- LÓGICA JUGADOR 2
+    CASE 
+        WHEN m.p2_from_match_id IS NOT NULL THEN 
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Partido ' || m.p2_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p2_from_match_id), 
+                'Pendiente...'
+            )
+        ELSE 
+            CASE 
+                WHEN r2.partidos_jugados = r2.total_partidos THEN r2.nick 
+                ELSE 'Esperando ' || m.posicion_p2 || 'º ' || g2.nombre_grupo || ' (' || r2.partidos_jugados || '/' || r2.total_partidos || ')'
+            END
+    END as p2_nick
+
+FROM public.extra_playoffs_matches m
+LEFT JOIN public.extra_groups g1 ON m.group_id_p1 = g1.id
+LEFT JOIN public.extra_groups g2 ON m.group_id_p2 = g2.id
+LEFT JOIN ranking_actual r1 ON m.group_id_p1 = r1.group_id AND m.posicion_p1 = r1.posicion_real
+LEFT JOIN ranking_actual r2 ON m.group_id_p2 = r2.group_id AND m.posicion_p2 = r2.posicion_real;
+
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS
+WITH control_grupos AS (
+    SELECT 
+        group_id,
+        COUNT(*) as total_partidos,
+        SUM(CASE WHEN is_played = true THEN 1 ELSE 0 END) as partidos_jugados
+    FROM public.extra_matches
+    GROUP BY group_id
+),
+ranking_actual AS (
+    SELECT 
+        clasi.playoff_extra_id,
+        clasi.group_id,
+        clasi.user_id,
+        clasi.nick,
+        ROW_NUMBER() OVER (
+            PARTITION BY clasi.group_id 
+            ORDER BY clasi.pts DESC, clasi.dg DESC, clasi.gf DESC
+        ) as posicion_real,
+        ctrl.total_partidos,
+        ctrl.partidos_jugados
+    FROM public.extra_playoffs_clasificacion clasi
+    JOIN control_grupos ctrl ON clasi.group_id = ctrl.group_id
+)
+SELECT 
+    m.id as match_id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.is_played,
+    m.score1,
+    m.score2,
+    
+    -- JUGADOR 1 (LOCAL)
+    CASE 
+        WHEN m.p1_from_match_id IS NOT NULL THEN 
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Part. ' || m.p1_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p1_from_match_id), 'Pendiente...')
+        ELSE 
+            CASE 
+                WHEN r1.partidos_jugados = r1.total_partidos THEN r1.nick 
+                ELSE 'Esperando ' || m.posicion_p1 || 'º ' || g1.nombre_grupo
+            END
+    END as p1_nick,
+
+    -- JUGADOR 2 (VISITANTE)
+    CASE 
+        WHEN m.p2_from_match_id IS NOT NULL THEN 
+            COALESCE(
+                (SELECT 
+                    CASE 
+                        WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                        WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                        ELSE 'Ganador Part. ' || m.p2_from_match_id 
+                    END
+                 FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p2_from_match_id), 'Pendiente...')
+        ELSE 
+            CASE 
+                WHEN r2.partidos_jugados = r2.total_partidos THEN r2.nick 
+                ELSE 'Esperando ' || m.posicion_p2 || 'º ' || g2.nombre_grupo
+            END
+    END as p2_nick
+
+FROM public.extra_playoffs_matches m
+LEFT JOIN public.extra_groups g1 ON m.group_id_p1 = g1.id
+LEFT JOIN public.extra_groups g2 ON m.group_id_p2 = g2.id
+LEFT JOIN ranking_actual r1 ON m.group_id_p1 = r1.group_id AND m.posicion_p1 = r1.posicion_real
+LEFT JOIN ranking_actual r2 ON m.group_id_p2 = r2.group_id AND m.posicion_p2 = r2.posicion_real;
+
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS
+SELECT 
+    m.id as match_id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.is_played,
+    m.score1,
+    m.score2,
+    
+    -- JUGADOR 1 (LOCAL)
+    COALESCE(
+        -- Prioridad 1: Jugador asignado a mano (para corregir errores)
+        (SELECT nick FROM profiles WHERE id = m.player1_id),
+        
+        -- Prioridad 2: Si viene de un partido anterior
+        (SELECT 
+            CASE 
+                WHEN m_prev.is_played = false THEN 'Ganador ' || m.p1_from_match_id
+                WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                ELSE 'Ganador ' || m.p1_from_match_id
+            END
+         FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p1_from_match_id),
+        
+        -- Prioridad 3: Si viene de Liguilla (Solo si el grupo terminó)
+        (SELECT cl.nick 
+         FROM extra_playoffs_clasificacion cl
+         WHERE cl.group_id = m.group_id_p1 
+           AND (SELECT COUNT(*) FROM extra_matches em WHERE em.group_id = m.group_id_p1 AND em.is_played = false) = 0
+           AND (SELECT COUNT(*) FROM (
+                SELECT user_id, ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY pts DESC, dg DESC, gf DESC) as pos 
+                FROM extra_playoffs_clasificacion WHERE group_id = m.group_id_p1
+           ) r WHERE r.user_id = cl.user_id AND r.pos = m.posicion_p1) > 0
+        ),
+        
+        -- Prioridad 4: Texto de espera (RED DE SEGURIDAD TOTAL)
+        (SELECT m.posicion_p1 || 'º ' || nombre_grupo FROM extra_groups WHERE id = m.group_id_p1),
+        
+        -- Prioridad 5: Si todo lo anterior falla
+        'TBD 1'
+    ) as p1_nick,
+
+    -- JUGADOR 2 (VISITANTE)
+    COALESCE(
+        (SELECT nick FROM profiles WHERE id = m.player2_id),
+        
+        (SELECT 
+            CASE 
+                WHEN m_prev.is_played = false THEN 'Ganador ' || m.p2_from_match_id
+                WHEN m_prev.score1 > m_prev.score2 THEN (SELECT nick FROM profiles WHERE id = m_prev.player1_id)
+                WHEN m_prev.score2 > m_prev.score1 THEN (SELECT nick FROM profiles WHERE id = m_prev.player2_id)
+                ELSE 'Ganador ' || m.p2_from_match_id
+            END
+         FROM extra_playoffs_matches m_prev WHERE m_prev.id = m.p2_from_match_id),
+        
+        (SELECT cl.nick 
+         FROM extra_playoffs_clasificacion cl
+         WHERE cl.group_id = m.group_id_p2 
+           AND (SELECT COUNT(*) FROM extra_matches em WHERE em.group_id = m.group_id_p2 AND em.is_played = false) = 0
+           AND (SELECT COUNT(*) FROM (
+                SELECT user_id, ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY pts DESC, dg DESC, gf DESC) as pos 
+                FROM extra_playoffs_clasificacion WHERE group_id = m.group_id_p2
+           ) r WHERE r.user_id = cl.user_id AND r.pos = m.posicion_p2) > 0
+        ),
+        
+        (SELECT m.posicion_p2 || 'º ' || nombre_grupo FROM extra_groups WHERE id = m.group_id_p2),
+        
+        'TBD 2'
+    ) as p2_nick
+
+FROM public.extra_playoffs_matches m;
+
+GRANT SELECT ON public.v_extra_playoffs_bracket_dinamico TO anon, authenticated, service_role;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER TABLE public.extra_playoffs_matches 
+ADD CONSTRAINT unique_match_path 
+UNIQUE (playoff_extra_id, numero_jornada, p1_from_match_id, p2_from_match_id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP VIEW IF EXISTS public.v_posiciones_dinamicas;
+
+CREATE VIEW public.v_posiciones_dinamicas AS
+ SELECT 
+    playoff_extra_id,
+    group_id,
+    user_id,
+    nick,
+    pts AS puntos,
+    dg AS diferencia_goles,
+    gf AS goles_favor,
+    row_number() OVER (
+        PARTITION BY playoff_extra_id, group_id 
+        ORDER BY pts DESC, dg DESC, gf DESC
+    ) AS posicion_ranking
+ FROM public.extra_playoffs_clasificacion;
+
+ALTER VIEW public.v_posiciones_dinamicas OWNER TO postgres;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+CREATE OR REPLACE VIEW public.v_extra_playoffs_bracket_dinamico AS
+ WITH marcador_global AS (
+         SELECT m1.id AS ida_id,
+            m1.player1_id AS p1_orig,
+            m1.player2_id AS p2_orig,
+            (COALESCE(m1.score1, 0) + COALESCE(m2.score2, 0)) AS total_p1,
+            (COALESCE(m1.score2, 0) + COALESCE(m2.score1, 0)) AS total_p2,
+            m1.is_played AS jugada_ida,
+            COALESCE(m2.is_played, false) AS jugada_vuelta
+           FROM (public.extra_playoffs_matches m1
+             LEFT JOIN public.extra_playoffs_matches m2 ON (((m2.p1_from_match_id = m1.id) AND (m2.numero_jornada ~~* '%VUELTA%'::text))))
+          WHERE (m1.numero_jornada !~~* '%VUELTA%'::text)
+        )
+ SELECT id,
+    playoff_extra_id,
+    numero_jornada,
+    player1_id,
+    group_id_p1,
+    posicion_p1,
+    player2_id,
+    group_id_p2,
+    posicion_p2,
+    score1,
+    score2,
+    is_played,
+    created_at,
+    p1_from_match_id,
+    p2_from_match_id,
+        CASE
+            WHEN (player1_id IS NOT NULL) THEN ( SELECT profiles.nick
+               FROM public.profiles
+              WHERE (profiles.id = m.player1_id))
+            WHEN (p1_from_match_id IS NOT NULL) THEN ( SELECT
+                    CASE
+                        -- CAMBIO AQUÍ: Ahora exige que AMBOS (ida y vuelta) estén jugados si existen
+                        WHEN (rg.jugada_ida IS NOT TRUE OR rg.jugada_vuelta IS NOT TRUE) THEN 'TBD'::text
+                        WHEN (rg.total_p1 > rg.total_p2) THEN ( SELECT profiles.nick
+                           FROM public.profiles
+                          WHERE (profiles.id = rg.p1_orig))
+                        WHEN (rg.total_p2 > rg.total_p1) THEN ( SELECT profiles.nick
+                           FROM public.profiles
+                          WHERE (profiles.id = rg.p2_orig))
+                        ELSE 'TBD'::text
+                    END AS "case"
+               FROM marcador_global rg
+              WHERE (rg.ida_id = m.p1_from_match_id))
+            WHEN (group_id_p1 IS NOT NULL) THEN ('Ganador G.'::text || posicion_p1)
+            ELSE 'TBD'::text
+        END AS p1_nick,
+        CASE
+            WHEN (player2_id IS NOT NULL) THEN ( SELECT profiles.nick
+               FROM public.profiles
+              WHERE (profiles.id = m.player2_id))
+            WHEN (p2_from_match_id IS NOT NULL) THEN ( SELECT
+                    CASE
+                        -- CAMBIO AQUÍ: Ahora exige que AMBOS (ida y vuelta) estén jugados si existen
+                        WHEN (rg.jugada_ida IS NOT TRUE OR rg.jugada_vuelta IS NOT TRUE) THEN 'TBD'::text
+                        WHEN (rg.total_p1 > rg.total_p2) THEN ( SELECT profiles.nick
+                           FROM public.profiles
+                          WHERE (profiles.id = rg.p1_orig))
+                        WHEN (rg.total_p2 > rg.total_p1) THEN ( SELECT profiles.nick
+                           FROM public.profiles
+                          WHERE (profiles.id = rg.p2_orig))
+                        ELSE 'TBD'::text
+                    END AS "case"
+               FROM marcador_global rg
+              WHERE (rg.ida_id = m.p2_from_match_id))
+            WHEN (group_id_p2 IS NOT NULL) THEN ('Ganador G.'::text || posicion_p2)
+            ELSE 'TBD'::text
+        END AS p2_nick
+   FROM public.extra_playoffs_matches m;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER TABLE extra_playoffs_matches 
+ADD COLUMN IF NOT EXISTS stream_url TEXT;
+
+ALTER TABLE extra_playoffs_matches ADD COLUMN IF NOT EXISTS stream_updated_at TIMESTAMPTZ;
+
+NOTIFY pgrst, 'reload schema';
+
+
+
+	

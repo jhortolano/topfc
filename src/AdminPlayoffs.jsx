@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import AdminPlayoffsExtra from './AdminPlayoffsExtra';
 
 export default function AdminPlayoffs({ config, profile }) {
   const isAdminReal = profile?.is_admin === true;
@@ -1182,6 +1183,12 @@ export default function AdminPlayoffs({ config, profile }) {
           </button>
         </div>
       )}
+
+      <AdminPlayoffsExtra
+        config={config}
+        profile={profile}
+      />
+
     </div>
   );
 }

@@ -15,15 +15,14 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
 
 --CARGAR USUARIOS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/usuarios_prod_20260306.sql
-
 SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/usuarios_prod_20260315.sql  
 
 
 --CARGAR TABLAS:
-TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/backup_produccion_completo_20260306.sql
-
 SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/backup_produccion_completo_20260315.sql
+
+
+
 
 -SQL en testing:
 -- 1. Recargar el esquema para la API de PostgREST
@@ -45,3 +44,13 @@ pg_dump -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmz
 
 CARGAR SILVER.SQL
 psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Volumes/dev/Projects/React/topfc/SILVER.sql
+
+
+
+
+-----ANTIGUOS-----
+--CARGAR USUARIOS:
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/usuarios_prod_20260306.sql
+
+--CARGAR TABLAS:
+TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/backup_produccion_completo_20260306.sql

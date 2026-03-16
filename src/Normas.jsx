@@ -34,6 +34,18 @@ function Normas() {
             <li>Controles: Cualquiera</li>
             <li>Vel de juego: Normal</li>
             <li>Tipo de plantilla: Online  --  <strong>No se pueden usar plantillas personalizadas</strong></li>
+            <img 
+            src="/ajustesOnline.jpg" 
+            alt="Configuración recomendada" 
+            style={{ 
+              marginTop: '15px', 
+              borderRadius: '6px', 
+              width: '100%', 
+              maxWidth: '400px', 
+              display: 'block',
+              border: '1px solid #ddd' 
+            }} 
+          />
           </ul>
         </div>
 

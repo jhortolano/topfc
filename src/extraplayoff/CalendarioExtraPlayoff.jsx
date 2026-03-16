@@ -38,6 +38,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
   const [loading, setLoading] = useState(true);
   const [jornadaActual, setJornadaActual] = useState(null);
   const [fechasConfig, setFechasConfig] = useState({});
+  const [rondasActivas, setRondasActivas] = useState([]);
 
   useEffect(() => {
     async function fetchAllExtraData() {
@@ -77,6 +78,22 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
         const config = liguilla?.[0]?.extra_groups?.playoffs_extra?.config_fechas ||
           eliminatorias?.[0]?.torneo?.config_fechas || {};
         setFechasConfig(config);
+
+        // 1. Buscamos qué fechas están configuradas como "Actuales" en tu JSON
+        // Suponiendo que tienes una entrada en el JSON o una lógica para obtener el rango de esta semana:
+        const hoy = new Date();
+
+        const rondasQueDeberianEstarActivas = Object.entries(config)
+          .filter(([_, rango]) => {
+            if (!rango.start_at || !rango.end_at) return false;
+            const inicio = new Date(rango.start_at);
+            const fin = new Date(rango.end_at);
+            // Comprueba si "hoy" está entre el inicio y el fin
+            return hoy >= inicio && hoy <= fin;
+          })
+          .map(([nombreRonda]) => nombreRonda);
+
+        setRondasActivas(rondasQueDeberianEstarActivas); // Necesitarás un useState para esto
 
         // 3. Normalización sin lógica de números fijos
         const normalizadosLiguilla = (liguilla || []).map(m => ({
@@ -214,7 +231,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
           if (partidosDeFase.length === 0) return null;
 
           const info = getInfoJornada(keyDelJson);
-          const esActual = partidosDeFase.some(p => p.jornada === jornadaActual);
+          const esActual = rondasActivas.includes(keyDelJson);
           const rangoFechas = info.start_at ? `del ${formatearFecha(info.start_at)} al ${formatearFecha(info.end_at)}` : '';
 
           return (
@@ -237,9 +254,14 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
               </div>
 
               {partidosDeFase.map(p => {
-                // 1. Las variables se declaran AQUÍ (dentro de las llaves del map, antes del return)
-                const localEsBye = !p.local_nick || p.local_nick === 'TBD';
-                const visitanteEsBye = !p.visitante_nick || p.visitante_nick === 'TBD';
+                // 1. Identificamos si son TBD o nulos
+                const localEsTBD = !p.local_nick || p.local_nick === 'TBD';
+                const visitanteEsTBD = !p.visitante_nick || p.visitante_nick === 'TBD';
+
+                // 2. Un "BYE" (Pase Directo) SOLO ocurre si uno es TBD y el otro NO
+                // Si ambos son TBD, es un partido pendiente de definir (TBD vs TBD)
+                const localEsBye = localEsTBD && !visitanteEsTBD;
+                const visitanteEsBye = visitanteEsTBD && !localEsTBD;
                 const esBye = localEsBye || visitanteEsBye;
 
                 // 2. Ahora sí, retornamos el diseño usando esas variables

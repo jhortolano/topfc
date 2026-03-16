@@ -37,6 +37,8 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
         const rondasActivas = Object.entries(config_fechas)
           .filter(([_, rango]) => rango.start_at === desdeActual && rango.end_at === hastaActual)
           .map(([nombreRonda]) => nombreRonda);
+        
+        //console.log(rondasActivas);
 
         const jornadasLiguilla = rondasActivas
           .filter(r => r.startsWith('j'))

@@ -303,7 +303,6 @@ export const promocionarGanadorPlayoff = async (torneoId, partidoActual) => {
       await verificarYActualizarEstadoFinal(torneoId);
       return { success: true, info: 'Partido no terminado' };
     }
-
     if (numero_jornada?.toLowerCase().includes('final') && !numero_jornada?.toLowerCase().includes('semis')) {
       await verificarYActualizarEstadoFinal(torneoId);
       return { success: true, info: 'Final terminada' };

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import CalendarioExtraPlayoff from './extraplayoff/CalendarioExtraPlayoff'
 
 // --- COMPONENTE PARA EL ZOOM ---
 const AvatarConZoom = ({ url }) => {
@@ -62,6 +63,9 @@ export default function CalendarioCompleto({ config }) {
   const [partidos, setPartidos] = useState([]);
   const [jornadasActivas, setJornadasActivas] = useState([]);
   const [fechasJornadas, setFechasJornadas] = useState({});
+  const isExtraTab = vD === 'extra';
+  const [extraPlayoffs, setExtraPlayoffs] = useState([]); // Nuevo estado
+  const currentExtraPlayoff = extraPlayoffs.find(ep => ep.id === vD);
 
   useEffect(() => {
     async function loadSelectors() {
@@ -73,6 +77,13 @@ export default function CalendarioCompleto({ config }) {
       }
       const { data: pData } = await supabase.from('playoffs').select('*').eq('season', vS);
       setPlayoffs(pData || []);
+
+      const { data: extraData } = await supabase
+        .from('playoffs_extra')
+        .select('id, nombre')
+        .eq('season_id', vS);
+      setExtraPlayoffs(extraData || []);
+
     }
     loadSelectors();
   }, [vS]);
@@ -176,92 +187,111 @@ export default function CalendarioCompleto({ config }) {
               background: vD === po.id ? '#34495e' : '#ecf0f1', color: vD === po.id ? 'white' : '#7f8c8d'
             }}> {po.name.toUpperCase()} </button>
           ))}
+          {extraPlayoffs.map(ep => (
+            <button
+              key={ep.id}
+              onClick={() => setVD(ep.id)} // Guardamos el ID en vD
+              style={{
+                padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
+                background: vD === ep.id ? '#e67e22' : '#ecf0f1',
+                color: vD === ep.id ? 'white' : '#7f8c8d'
+              }}
+            >
+              {ep.nombre.toUpperCase()}
+            </button>
+          ))}
         </div>
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
 
-      {grupos.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '0.8rem' }}>No hay partidos.</p>
+      {currentExtraPlayoff ? (
+        /* SI ES EXTRA PLAYOFF: Mostramos su componente */
+        <CalendarioExtraPlayoff season={vS} config={config} extraId={currentExtraPlayoff.id} />
       ) : (
-        grupos.map(n => {
-          const partidosDelGrupo = partidos.filter(p => (isPlayoffActive ? p.round : p.week) === n);
+        /* SI NO ES EXTRA (Liga o Playoff normal): Mostramos el código original */
+        grupos.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '0.8rem' }}>No hay partidos.</p>
+        ) : (
+          grupos.map(n => {
+            const partidosDelGrupo = partidos.filter(p => (isPlayoffActive ? p.round : p.week) === n);
 
-          const counts = isPlayoffActive ? partidos.reduce((acc, p) => { acc[p.round] = (acc[p.round] || 0) + 1; return acc; }, {}) : {};
-          const maxP = Math.max(...Object.values(counts), 0);
-          const esPrimeraFase = isPlayoffActive && counts[n] === maxP;
+            const counts = isPlayoffActive ? partidos.reduce((acc, p) => { acc[p.round] = (acc[p.round] || 0) + 1; return acc; }, {}) : {};
+            const maxP = Math.max(...Object.values(counts), 0);
+            const esPrimeraFase = isPlayoffActive && counts[n] === maxP;
 
-          const partidosVisibles = esPrimeraFase
-            ? partidosDelGrupo.filter(p =>
-              p.local_nick && p.local_nick !== 'TBD' && p.local_nick !== 'BYE' &&
-              p.visitante_nick && p.visitante_nick !== 'TBD' && p.visitante_nick !== 'BYE'
-            )
-            : partidosDelGrupo;
+            const partidosVisibles = esPrimeraFase
+              ? partidosDelGrupo.filter(p =>
+                p.local_nick && p.local_nick !== 'TBD' && p.local_nick !== 'BYE' &&
+                p.visitante_nick && p.visitante_nick !== 'TBD' && p.visitante_nick !== 'BYE'
+              )
+              : partidosDelGrupo;
 
-          if (partidosVisibles.length === 0) return null;
+            if (partidosVisibles.length === 0) return null;
 
-          const estaActiva = jornadasActivas.includes(n);
-          const primerP = partidosVisibles[0];
-          const fechaRef = isPlayoffActive && primerP ? {
-            inicio: new Date(primerP.start_date).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-            fin: new Date(primerP.end_date).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-          } : fechasJornadas[n];
+            const estaActiva = jornadasActivas.includes(n);
+            const primerP = partidosVisibles[0];
+            const fechaRef = isPlayoffActive && primerP ? {
+              inicio: new Date(primerP.start_date).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+              fin: new Date(primerP.end_date).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            } : fechasJornadas[n];
 
-          return (
-            <div key={n} style={{
-              marginBottom: '10px', border: estaActiva ? '2px solid #2ecc71' : '1px solid #eee',
-              borderRadius: '8px', overflow: 'hidden', boxShadow: estaActiva ? '0 0 10px rgba(46, 204, 113, 0.1)' : 'none'
-            }}>
-              <div style={{
-                background: estaActiva ? '#2ecc71' : '#f8f9fa', color: estaActiva ? 'white' : '#2c3e50',
-                padding: '8px 10px', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '2px'
+            return (
+              <div key={n} style={{
+                marginBottom: '10px', border: estaActiva ? '2px solid #2ecc71' : '1px solid #eee',
+                borderRadius: '8px', overflow: 'hidden', boxShadow: estaActiva ? '0 0 10px rgba(46, 204, 113, 0.1)' : 'none'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{isPlayoffActive ? n : `Jornada ${n}`}</span>
-                  {estaActiva && <span style={{ fontSize: '0.6rem', background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>ACTUAL</span>}
-                </div>
-                {fechaRef && (
-                  <div style={{ fontSize: '0.65rem', fontWeight: 'normal', opacity: 0.8 }}>
-                    {fechaRef.inicio}  -  {fechaRef.fin}
+                <div style={{
+                  background: estaActiva ? '#2ecc71' : '#f8f9fa', color: estaActiva ? 'white' : '#2c3e50',
+                  padding: '8px 10px', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '2px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{isPlayoffActive ? n : `Jornada ${n}`}</span>
+                    {estaActiva && <span style={{ fontSize: '0.6rem', background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>ACTUAL</span>}
                   </div>
-                )}
+                  {fechaRef && (
+                    <div style={{ fontSize: '0.65rem', fontWeight: 'normal', opacity: 0.8 }}>
+                      {fechaRef.inicio}  -  {fechaRef.fin}
+                    </div>
+                  )}
+                </div>
+                {partidosVisibles.map(p => (
+                  <div key={p.id} style={{ borderBottom: '1px solid #fafafa', position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px' }}>
+
+                      {/* Local */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
+                        <AvatarConZoom url={p.local_avatar} />
+                      </div>
+
+                      {/* Marcador */}
+                      <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
+                        {(p.is_played || p.played) ? `${p.home_score}-${p.away_score}` : 'vs'}
+                      </div>
+
+                      {/* Visitante */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
+                        <AvatarConZoom url={p.visitante_avatar} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
+                      </div>
+
+                      {/* Icono TV (A la derecha del todo) */}
+                      <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
+                        {p.stream_url && p.stream_url.includes('http') && (
+                          <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
+                            style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
+                            📺
+                          </a>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
               </div>
-              {partidosVisibles.map(p => (
-                <div key={p.id} style={{ borderBottom: '1px solid #fafafa', position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px' }}>
-
-                    {/* Local */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
-                      <AvatarConZoom url={p.local_avatar} />
-                    </div>
-
-                    {/* Marcador */}
-                    <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
-                      {(p.is_played || p.played) ? `${p.home_score}-${p.away_score}` : 'vs'}
-                    </div>
-
-                    {/* Visitante */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
-                      <AvatarConZoom url={p.visitante_avatar} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
-                    </div>
-
-                    {/* Icono TV (A la derecha del todo) */}
-                    <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
-                      {p.stream_url && p.stream_url.includes('http') && (
-                        <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
-                          style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
-                          📺
-                        </a>
-                      )}
-                    </div>
-
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        })
+            )
+          })
+        )
       )}
     </div>
   )

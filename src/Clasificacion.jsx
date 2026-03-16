@@ -482,6 +482,7 @@ export default function Clasificacion({ config }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
               <thead>
                 <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
+                  <th style={{ padding: '12px 5px', width: '20px' }}></th>
                   <th style={{ padding: '12px', textAlign: 'left' }}>JUGADOR</th>
                   <th style={{ padding: '10px' }}>PTS</th>
                   <th style={{ padding: '10px' }}>PJ</th>
@@ -497,6 +498,10 @@ export default function Clasificacion({ config }) {
               <tbody>
                 {lista.map((j, i) => (
                   <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
+                    <td style={{
+                      padding: '10px 5px',      color: '#94a3b8',       fontSize: '0.65rem',       fontWeight: 'bold',      width: '20px'  }}>
+                      {i + 1}
+                    </td>
                     <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Avatar url={j.avatar_url} size="24px" />
                       <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>

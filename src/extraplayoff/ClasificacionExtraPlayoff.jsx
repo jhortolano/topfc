@@ -18,6 +18,129 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
   const [loading, setLoading] = useState(true);
   const [nombrePlayoff, setNombrePlayoff] = useState('');
 
+  const renderExtraBrackets = () => {
+    // 1. Definimos el orden lógico de izquierda a derecha
+    const rondasOrden = ["DIECISEISAVOS", "OCTAVOS", "CUARTOS", "SEMIFINALES", "FINAL"];
+
+    const getBaseRound = (name) => {
+      if (!name) return "OTRA";
+      const n = name.toUpperCase();
+      if (n.includes("DIECISEISAVOS")) return "DIECISEISAVOS";
+      if (n.includes("OCTAVOS")) return "OCTAVOS";
+      if (n.includes("CUARTOS")) return "CUARTOS";
+      if (n.includes("SEMIS") || n.includes("SEMIFINAL")) return "SEMIFINALES";
+      if (n.includes("FINAL")) return "FINAL";
+      return n;
+    };
+
+    // 2. Detectamos rondas y las ordenamos estrictamente según rondasOrden
+    const rondasDetectadas = [...new Set(playoffMatches.map(m => getBaseRound(m.numero_jornada)))];
+
+    const rondasUnicas = rondasDetectadas.sort((a, b) => {
+      const indexA = rondasOrden.indexOf(a);
+      const indexB = rondasOrden.indexOf(b);
+      // Si una ronda no está en la lista, la mandamos al final
+      return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
+    });
+
+    const bracketData = {};
+
+    rondasUnicas.forEach(baseRound => {
+      const matchesInRound = playoffMatches.filter(m => getBaseRound(m.numero_jornada) === baseRound);
+      const enfrentamientos = [];
+      const idsProcesados = new Set();
+
+      matchesInRound.forEach(m => {
+        if (idsProcesados.has(m.id)) return;
+
+        // Agrupación por enfrentamiento (Ida/Vuelta o partido único)
+        const pareja = matchesInRound.filter(pm => {
+          if (idsProcesados.has(pm.id)) return false;
+          const mismosJugadores =
+            (pm.p1_nick === m.p1_nick && pm.p2_nick === m.p2_nick) ||
+            (pm.p1_nick === m.p2_nick && pm.p2_nick === m.p1_nick);
+          return mismosJugadores;
+        });
+
+        enfrentamientos.push(pareja);
+        pareja.forEach(p => idsProcesados.add(p.id));
+      });
+      bracketData[baseRound] = enfrentamientos;
+    });
+
+    return (
+      <div style={{
+        display: 'flex', gap: '30px', overflowX: 'auto', padding: '20px',
+        background: '#f8fafc', borderRadius: '12px', minHeight: '450px',
+        border: '1px solid #e2e8f0'
+      }}>
+        {rondasUnicas.map((round) => (
+          <div key={round} style={{ display: 'flex', flexDirection: 'column', width: '220px', flexShrink: 0 }}>
+            <h4 style={{
+              fontSize: '0.65rem', color: '#2ecc71', textAlign: 'center',
+              marginBottom: '15px', textTransform: 'uppercase', fontWeight: '900',
+              letterSpacing: '1px'
+            }}>
+              {round}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flexGrow: 1 }}>
+              {bracketData[round].map((pair, idx) => {
+                const m1 = pair[0];
+                const m2 = pair[1];
+
+                let g1 = m1.score1 || 0;
+                let g2 = m1.score2 || 0;
+                if (m2) {
+                  if (m2.p1_nick === m1.p1_nick) { g1 += (m2.score1 || 0); g2 += (m2.score2 || 0); }
+                  else { g1 += (m2.score2 || 0); g2 += (m2.score1 || 0); }
+                }
+
+                const finalizado = m1.is_played && (m2 ? m2.is_played : true);
+
+                return (
+                  <div key={idx} style={{
+                    background: '#fff', borderRadius: '10px', padding: '10px',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0',
+                    margin: '10px 0', borderLeft: '4px solid #34495e',
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: g1 > g2 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
+                        {m1.p1_nick}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>
+                        {finalizado ? g1 : '-'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: g2 > g1 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
+                        {m1.p2_nick}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>
+                        {finalizado ? g2 : '-'}
+                      </span>
+                    </div>
+
+                    {m2 && (
+                      <div style={{
+                        marginTop: '8px', paddingTop: '5px', borderTop: '1px solid #f1f5f9',
+                        display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: '#94a3b8'
+                      }}>
+                        <span>IDA: {m1.score1}-{m1.score2}</span>
+                        <span>VTA: {m2.score1}-{m2.score2}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+
   useEffect(() => {
     async function loadExtraData() {
       setLoading(true);
@@ -61,7 +184,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
           .from('v_extra_playoffs_bracket_dinamico')
           .select('*')
           .eq('playoff_extra_id', cleanId)
-          .order('match_id', { ascending: true });
+          .order('id', { ascending: true });
         setPlayoffMatches(poMatches || []);
 
       } catch (err) {
@@ -118,6 +241,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem' }}>
                   <thead>
                     <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #2ecc71' }}>
+                      <th style={{ padding: '12px 5px', width: '20px' }}></th>
                       <th style={{ padding: '12px 10px', textAlign: 'left' }}>JUGADOR</th>
                       <th style={{ padding: '10px' }}>PTS</th>
                       <th style={{ padding: '10px' }}>PJ</th>
@@ -132,9 +256,15 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                   <tbody>
                     {grupos[groupName].map((j, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                        {/* Columna de posición */}
+                        <td style={{ padding: '10px 5px', color: '#95a5a6', fontSize: '0.65rem', fontWeight: 'bold', width: '20px' }}>
+                          {i + 1}
+                        </td>
                         <td style={{ padding: '10px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
                           <Avatar url={j.avatar_url} />
-                          {j.nick}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {j.nick}
+                          </span>
                         </td>
                         <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>
                         <td>{j.pj}</td>
@@ -157,25 +287,11 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
       )}
 
       {activeTab === 'playoff' && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#7f8c8d', fontSize: '0.8rem' }}>
-          {playoffMatches.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {playoffMatches.map((m, idx) => (
-                <div key={idx} style={{ background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #eee', marginBottom: '5px' }}>
-                  <div style={{ fontSize: '0.6rem', color: '#bdc3c7', marginBottom: '5px' }}>{m.numero_jornada}</div>
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
-                    {/* CAMBIADO: m.p1_nick y m.p2_nick */}
-                    <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>{m.p1_nick}</span>
-                    <span style={{ background: '#34495e', color: 'white', padding: '2px 8px', borderRadius: '4px', minWidth: '40px' }}>
-                      {m.is_played ? `${m.score1} - ${m.score2}` : 'vs'}
-                    </span>
-                    <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>{m.p2_nick}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>Las eliminatorias aún no han comenzado o no hay partidos generados.</p>
+        <div style={{ marginTop: '10px' }}>
+          {playoffMatches.length > 0 ? renderExtraBrackets() : (
+            <p style={{ textAlign: 'center', color: '#7f8c8d', fontSize: '0.8rem' }}>
+              Las eliminatorias aún no han comenzado.
+            </p>
           )}
         </div>
       )}

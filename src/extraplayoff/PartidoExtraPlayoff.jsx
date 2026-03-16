@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { verificarYObtenerRankingLiguilla, promocionarGanadorPlayoff, verificarYActualizarEstadoFinal, procesarYPublicarPlayoffs } from '../utils/playoffLogic';
 
 export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) {
   const [partidosExtra, setPartidosExtra] = useState([]);
@@ -32,7 +33,7 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
 
         const desdeActual = configActual.start_at;
         const hastaActual = configActual.end_at;
-        
+
         const rondasActivas = Object.entries(config_fechas)
           .filter(([_, rango]) => rango.start_at === desdeActual && rango.end_at === hastaActual)
           .map(([nombreRonda]) => nombreRonda);
@@ -79,7 +80,7 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
             })));
           }
         }
-        
+
         // PASO 4: Eliminatoria
         if (fasesEliminatoria.length > 0) {
           const { data: matchesPlayoff, error: errP } = await supabase
@@ -93,6 +94,8 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
             `)
             .eq('playoff_extra_id', torneoId)
             .in('numero_jornada', fasesEliminatoria)
+            .not('player1_id', 'is', null)
+            .not('player2_id', 'is', null)
             .or(`player1_id.eq.${profile.id},player2_id.eq.${profile.id}`);
 
           if (errP) console.error("Error Playoff en torneo " + torneoNombre, errP);
@@ -122,16 +125,54 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
     }
   };
 
+const manejarProgresionAutomática = async (partidoOriginal) => {
+  const torneoId = partidoOriginal.playoff_extra_id || partidoOriginal.extra_id;
+  if (!torneoId) return;
+
+  try {
+    // 1. Traer el partido fresco de la base de datos
+    const tabla = Number.isInteger(Number(partidoOriginal.numero_jornada)) 
+                   ? 'extra_matches' 
+                   : 'extra_playoffs_matches';
+
+    const { data: partidoFresco } = await supabase
+      .from(tabla)
+      .select('*')
+      .eq('id', partidoOriginal.id)
+      .single();
+
+    if (!partidoFresco || !partidoFresco.is_played) {
+      console.log("El partido aún no figura como jugado en la DB.");
+      return;
+    }
+
+    const esNumero = Number.isInteger(Number(partidoFresco.numero_jornada));
+
+    if (esNumero) {
+      await procesarYPublicarPlayoffs(torneoId);
+    } else {
+      // Ahora pasamos el partidoFresco que ya tiene los goles y el is_played: true
+      await promocionarGanadorPlayoff(torneoId, partidoFresco);
+      await verificarYActualizarEstadoFinal(torneoId);
+    }
+  } catch (error) {
+    console.error("Error en la progresión automática:", error);
+  }
+};
+
   if (partidosExtra.length === 0) return null;
 
   return (
     <>
-      {partidosExtra.map(p => (
-        // Usamos una key única para evitar problemas de renderizado
-        <div key={p.id || `${p.extra_id}-${p.home_team}`}>
-          {renderTarjeta(p, fetchPartidosExtra)}
-        </div>
-      ))}
+      {partidosExtra.map((p) =>
+        renderTarjeta(p, async () => {
+          // 1. Ejecutamos la lógica de progresión específica de Extra Playoff
+          await manejarProgresionAutomática(p);
+
+          // 2. Refrescamos los datos locales del componente para ver los cambios
+          fetchPartidosExtra();
+        })
+      )}
     </>
   );
 }

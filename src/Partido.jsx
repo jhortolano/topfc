@@ -224,7 +224,19 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
     }}>
       {/* ETIQUETA SUPERIOR DINÁMICA */}
       <div style={{ position: 'absolute', top: '5px', left: '10px', fontSize: '0.6rem', color: isPlayoff ? '#d6a2e8' : '#2ecc71', fontWeight: 'bold', textTransform: 'uppercase' }}>
-        {isPlayoff ? `${partido.playoff_name} - ${partido.round}` : `JORNADA ${partido.week}`}
+        {partido.is_extra_liguilla ?
+          /* Caso específico: Jornada de Liguilla Extra */
+          `JORNADA ${partido.numero_jornada} - ${partido.playoff_name}` :
+          (partido.is_extra_playoff ?
+            /* Caso específico: Semis/Final de Torneo Extra */
+            `${partido.round} - ${partido.playoff_name}` :
+            (isPlayoff ?
+              /* Caso: Playoff Liga Regular */
+              `${partido.playoff_name || 'Playoff'} - ${partido.round}` :
+              /* Caso: Jornada Liga Regular */
+              `JORNADA ${partido.week || partido.numero_jornada}`)
+          )
+        }
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '10px', marginTop: '15px' }}>

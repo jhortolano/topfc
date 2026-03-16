@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import SwitchPlayer from './utils/SwitchPlayer'
 
 
 const getOnlineStatus = (lastSeen) => {
@@ -127,6 +128,7 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
   const [extraPoints, setExtraPoints] = useState(1);
   const [limitGaEnabled, setLimitGaEnabled] = useState(true); // Checkbox de activo
   const [maxGaLeague, setMaxGaLeague] = useState(3);          // Diferencia máxima
+  const [showSwitch, setShowSwitch] = useState(false);
 
   // --- ESTADOS PARA COLABORADORES ---
   const [colaboradorSearch, setColaboradorSearch] = useState('');
@@ -1101,11 +1103,47 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
         </>
       )}
 
+      {/* 5. SWITCH PLAYER  */}
+      {isAdminReal && (
+        <>
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={() => setShowSwitch(!showSwitch)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#34495e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <span>🔄 Sustituir jugador en liga (T{config?.current_season})</span>
+              <span>{showSwitch ? '▲' : '▼'}</span>
+            </button>
 
+            {showSwitch && (
+              <SwitchPlayer
+                season={config?.current_season}
+                availableUsers={availableUsers}
+                onComplete={() => {
+                  setShowSwitch(false);
+                  onConfigChange(); // Refrescar para ver cambios
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       {isAdminReal && (
         <>
-          {/* 5. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
+          {/* 6. INDICADOR DE BASE DE DATOS (AÑADIDO AL FINAL) */}
           <div style={{
             marginTop: '10px',
             padding: '15px',

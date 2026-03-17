@@ -260,8 +260,9 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
 
                 // 2. Un "BYE" (Pase Directo) SOLO ocurre si uno es TBD y el otro NO
                 // Si ambos son TBD, es un partido pendiente de definir (TBD vs TBD)
-                const localEsBye = localEsTBD && !visitanteEsTBD;
-                const visitanteEsBye = visitanteEsTBD && !localEsTBD;
+                const localEsBye = localEsTBD && !visitanteEsTBD && p.is_played;
+                const visitanteEsBye = visitanteEsTBD && !localEsTBD && p.is_played;
+
                 const esBye = localEsBye || visitanteEsBye;
 
                 // 2. Ahora sí, retornamos el diseño usando esas variables

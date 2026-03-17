@@ -27,6 +27,8 @@ export default function AdminPlayoffsExtras({ config, profile }) {
   const [gruposGestion, setGruposGestion] = useState([]);
   const [partidosGestion, setPartidosGestion] = useState([]);
 
+  const [ocultarRetirados, setOcultarRetirados] = useState(true);
+
   const [fechasConfig, setFechasConfig] = useState({});
   const [configElims, setConfigElims] = useState({
     dieciseisavos: 'ida', // Añadir esta línea
@@ -415,7 +417,21 @@ export default function AdminPlayoffsExtras({ config, profile }) {
     }
   };
 
-  const perfilesFiltrados = todosLosPerfiles.filter(p => p.nick?.toLowerCase().includes(busqueda.toLowerCase()));
+  const perfilesFiltrados = todosLosPerfiles.filter(p => {
+    // 1. Filtro por búsqueda de texto
+    const coincideBusqueda = p.nick?.toLowerCase().includes(busqueda.toLowerCase());
+
+    // 2. Lógica para detectar si es retirado
+    const esRetirado = p.nick?.toLowerCase().startsWith("retirado");
+
+    // 3. Aplicamos el filtro del checkbox
+    if (ocultarRetirados) {
+      return coincideBusqueda && !esRetirado;
+    }
+    return coincideBusqueda;
+  });
+
+
   const totalJornadas = torneoEnGestion ? calcularMaxJornadasGrupos() : 0;
 
   return (
@@ -493,6 +509,22 @@ export default function AdminPlayoffsExtras({ config, profile }) {
 
           <div style={{ background: '#2d2d2d', padding: '15px', borderRadius: '10px' }}>
             <input type="text" placeholder="Buscar por nick..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', background: '#3d3d3d', color: 'white', border: 'none' }} />
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.75rem',
+              color: '#aaa',
+              marginBottom: '15px',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={ocultarRetirados}
+                onChange={(e) => setOcultarRetirados(e.target.checked)}
+              />
+              Ocultar usuarios retirados
+            </label>
             <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
               {perfilesFiltrados.map(p => (
                 <div key={p.id} onClick={() => setSeleccionados(prev => prev.includes(p.id) ? prev.filter(i => i !== p.id) : [...prev, p.id])} style={{ padding: '10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', background: seleccionados.includes(p.id) ? '#2ecc71' : '#3d3d3d', color: seleccionados.includes(p.id) ? '#000' : '#fff' }}>{p.nick}</div>

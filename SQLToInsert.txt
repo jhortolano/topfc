@@ -1,0 +1,90 @@
+-- 1. Borramos la vista actual
+DROP VIEW IF EXISTS public.v_extra_playoffs_bracket_dinamico;
+
+-- 2. La creamos de cero con las nuevas columnas
+CREATE VIEW public.v_extra_playoffs_bracket_dinamico AS 
+ WITH marcador_global AS (
+    SELECT m1.id AS ida_id,
+        m1.player1_id AS p1_orig,
+        m1.player2_id AS p2_orig,
+        (COALESCE(m1.score1, 0) + COALESCE(m2.score2, 0)) AS total_p1,
+        (COALESCE(m1.score2, 0) + COALESCE(m2.score1, 0)) AS total_p2,
+        m1.is_played AS jugada_ida,
+        COALESCE(m2.is_played, false) AS jugada_vuelta
+    FROM (public.extra_playoffs_matches m1
+        LEFT JOIN public.extra_playoffs_matches m2 ON (((m2.p1_from_match_id = m1.id) AND (m2.numero_jornada ~~* '%VUELTA%'::text))))
+    WHERE (m1.numero_jornada !~~* '%VUELTA%'::text)
+)
+ SELECT m.id,
+    m.playoff_extra_id,
+    m.numero_jornada,
+    m.player1_id,
+    m.group_id_p1,
+    m.posicion_p1,
+    m.player2_id,
+    m.group_id_p2,
+    m.posicion_p2,
+    m.score1,
+    m.score2,
+    m.is_played,
+    m.created_at,
+    m.p1_from_match_id,
+    m.p2_from_match_id,
+    -- P1 NICK
+    CASE
+        WHEN (m.player1_id IS NOT NULL) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = m.player1_id))
+        WHEN (m.p1_from_match_id IS NOT NULL) THEN (
+            SELECT CASE
+                WHEN ((rg.jugada_ida IS NOT TRUE) OR (rg.jugada_vuelta IS NOT TRUE)) THEN 'TBD'::text
+                WHEN (rg.total_p1 > rg.total_p2) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = rg.p1_orig))
+                WHEN (rg.total_p2 > rg.total_p1) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = rg.p2_orig))
+                ELSE 'TBD'::text
+            END FROM marcador_global rg WHERE (rg.ida_id = m.p1_from_match_id)
+        )
+        WHEN (m.group_id_p1 IS NOT NULL) THEN ('Ganador G.'::text || m.posicion_p1)
+        ELSE 'TBD'::text
+    END AS p1_nick,
+    -- P1 AVATAR
+    CASE
+        WHEN (m.player1_id IS NOT NULL) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = m.player1_id))
+        WHEN (m.p1_from_match_id IS NOT NULL) THEN (
+            SELECT CASE
+                WHEN ((rg.jugada_ida IS NOT TRUE) OR (rg.jugada_vuelta IS NOT TRUE)) THEN NULL::text
+                WHEN (rg.total_p1 > rg.total_p2) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = rg.p1_orig))
+                WHEN (rg.total_p2 > rg.total_p1) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = rg.p2_orig))
+                ELSE NULL::text
+            END FROM marcador_global rg WHERE (rg.ida_id = m.p1_from_match_id)
+        )
+        ELSE NULL::text
+    END AS p1_avatar,
+    -- P2 NICK
+    CASE
+        WHEN (m.player2_id IS NOT NULL) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = m.player2_id))
+        WHEN (m.p2_from_match_id IS NOT NULL) THEN (
+            SELECT CASE
+                WHEN ((rg.jugada_ida IS NOT TRUE) OR (rg.jugada_vuelta IS NOT TRUE)) THEN 'TBD'::text
+                WHEN (rg.total_p1 > rg.total_p2) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = rg.p1_orig))
+                WHEN (rg.total_p2 > rg.total_p1) THEN (SELECT profiles.nick FROM public.profiles WHERE (profiles.id = rg.p2_orig))
+                ELSE 'TBD'::text
+            END FROM marcador_global rg WHERE (rg.ida_id = m.p2_from_match_id)
+        )
+        WHEN (m.group_id_p2 IS NOT NULL) THEN ('Ganador G.'::text || m.posicion_p2)
+        ELSE 'TBD'::text
+    END AS p2_nick,
+    -- P2 AVATAR
+    CASE
+        WHEN (m.player2_id IS NOT NULL) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = m.player2_id))
+        WHEN (m.p2_from_match_id IS NOT NULL) THEN (
+            SELECT CASE
+                WHEN ((rg.jugada_ida IS NOT TRUE) OR (rg.jugada_vuelta IS NOT TRUE)) THEN NULL::text
+                WHEN (rg.total_p1 > rg.total_p2) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = rg.p1_orig))
+                WHEN (rg.total_p2 > rg.total_p1) THEN (SELECT profiles.avatar_url FROM public.profiles WHERE (profiles.id = rg.p2_orig))
+                ELSE NULL::text
+            END FROM marcador_global rg WHERE (rg.ida_id = m.p2_from_match_id)
+        )
+        ELSE NULL::text
+    END AS p2_avatar
+   FROM public.extra_playoffs_matches m;
+
+-- 3. Volvemos a asignar el dueño (opcional pero recomendado)
+ALTER VIEW public.v_extra_playoffs_bracket_dinamico OWNER TO postgres;

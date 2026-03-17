@@ -1,15 +1,37 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const Avatar = ({ url, size = '24px' }) => (
-  <div style={{
-    width: size, height: size, borderRadius: '50%', background: '#34495e',
-    border: '2px solid #2ecc71', flexShrink: 0, overflow: 'hidden'
-  }}>
-    {url ? <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" /> :
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.6rem', color: '#7f8c8d' }}>👤</div>}
-  </div>
-);
+const Avatar = ({ url, size = '24px' }) => {
+  const [isTouched, setIsTouched] = useState(false);
+
+  return (
+    <div
+      onTouchStart={() => setIsTouched(true)}
+      onTouchEnd={() => setIsTouched(false)}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(2.8)';
+        e.currentTarget.style.zIndex = '100';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.zIndex = '1';
+      }}
+      style={{
+        width: size, height: size, borderRadius: '50%', background: '#34495e',
+        border: '2px solid #2ecc71', flexShrink: 0, overflow: 'hidden',
+        cursor: 'pointer', transition: 'transform 0.2s ease-in-out',
+        position: 'relative', zIndex: isTouched ? 100 : 1,
+        transform: isTouched ? 'scale(2.8)' : 'scale(1)'
+      }}
+    >
+      {url ? (
+        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" />
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.6rem', color: '#7f8c8d' }}>👤</div>
+      )}
+    </div>
+  );
+};
 
 export default function ClasificacionExtraPlayoff({ season, id }) {
   const [activeTab, setActiveTab] = useState('liguilla');
@@ -17,9 +39,9 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
   const [playoffMatches, setPlayoffMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [nombrePlayoff, setNombrePlayoff] = useState('');
+  const [collapsedRounds, setCollapsedRounds] = useState({});
 
   const renderExtraBrackets = () => {
-    // 1. Definimos el orden lógico de izquierda a derecha
     const rondasOrden = ["DIECISEISAVOS", "OCTAVOS", "CUARTOS", "SEMIFINALES", "FINAL"];
 
     const getBaseRound = (name) => {
@@ -33,35 +55,33 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
       return n;
     };
 
-    // 2. Detectamos rondas y las ordenamos estrictamente según rondasOrden
-    const rondasDetectadas = [...new Set(playoffMatches.map(m => getBaseRound(m.numero_jornada)))];
+    // Función para cambiar el estado de visible/oculto
+    const toggleRound = (round) => {
+      setCollapsedRounds(prev => ({
+        ...prev,
+        [round]: !prev[round]
+      }));
+    };
 
+    const rondasDetectadas = [...new Set(playoffMatches.map(m => getBaseRound(m.numero_jornada)))];
     const rondasUnicas = rondasDetectadas.sort((a, b) => {
       const indexA = rondasOrden.indexOf(a);
       const indexB = rondasOrden.indexOf(b);
-      // Si una ronda no está en la lista, la mandamos al final
       return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
     });
 
     const bracketData = {};
-
     rondasUnicas.forEach(baseRound => {
       const matchesInRound = playoffMatches.filter(m => getBaseRound(m.numero_jornada) === baseRound);
       const enfrentamientos = [];
       const idsProcesados = new Set();
-
       matchesInRound.forEach(m => {
         if (idsProcesados.has(m.id)) return;
-
-        // Agrupación por enfrentamiento (Ida/Vuelta o partido único)
         const pareja = matchesInRound.filter(pm => {
           if (idsProcesados.has(pm.id)) return false;
-          const mismosJugadores =
-            (pm.p1_nick === m.p1_nick && pm.p2_nick === m.p2_nick) ||
+          return (pm.p1_nick === m.p1_nick && pm.p2_nick === m.p2_nick) ||
             (pm.p1_nick === m.p2_nick && pm.p2_nick === m.p1_nick);
-          return mismosJugadores;
         });
-
         enfrentamientos.push(pareja);
         pareja.forEach(p => idsProcesados.add(p.id));
       });
@@ -70,72 +90,95 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
 
     return (
       <div style={{
-        display: 'flex', gap: '30px', overflowX: 'auto', padding: '20px',
+        display: 'flex', gap: '15px', overflowX: 'auto', padding: '20px',
         background: '#f8fafc', borderRadius: '12px', minHeight: '450px',
         border: '1px solid #e2e8f0'
       }}>
-        {rondasUnicas.map((round) => (
-          <div key={round} style={{ display: 'flex', flexDirection: 'column', width: '220px', flexShrink: 0 }}>
-            <h4 style={{
-              fontSize: '0.65rem', color: '#2ecc71', textAlign: 'center',
-              marginBottom: '15px', textTransform: 'uppercase', fontWeight: '900',
-              letterSpacing: '1px'
+        {rondasUnicas.map((round) => {
+          const isCollapsed = collapsedRounds[round];
+
+          return (
+            <div key={round} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              width: isCollapsed ? '40px' : '220px',
+              transition: 'all 0.3s ease',
+              flexShrink: 0
             }}>
-              {round}
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flexGrow: 1 }}>
-              {bracketData[round].map((pair, idx) => {
-                const m1 = pair[0];
-                const m2 = pair[1];
+              {/* TÍTULO CLICKABLE */}
+              <h4
+                onClick={() => toggleRound(round)}
+                style={{
+                  fontSize: '0.65rem',
+                  color: isCollapsed ? '#94a3b8' : '#2ecc71',
+                  textAlign: 'center',
+                  marginBottom: '15px',
+                  textTransform: 'uppercase',
+                  fontWeight: '900',
+                  letterSpacing: '1px',
+                  cursor: 'pointer',
+                  padding: '10px 5px',
+                  background: isCollapsed ? '#cbd5e1' : 'transparent', // Un gris azulado más visible
+                  border: isCollapsed ? '1px solid #94a3b8' : 'none',  // Borde más oscuro
+                  color: isCollapsed ? '#475569' : '#2ecc71',          // Texto gris oscuro si está cerrado
+                  borderRadius: '8px',
+                  // Si está colapsado, ponemos el texto en vertical
+                  writingMode: isCollapsed ? 'vertical-lr' : 'horizontal-tb',
+                  transform: isCollapsed ? 'rotate(180deg)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  userSelect: 'none'
+                }}
+              >
+                {isCollapsed ? `+ ${round}` : `▼ ${round}`}
+              </h4>
 
-                let g1 = m1.score1 || 0;
-                let g2 = m1.score2 || 0;
-                if (m2) {
-                  if (m2.p1_nick === m1.p1_nick) { g1 += (m2.score1 || 0); g2 += (m2.score2 || 0); }
-                  else { g1 += (m2.score2 || 0); g2 += (m2.score1 || 0); }
-                }
+              {/* CONTENIDO (Solo se ve si no está colapsado) */}
+              {!isCollapsed && (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flexGrow: 1 }}>
+                  {bracketData[round].map((pair, idx) => {
+                    const m1 = pair[0];
+                    const m2 = pair[1];
+                    let g1 = m1.score1 || 0;
+                    let g2 = m1.score2 || 0;
+                    if (m2) {
+                      if (m2.p1_nick === m1.p1_nick) { g1 += (m2.score1 || 0); g2 += (m2.score2 || 0); }
+                      else { g1 += (m2.score2 || 0); g2 += (m2.score1 || 0); }
+                    }
+                    const finalizado = m1.is_played && (m2 ? m2.is_played : true);
 
-                const finalizado = m1.is_played && (m2 ? m2.is_played : true);
-
-                return (
-                  <div key={idx} style={{
-                    background: '#fff', borderRadius: '10px', padding: '10px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0',
-                    margin: '10px 0', borderLeft: '4px solid #34495e',
-                    position: 'relative'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: g1 > g2 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
-                        {m1.p1_nick}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>
-                        {finalizado ? g1 : '-'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: g2 > g1 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
-                        {m1.p2_nick}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>
-                        {finalizado ? g2 : '-'}
-                      </span>
-                    </div>
-
-                    {m2 && (
-                      <div style={{
-                        marginTop: '8px', paddingTop: '5px', borderTop: '1px solid #f1f5f9',
-                        display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: '#94a3b8'
+                    return (
+                      <div key={idx} style={{
+                        background: '#fff', borderRadius: '10px', padding: '10px',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0',
+                        margin: '10px 0', borderLeft: '4px solid #34495e',
+                        position: 'relative'
                       }}>
-                        <span>IDA: {m1.score1}-{m1.score2}</span>
-                        <span>VTA: {m2.score1}-{m2.score2}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                          <Avatar url={m1.p1_avatar} size="20px" />
+                          <span style={{ fontSize: '0.7rem', fontWeight: g1 > g2 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>{m1.p1_nick}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>{finalizado ? g1 : '-'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Avatar url={m1.p2_avatar} size="20px" />
+                          <span style={{ fontSize: '0.7rem', fontWeight: g2 > g1 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>{m1.p2_nick}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>{finalizado ? g2 : '-'}</span>
+                        </div>
+                        {m2 && (
+                          <div style={{ marginTop: '8px', paddingTop: '5px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: '#94a3b8' }}>
+                            <span>IDA: {m1.score1}-{m1.score2}</span>
+                            <span>VTA: {m2.score1}-{m2.score2}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -159,7 +202,6 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
           .select('*')
           .eq('playoff_extra_id', cleanId);
 
-
         const grouped = clasiData?.reduce((acc, curr) => {
           const groupName = curr.nombre_grupo_texto || curr.nombre_grupo || 'General';
           if (!acc[groupName]) acc[groupName] = [];
@@ -167,16 +209,13 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
           return acc;
         }, {}) || {};
 
-        // ORDENACIÓN MANUAL POR GRUPO:
-        // Recorremos cada grupo y ordenamos sus jugadores por puntos, DG y GF
         Object.keys(grouped).forEach(groupName => {
           grouped[groupName].sort((a, b) => {
-            if (b.pts !== a.pts) return b.pts - a.pts; // 1º Puntos
-            if (b.dg !== a.dg) return b.dg - a.dg;     // 2º Diferencia de Goles
-            return b.gf - a.gf;                        // 3º Goles a Favor
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.dg !== a.dg) return b.dg - a.dg;
+            return b.gf - a.gf;
           });
         });
-
 
         setGrupos(grouped);
 
@@ -185,7 +224,46 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
           .select('*')
           .eq('playoff_extra_id', cleanId)
           .order('id', { ascending: true });
-        setPlayoffMatches(poMatches || []);
+
+        const matches = poMatches || [];
+        setPlayoffMatches(matches);
+
+        // --- LÓGICA DE AUTO-COLAPSADO ---
+        if (matches.length > 0) {
+          const rondasOrden = ["DIECISEISAVOS", "OCTAVOS", "CUARTOS", "SEMIFINALES", "FINAL"];
+
+          const getBaseRound = (name) => {
+            if (!name) return "OTRA";
+            const n = name.toUpperCase();
+            if (n.includes("DIECISEISAVOS")) return "DIECISEISAVOS";
+            if (n.includes("OCTAVOS")) return "OCTAVOS";
+            if (n.includes("CUARTOS")) return "CUARTOS";
+            if (n.includes("SEMIS") || n.includes("SEMIFINAL")) return "SEMIFINALES";
+            if (n.includes("FINAL")) return "FINAL";
+            return n;
+          };
+
+          const rondasUnicas = [...new Set(matches.map(m => getBaseRound(m.numero_jornada)))];
+          const initialCollapsed = {};
+
+          rondasUnicas.forEach(ronda => {
+            // No colapsar nunca por defecto Semis ni Final
+            if (ronda === "SEMIFINALES" || ronda === "FINAL") {
+              initialCollapsed[ronda] = false;
+              return;
+            }
+
+            const partidosDeRonda = matches.filter(m => getBaseRound(m.numero_jornada) === ronda);
+            // Verificamos si todos los partidos de esta ronda tienen is_played = true
+            const todosJugados = partidosDeRonda.every(m => m.is_played);
+
+            if (todosJugados && partidosDeRonda.length > 0) {
+              initialCollapsed[ronda] = true;
+            }
+          });
+
+          setCollapsedRounds(initialCollapsed);
+        }
 
       } catch (err) {
         console.error("Error cargando datos:", err);

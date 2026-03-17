@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import ClasificacionExtraPlayoff from './extraplayoff/ClasificacionExtraPlayoff'
 
+
+const fetchDatosExtraParaStats = async (temporadaId) => {
+  // Cargamos todo en paralelo para máxima velocidad
+  const [extras, liguilla, elims] = await Promise.all([
+    supabase.from('playoffs_extra').select('id, stream_puntos').eq('season_id', temporadaId),
+    supabase.from('extra_matches').select('extra_id, player1_id, player2_id, stream_url'),
+    supabase.from('extra_playoffs_matches').select('playoff_extra_id, player1_id, player2_id, stream_url')
+  ]);
+
+  return {
+    extras: extras.data || [],
+    liguilla: liguilla.data || [],
+    elims: elims.data || []
+  };
+};
+
 // --- COMPONENTE AVATAR REUTILIZADO CON ZOOM ---
 const Avatar = ({ url, size = '30px' }) => {
   // Creamos un ID único para el efecto de escala en dispositivos móviles
@@ -142,14 +158,49 @@ const calcularBonusPorStream = (porcentaje, rules) => {
   return { puntos: 0, aplica: false };
 };
 
-const calcularStatsStreams = (jugadorId, allMatches, allPlayoffMatches, allStreams, allPlayoffStreams) => {
-  // 1. Filtrar partidos donde participa el jugador (Liga + Playoff)
+const calcularStatsStreams = (
+  jugadorId,
+  allMatches,
+  allPlayoffMatches,
+  allStreams,
+  allPlayoffStreams,
+  // Nuevos parámetros para Extra Playoffs
+  allExtraPlayoffs = [],
+  allExtraLiguilla = [],
+  allExtraElims = []
+) => {
+  // 1. Identificar qué IDs de Extra Playoffs cuentan para puntos (stream_puntos === true)
+  // Lo hacemos primero para filtrar rápidamente los partidos después
+  const validExtraIds = new Set(
+    allExtraPlayoffs
+      .filter(ep => ep.stream_puntos === true)
+      .map(ep => ep.id)
+  );
+
+  // 2. Filtrar partidos donde participa el jugador
   const ligaMatches = allMatches.filter(m => m.home_team === jugadorId || m.away_team === jugadorId);
   const poMatches = allPlayoffMatches.filter(m => m.local_id === jugadorId || m.visitante_id === jugadorId);
 
-  const totalPartidos = ligaMatches.length + poMatches.length;
+  // Extra: Liguilla (solo de torneos con stream_puntos activo)
+  const extraLiguillaMatches = allExtraLiguilla.filter(m =>
+    validExtraIds.has(m.extra_id) && 
+    (m.player1_id === jugadorId || m.player2_id === jugadorId) &&
+    m.player1_id !== null && 
+    m.player2_id !== null // <--- Filtro de rival real
+  );
 
-  // 2. Contar cuántos de esos tienen URL válida en las tablas de streams
+  // Extra: Eliminatorias (solo de torneos con stream_puntos activo)
+  const extraElimsMatches = allExtraElims.filter(m =>
+    validExtraIds.has(m.playoff_extra_id) && 
+    (m.player1_id === jugadorId || m.player2_id === jugadorId) &&
+    m.player1_id !== null && 
+    m.player2_id !== null // <--- Filtro de rival real
+  );
+
+  const totalPartidos = ligaMatches.length + poMatches.length + extraLiguillaMatches.length + extraElimsMatches.length;
+
+  // 3. Contar streams con URL válida
+  // Para Liga y Playoff normal usamos las tablas auxiliares (allStreams / allPlayoffStreams)
   const ligaStreamsCount = ligaMatches.filter(m =>
     allStreams.some(s => s.match_id === m.id && s.stream_url?.startsWith('http'))
   ).length;
@@ -158,7 +209,17 @@ const calcularStatsStreams = (jugadorId, allMatches, allPlayoffMatches, allStrea
     allPlayoffStreams.some(s => s.playoff_match_id === m.id && s.stream_url?.startsWith('http'))
   ).length;
 
-  const totalStreams = ligaStreamsCount + poStreamsCount;
+  // Para Extra Playoffs, según tu lógica, la URL está en la propia fila del partido
+  const extraLiguillaStreamsCount = extraLiguillaMatches.filter(m =>
+    m.stream_url?.startsWith('http')
+  ).length;
+
+  const extraElimsStreamsCount = extraElimsMatches.filter(m =>
+    m.stream_url?.startsWith('http')
+  ).length;
+
+  const totalStreams = ligaStreamsCount + poStreamsCount + extraLiguillaStreamsCount + extraElimsStreamsCount;
+
   const porcentaje = totalPartidos > 0 ? Math.round((totalStreams / totalPartidos) * 100) : 0;
 
   return { totalStreams, totalPartidos, porcentaje };
@@ -170,6 +231,7 @@ export default function Clasificacion({ config }) {
   const [vD, setVD] = useState(1);
   const [lista, setLista] = useState([]);
   const [playoffMatches, setPlayoffMatches] = useState([]);
+  const [datosExtra, setDatosExtra] = useState({ extras: [], liguilla: [], elims: [] });
 
   const esPlayoff = typeof vD === 'string';
 
@@ -184,19 +246,23 @@ export default function Clasificacion({ config }) {
         const playoffIds = playoffsSeason?.map(p => p.id) || [];
 
         // Añadimos la consulta a season_rules
-        const [clasi, matches, poMatches, streams, poStreams, rulesRes] = await Promise.all([
+        const [clasi, matches, poMatches, streams, poStreams, rulesRes, extrasData] = await Promise.all([
           supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false }),
           supabase.from('matches').select('id, home_team, away_team').eq('season', vS),
           supabase.from('playoff_matches_detallados').select('id, local_id, visitante_id, playoff_id').in('playoff_id', playoffIds),
           supabase.from('match_streams').select('match_id, stream_url'),
           supabase.from('match_playoff_streams').select('playoff_match_id, stream_url'),
-          supabase.from('season_rules').select('*').eq('season', vS).maybeSingle()
+          supabase.from('season_rules').select('*').eq('season', vS).maybeSingle(),
+          fetchDatosExtraParaStats(vS)
         ]);
 
         const rules = rulesRes.data;
+        setDatosExtra(extrasData);
 
         const listaEnriquecida = (clasi.data || []).map(jugador => {
-          const stats = calcularStatsStreams(jugador.user_id, matches.data || [], poMatches.data || [], streams.data || [], poStreams.data || []);
+          const stats = calcularStatsStreams(jugador.user_id, matches.data || [], poMatches.data || [], streams.data || [], poStreams.data || [],
+            extrasData.extras, extrasData.liguilla, extrasData.elims
+          );
 
           // Aplicamos la lógica del bonus
           const bonus = calcularBonusPorStream(stats.porcentaje, rules);
@@ -499,7 +565,8 @@ export default function Clasificacion({ config }) {
                 {lista.map((j, i) => (
                   <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
                     <td style={{
-                      padding: '10px 5px',      color: '#94a3b8',       fontSize: '0.65rem',       fontWeight: 'bold',      width: '20px'  }}>
+                      padding: '10px 5px', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 'bold', width: '20px'
+                    }}>
                       {i + 1}
                     </td>
                     <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>

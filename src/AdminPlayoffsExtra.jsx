@@ -9,6 +9,7 @@ export default function AdminPlayoffsExtras({ config, profile }) {
   const [nombreTorneo, setNombreTorneo] = useState('');
   const [temporadaId, setTemporadaId] = useState('');
   const [tipoFormat, setTipoFormat] = useState('ida');
+  const [streamPuntos, setStreamPuntos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [seasons, setSeasons] = useState([]);
   const [torneoPartidos, setTorneoPartidos] = useState(null);
@@ -258,7 +259,7 @@ export default function AdminPlayoffsExtras({ config, profile }) {
       const { data: torneo, error: errT } = await supabase.from('playoffs_extra').insert([{
         nombre: nombreTorneo, season_id: temporadaId, tipo_format: tipoFormat, config_eliminatorias: configElims,
         config_fechas: autoFechas, num_grupos: numGrupos, pasan_por_grupo: pasanPorGrupo, estado: 'activo',
-        use_auto_round: true, current_round: 'j1'
+        use_auto_round: true, current_round: 'j1', stream_puntos: streamPuntos
       }]).select().single();
 
       if (errT) throw errT;
@@ -524,6 +525,16 @@ export default function AdminPlayoffsExtras({ config, profile }) {
                     </div>
                   )}
                   {t.use_auto_round && <span style={{ fontSize: '0.7rem', color: '#2ecc71' }}>✨ Automático</span>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px', background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', color: '#2980b9' }}>
+                    <input
+                      type="checkbox"
+                      checked={t.stream_puntos}
+                      onChange={e => actualizarConfigRonda(t.id, 'stream_puntos', e.target.checked)}
+                    />
+                    Streams cuentan para puntos en liga
+                  </label>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '5px' }}>

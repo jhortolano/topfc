@@ -1,10 +1,10 @@
 --EXPORTING DATA FROM PROD
 -- COMMAND LINE -- 
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > bkDB/backup_produccion_completo_20260306.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.nkecyqwcrsicsyladdhw -d postgres > bkDB/backup_produccion_completo_20260317.sql
 
 
 --COMMAND LINE 2 --
-pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > bkDB/usuarios_prod_20260306.sql
+pg_dump -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.nkecyqwcrsicsyladdhw -d postgres -t auth.users --data-only --column-inserts > bkDB/usuarios_prod_20260317.sql
 
 
 -- BORRAR DATOS EN TESTING DATABASE
@@ -15,11 +15,11 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
 
 --CARGAR USUARIOS:
-SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/usuarios_prod_20260315.sql  
+SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/usuarios_prod_20260317.sql  
 
 
 --CARGAR TABLAS:
-SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/backup_produccion_completo_20260315.sql
+SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/backup_produccion_completo_20260317.sql
 
 
 

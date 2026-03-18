@@ -408,6 +408,17 @@ function ProximoPartido({ profile, config, onUpdated }) {
         setVotosPropios(mapaVotos);
       }
 
+      // 0.7 Obtener las reglas de la temporada actual
+      const { data: rulesData, error: rulesError } = await supabase
+        .from('season_rules')
+        .select('limit_ga_enabled, max_ga_league')
+        .eq('season', config.current_season) // Usamos el ID de temporada de la config global
+        .single();
+
+      if (rulesData) {
+        setReglas(rulesData);
+      }
+
       // --- 1. CARGAR PARTIDOS DE LIGA ---
       let ligaTemp = [];
       if (config.current_week > 0) {

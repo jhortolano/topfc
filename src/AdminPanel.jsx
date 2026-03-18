@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import SwitchPlayer from './utils/SwitchPlayer'
+import MatchesRescheduled from './utils/MatchesRescheduled'
 
 
 const getOnlineStatus = (lastSeen) => {
@@ -129,6 +130,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
   const [limitGaEnabled, setLimitGaEnabled] = useState(true); // Checkbox de activo
   const [maxGaLeague, setMaxGaLeague] = useState(3);          // Diferencia máxima
   const [showSwitch, setShowSwitch] = useState(false);
+
+  const [showReschedule, setShowReschedule] = useState(false);
 
   // --- ESTADOS PARA COLABORADORES ---
   const [colaboradorSearch, setColaboradorSearch] = useState('');
@@ -1139,6 +1142,37 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
             )}
           </div>
         </>
+      )}
+
+      {/* 5. RESCHEDULER  */}
+      {isAdminReal && (
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setShowReschedule(!showReschedule)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: '#16a085', // Un color verde azulado diferente
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <span>📅 Gestionar adelantos y retrasos</span>
+            <span>{showReschedule ? '▲' : '▼'}</span>
+          </button>
+
+          {showReschedule && (
+            <MatchesRescheduled
+              currentSeason={config?.current_season}
+            />
+          )}
+        </div>
       )}
 
       {isAdminReal && (

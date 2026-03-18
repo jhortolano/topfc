@@ -205,9 +205,6 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
 
   return (
     <div style={{ marginTop: '25px', padding: '15px', background: '#fffcf9', borderRadius: '12px', border: '1px solid #ffe8cc' }}>
-      <h3 style={{ fontSize: '0.85rem', color: '#d35400', marginBottom: '12px', fontWeight: '800', textAlign: 'center' }}>
-        🏆 EXTRA PLAY-OFF T{season}
-      </h3>
 
       {/* Mapeamos directamente las llaves del JSON para respetar su orden */}
       {Object.keys(fechasConfig)

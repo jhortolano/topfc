@@ -117,7 +117,7 @@ export default function CalendarioCompleto({ config }) {
             mapa[f.week] = {
               inicio: new Date(f.start_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
               fin: new Date(f.end_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-              raw_inicio: f.start_at 
+              raw_inicio: f.start_at
             };
           });
           setFechasJornadas(mapa);
@@ -270,6 +270,7 @@ export default function CalendarioCompleto({ config }) {
                 </div>
                 {partidosVisibles.map(p => (
                   <div key={p.id} style={{ borderBottom: '1px solid #fafafa', position: 'relative' }}>
+                    {/* 1. FILA DE CONTENIDO (NICKS, MARCADOR Y TV) */}
                     <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px' }}>
 
                       {/* Local */}
@@ -289,31 +290,6 @@ export default function CalendarioCompleto({ config }) {
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
                       </div>
 
-                      {!isPlayoffActive && reprogramaciones.find(r => r.match_id === p.id) && (() => {
-                        const resched = reprogramaciones.find(r => r.match_id === p.id);
-                        return (
-                          <div style={{
-                            position: 'absolute',
-                            right: '40px', // Ajustado para que no pise el icono de la TV
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            pointerEvents: 'none' // Para que no interfiera con los clics
-                          }}>
-                            <span style={{
-                              fontSize: '0.55rem',
-                              color: '#e67e22',
-                              fontStyle: 'italic',
-                              whiteSpace: 'nowrap',
-                              background: 'rgba(255,255,255,0.8)', // Un fondo ligero por si se solapa con el nombre
-                              padding: '2px 4px',
-                              borderRadius: '4px'
-                            }}>
-                              (Reprogramado de {formatShortDate(resched.fecha_inicio)} a {formatShortDate(resched.fecha_fin)})
-                            </span>
-                          </div>
-                        );
-                      })()}
-
                       {/* Icono TV (A la derecha del todo) */}
                       <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
                         {p.stream_url && p.stream_url.includes('http') && (
@@ -323,8 +299,34 @@ export default function CalendarioCompleto({ config }) {
                           </a>
                         )}
                       </div>
-
                     </div>
+
+                    {/* 2. FILA DE REPROGRAMACIÓN (FUERA DEL FLEX PARA QUE VAYA DEBAJO) */}
+                    {!isPlayoffActive && reprogramaciones.find(r => r.match_id === p.id) && (() => {
+                      const resched = reprogramaciones.find(r => r.match_id === p.id);
+                      return (
+                        <div style={{
+                          width: '100%',
+                          textAlign: 'center',
+                          paddingBottom: '8px', // Espacio abajo para que no pegue a la siguiente fila
+                          marginTop: '-4px',    // Para que no quede un hueco enorme
+                          pointerEvents: 'none'
+                        }}>
+                          <span style={{
+                            fontSize: '0.55rem',
+                            color: '#e67e22',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap',
+                            background: 'rgba(255,255,255,0.8)',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            display: 'inline-block'
+                          }}>
+                            (Reprogramado de {formatShortDate(resched.fecha_inicio)} a {formatShortDate(resched.fecha_fin)})
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

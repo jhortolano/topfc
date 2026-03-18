@@ -188,6 +188,29 @@ export default function AdminPlayoffsExtras({ config, profile }) {
     return keys;
   };
 
+  const copiarFechasDeAnterior = (phaseKey) => {
+    const allKeys = obtenerKeysCalendario();
+    const currentIndex = allKeys.indexOf(phaseKey);
+
+    if (currentIndex <= 0) return; // No hay anterior
+
+    const prevKey = allKeys[currentIndex - 1];
+    const prevData = fechasConfig[prevKey];
+
+    if (!prevData || !prevData.start_at || !prevData.end_at) {
+      alert("La fase anterior no tiene fechas válidas para copiar.");
+      return;
+    }
+
+    setFechasConfig(prev => ({
+      ...prev,
+      [phaseKey]: {
+        start_at: prevData.start_at,
+        end_at: prevData.end_at
+      }
+    }));
+  };
+
   const obtenerOpcionesRondaSimple = (torneo) => {
     if (!torneo) return [];
 
@@ -584,9 +607,27 @@ export default function AdminPlayoffsExtras({ config, profile }) {
               <div style={{ marginTop: '15px', padding: '15px', background: '#fff', border: '1px solid #3498db', borderRadius: '8px' }}>
                 <h5 style={{ margin: '0 0 10px 0' }}>🗓️ Calendario de Fases</h5>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '550px' }}>
-                  {obtenerKeysCalendario().map(phaseKey => (
+                  {obtenerKeysCalendario().map((phaseKey, idx) => (
                     <div key={phaseKey} style={{ fontSize: '0.75rem', padding: '10px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #eee' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        {/* NOMBRE DE LA FASE Y BOTÓN COPIAR */}
+                        <div style={{ width: '120px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {idx > 0 && (
+                            <button
+                              onClick={() => copiarFechasDeAnterior(phaseKey)}
+                              style={{
+                                width: 'fit-content',
+                                fontSize: '0.6rem',
+                                padding: '2px 5px',
+                                background: '#ebedef',
+                                border: '1px solid #ccc',
+                                borderRadius: '3px',
+                                cursor: 'pointer',
+                                color: '#666'
+                              }}
+                            >📋</button>
+                          )}
+                        </div>
                         <div style={{ fontWeight: 'bold', width: '100px', textTransform: 'uppercase', color: '#555' }}>{phaseKey.replace('_', ' ')}</div>
                         <div style={{ display: 'flex', flex: 1, gap: '10px' }}>
                           <input type="datetime-local" value={toLocalISO(fechasConfig[phaseKey]?.start_at)} onChange={e => handleDateChange(phaseKey, 'start_at', new Date(e.target.value).toISOString())} style={{ width: '100%', padding: '4px' }} />

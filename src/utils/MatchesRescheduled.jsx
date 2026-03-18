@@ -72,12 +72,30 @@ export default function MatchesRescheduled({ currentSeason }) {
         .select('*')
         .eq('season', selSeason);
 
-      if (partidosData) {
-        // Unimos los datos en el cliente (evita errores de Foreign Key en Supabase)
-        const joined = reschedData.map(r => ({
-          ...r,
-          partido: partidosData.find(p => p.id === r.match_id)
-        })).filter(item => item.partido !== undefined); // Solo los de esta temporada
+      // 3.Traer el calendario de jornadas para las fechas originales
+      const { data: weeksData } = await supabase
+        .from('weeks_schedule')
+        .select('week, start_at, end_at')
+        .eq('season', selSeason);
+
+      if (partidosData && weeksData) {
+        const joined = reschedData.map(r => {
+          const partidoInfo = partidosData.find(p => p.id === r.match_id);
+          if (!partidoInfo) return null;
+
+          // Buscamos la fecha de inicio de la jornada correspondiente
+          const weekInfo = weeksData.find(w => w.week === partidoInfo.week);
+
+          return {
+            ...r,
+            partido: {
+              ...partidoInfo,
+              // Guardamos ambos extremos de la fecha original
+              original_start: partidoInfo.scheduled_at || partidoInfo.date || weekInfo?.start_at,
+              original_end: weekInfo?.end_at
+            }
+          };
+        }).filter(item => item !== null);
 
         setAllRescheduled(joined.sort((a, b) => (a.partido?.week || 0) - (b.partido?.week || 0)));
       }
@@ -98,10 +116,9 @@ export default function MatchesRescheduled({ currentSeason }) {
       setLoading(true);
       const { error } = await supabase.from('matches_rescheduled').insert({
         match_id: p.id,
-        match_id_uid: p.match_id,
         tipo_partido: 'liga',
-        player1_id: p.local_id,
-        player2_id: p.visitante_id,
+        player1_id: p.home_team,
+        player2_id: p.away_team,
         fecha_inicio: new Date(tempDates.inicio).toISOString(),
         fecha_fin: new Date(tempDates.fin).toISOString()
       });
@@ -223,16 +240,32 @@ export default function MatchesRescheduled({ currentSeason }) {
                       <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '3px' }}>
                         {res.partido?.local_nick} vs {res.partido?.visitante_nick}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', fontSize: '0.7rem', color: '#666', gap: '10px' }}>
-                        <div>
-                          <span style={{ color: '#e67e22', fontWeight: 'bold' }}>ORIGINAL:</span><br />
-                          {formatDate(res.partido?.date || res.partido?.fecha || res.partido?.scheduled_at)}
-                        </div>
-                        <div>
-                          <span style={{ color: '#27ae60', fontWeight: 'bold' }}>REPROGRAMACIÓN:</span><br />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', fontSize: '0.7rem', color: '#666', gap: '15px', marginTop: '8px' }}>
+                        {/* COLUMNA IZQUIERDA: ORIGINAL */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ color: '#e67e22', fontWeight: 'bold', marginBottom: '2px', display: 'block' }}>ORIGINAL:</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span><strong style={{ fontSize: '0.6rem', color: '#999' }}>INICIO:</strong> {formatDate(res.fecha_inicio)}</span>
-                            <span><strong style={{ fontSize: '0.6rem', color: '#999' }}>FIN:</strong> {formatDate(res.fecha_fin)}</span>
+                            <span>
+                              <strong style={{ fontSize: '0.6rem', color: '#999' }}>INICIO:</strong> {formatDate(res.partido?.original_start)}
+                            </span>
+                            {res.partido?.original_end && (
+                              <span>
+                                <strong style={{ fontSize: '0.6rem', color: '#999' }}>FIN:</strong> {formatDate(res.partido?.original_end)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* COLUMNA DERECHA: REPROGRAMACIÓN */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: '2px', display: 'block' }}>REPROGRAMACIÓN:</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span>
+                              <strong style={{ fontSize: '0.6rem', color: '#999' }}>INICIO:</strong> {formatDate(res.fecha_inicio)}
+                            </span>
+                            <span>
+                              <strong style={{ fontSize: '0.6rem', color: '#999' }}>FIN:</strong> {formatDate(res.fecha_fin)}
+                            </span>
                           </div>
                         </div>
                       </div>

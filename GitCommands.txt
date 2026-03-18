@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Diferencia de goles solucionada"
+git commit -m "Reprogramacion de partidos"
 git push origin silver
 
 git checkout main

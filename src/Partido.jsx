@@ -3,6 +3,14 @@ import { supabase } from './supabaseClient'
 import ReactMarkdown from 'react-markdown'
 import PartidoExtraPlayoff from './extraplayoff/PartidoExtraPlayoff';
 
+// Variable global para persistir datos entre montajes de componentes
+let cacheProximoPartido = {
+  data: null,
+  timestamp: 0,
+  userId: null
+};
+const DURACION_CACHE = 1000 * 60 * 5; // 5 minutos de caché
+
 const Avatar = ({ url }) => (
   <div style={{
     width: '35px', height: '35px', borderRadius: '50%', overflow: 'hidden',
@@ -234,7 +242,8 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
               /* Caso: Playoff Liga Regular */
               `${partido.playoff_name || 'Playoff'} - ${partido.round}` :
               /* Caso: Jornada Liga Regular */
-              `JORNADA ${partido.week || partido.numero_jornada}`)
+              partido.is_rescheduled ? `REPROGRAMADO - JORNADA ${partido.week}` :
+                `JORNADA ${partido.week || partido.numero_jornada}`)
           )
         }
       </div>
@@ -371,11 +380,31 @@ function ProximoPartido({ profile, config, onUpdated }) {
   const [votosPropios, setVotosPropios] = useState({});
   const [reglas, setReglas] = useState({ limit_ga_enabled: false, max_ga_league: 0 });
 
-  const cargar = async () => {
+  const cargar = async (forceRefresh = false) => {
     if (!config || !profile) return;
+
+    // --- LÓGICA DE CACHÉ PARA EVITAR LENTITUD ---
+    const ahoraMs = Date.now();
+    if (!forceRefresh &&
+      cacheProximoPartido.data &&
+      cacheProximoPartido.userId === profile.id &&
+      (ahoraMs - cacheProximoPartido.timestamp) < DURACION_CACHE) {
+
+      const c = cacheProximoPartido.data;
+      setAviso(c.aviso);
+      setEncuestas(c.encuestas);
+      setVotosPropios(c.votosPropios);
+      setReglas(c.reglas);
+      setPartidosLiga(c.liga);
+      setPartidosPlayoff(c.playoff);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true)
 
     try {
+      // --- INICIO DE TU CÓDIGO ORIGINAL (ÍNTEGRO) ---
       // --- 0. CARGAR AVISO ---
       const { data: avisoData } = await supabase
         .from('avisos')
@@ -393,6 +422,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
         .eq('activa', true)
         .order('created_at', { ascending: false });
 
+      let mapaVotos = {};
       if (encData && encData.length > 0) {
         setEncuestas(encData);
 
@@ -403,7 +433,6 @@ function ProximoPartido({ profile, config, onUpdated }) {
           .eq('usuario_id', profile.id)
           .in('encuesta_id', encData.map(e => e.id));
 
-        const mapaVotos = {};
         misVotos?.forEach(v => mapaVotos[v.encuesta_id] = v.opcion_index);
         setVotosPropios(mapaVotos);
       }
@@ -428,8 +457,6 @@ function ProximoPartido({ profile, config, onUpdated }) {
           .eq('season', config.current_season)
           .eq('week', config.current_week)
           .maybeSingle();
-
-
 
         // Solo intentamos cargar partidos si encontramos la semana
         if (currentWeekData) {
@@ -457,6 +484,38 @@ function ProximoPartido({ profile, config, onUpdated }) {
         console.log("Temporada en preparación (Jornada 0).");
       }
 
+      // --- 1.1 CARGAR PARTIDOS REPROGRAMADOS (LIGA) ---
+      const ahora = new Date().toISOString();
+
+      // Traemos las reprogramaciones activas en fecha
+      const { data: reschedData } = await supabase
+        .from('matches_rescheduled')
+        .select('match_id')
+        .eq('tipo_partido', 'liga')
+        .lte('fecha_inicio', ahora)
+        .gte('fecha_fin', ahora);
+
+      if (reschedData && reschedData.length > 0) {
+        const idsReprogramados = reschedData.map(r => r.match_id);
+
+        // Filtramos para no traer los que ya están en ligaTemp (evitar duplicados)
+        const idsNuevos = idsReprogramados.filter(id => !ligaTemp.some(lp => lp.id === id));
+
+        if (idsNuevos.length > 0) {
+          const { data: partidosExtra } = await supabase
+            .from('partidos_detallados')
+            .select('*')
+            .in('id', idsNuevos)
+            .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
+
+          if (partidosExtra) {
+            // Marcamos estos partidos para que la etiqueta superior sea coherente
+            const partidosMarcados = partidosExtra.map(p => ({ ...p, is_rescheduled: true }));
+            ligaTemp = [...ligaTemp, ...partidosMarcados];
+          }
+        }
+      }
+
       // --- 2. CARGAR PARTIDOS DE PLAYOFF ---
       const { data: playoffsActivos } = await supabase
         .from('playoffs')
@@ -479,7 +538,6 @@ function ProximoPartido({ profile, config, onUpdated }) {
         if (todosMisPartidos) {
           playoffsActivos.forEach(po => {
             // 2. Buscamos el partido "referencia" que define las fechas actuales
-            // Este es el partido que coincide con la current_round seleccionada en el admin
             const partidoReferencia = todosMisPartidos.find(
               m => m.playoff_id === po.id && m.round === po.current_round
             );
@@ -490,8 +548,8 @@ function ProximoPartido({ profile, config, onUpdated }) {
                 m.playoff_id === po.id &&
                 m.start_date === partidoReferencia.start_date &&
                 m.end_date === partidoReferencia.end_date &&
-                m.local_id !== null && // <--- El local debe existir
-                m.visitante_id !== null // <--- El visitante debe existir
+                m.local_id !== null &&
+                m.visitante_id !== null
               );
 
               // 4. Los añadimos al listado temporal con el nombre del torneo
@@ -513,13 +571,28 @@ function ProximoPartido({ profile, config, onUpdated }) {
 
       setPartidosLiga(ligaTemp);
       setPartidosPlayoff(playoffTemp);
+      // --- FIN DE TU CÓDIGO ORIGINAL ---
+
+      // --- ACTUALIZAR LA CACHÉ CON LOS RESULTADOS ---
+      cacheProximoPartido = {
+        userId: profile.id,
+        timestamp: Date.now(),
+        data: {
+          aviso: avisoData,
+          encuestas: encData || [],
+          votosPropios: mapaVotos || {},
+          reglas: rulesData || reglas,
+          liga: ligaTemp,
+          playoff: playoffTemp
+        }
+      };
 
     } catch (error) {
       console.error("Error en carga:", error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     cargar();
@@ -627,7 +700,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
           <TarjetaResultado
             key={`extra-${p.id}`}
             partido={p}
-            onUpdated={() => { cargar(); refresh(); }}
+            onUpdated={() => { cargar(true); refresh(); }}
             limitGaEnabled={false} // Ajustar si los extra tienen límites
           />
         )}
@@ -643,7 +716,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
           <TarjetaResultado
             key={p.playoff_id ? `po-${p.id}` : `li-${p.id}`}
             partido={p}
-            onUpdated={cargar}
+            onUpdated={() => cargar(true)}
             // Pasamos los datos del nuevo estado 'reglas'
             limitGaEnabled={reglas.limit_ga_enabled}
             maxGaLeague={reglas.max_ga_league}

@@ -66,6 +66,13 @@ export default function CalendarioCompleto({ config }) {
   const isExtraTab = vD === 'extra';
   const [extraPlayoffs, setExtraPlayoffs] = useState([]); // Nuevo estado
   const currentExtraPlayoff = extraPlayoffs.find(ep => ep.id === vD);
+  const [reprogramaciones, setReprogramaciones] = useState([]);
+
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '??/??';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  };
 
   useEffect(() => {
     async function loadSelectors() {
@@ -109,11 +116,18 @@ export default function CalendarioCompleto({ config }) {
           dataFechas.forEach(f => {
             mapa[f.week] = {
               inicio: new Date(f.start_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-              fin: new Date(f.end_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+              fin: new Date(f.end_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+              raw_inicio: f.start_at 
             };
           });
           setFechasJornadas(mapa);
         }
+
+        const { data: dataResched } = await supabase
+          .from('matches_rescheduled')
+          .select('*')
+          .eq('tipo_partido', 'liga');
+        setReprogramaciones(dataResched || []);
 
         if (vS === config?.current_season && config.current_week > 0) {
           const { data: curW } = await supabase.from('weeks_schedule').select('start_at, end_at').eq('season', vS).eq('week', config.current_week).single();
@@ -274,6 +288,31 @@ export default function CalendarioCompleto({ config }) {
                         <AvatarConZoom url={p.visitante_avatar} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
                       </div>
+
+                      {!isPlayoffActive && reprogramaciones.find(r => r.match_id === p.id) && (() => {
+                        const resched = reprogramaciones.find(r => r.match_id === p.id);
+                        return (
+                          <div style={{
+                            position: 'absolute',
+                            right: '40px', // Ajustado para que no pise el icono de la TV
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            pointerEvents: 'none' // Para que no interfiera con los clics
+                          }}>
+                            <span style={{
+                              fontSize: '0.55rem',
+                              color: '#e67e22',
+                              fontStyle: 'italic',
+                              whiteSpace: 'nowrap',
+                              background: 'rgba(255,255,255,0.8)', // Un fondo ligero por si se solapa con el nombre
+                              padding: '2px 4px',
+                              borderRadius: '4px'
+                            }}>
+                              (Reprogramado de {formatShortDate(resched.fecha_inicio)} a {formatShortDate(resched.fecha_fin)})
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Icono TV (A la derecha del todo) */}
                       <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>

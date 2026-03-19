@@ -6,7 +6,7 @@ const AvatarConZoom = ({ url, nick }) => {
   const [isTouched, setIsTouched] = useState(false);
 
   return (
-    <div 
+    <div
       onTouchStart={() => setIsTouched(true)}
       onTouchEnd={() => setIsTouched(false)}
       onMouseEnter={e => {
@@ -21,9 +21,9 @@ const AvatarConZoom = ({ url, nick }) => {
       }}
       style={{
         width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden',
-        background: '#eee', border: '2px solid #fff', 
+        background: '#eee', border: '2px solid #fff',
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, cursor: 'pointer', transition: 'all 0.25s ease-out',
         position: 'relative', zIndex: isTouched ? 100 : 1,
         transform: isTouched ? 'scale(3)' : 'scale(1)'
@@ -54,9 +54,22 @@ function CategorySelector({ current, onChange, season }) {
       const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season)
       const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, name: p.name.toUpperCase() })) : []
 
+      // 3. Cargar Playoffs Extra (NUEVO)
+      const { data: poExtraData } = await supabase
+        .from('playoffs_extra')
+        .select('id, nombre')
+        .eq('season_id', season)
+
+      const formattedExtra = poExtraData ? poExtraData.map(p => ({
+        id: p.id,
+        label: (p.nombre || 'PLAYOFF').toUpperCase(),
+        type: 'extra' // Nuevo tipo para diferenciar
+      })) : []
+
       const allCategories = [
         ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
-        ...formattedPlayoffs.map(p => ({ id: p.id, label: p.name, type: 'po' }))
+        ...formattedPlayoffs.map(p => ({ id: p.id, label: p.name, type: 'po' })),
+        ...formattedExtra
       ]
 
       setCategories(allCategories)
@@ -109,8 +122,19 @@ export default function Jugadores({ config }) {
           .from('playoff_matches')
           .select('home_team, away_team')
           .eq('playoff_id', catActiva)
-        if (poMatches) ids = poMatches.flatMap(m => [m.home_team, m.away_team])
+        if (poMatches && poMatches.length > 0) {
+          ids = poMatches.flatMap(m => [m.home_team, m.away_team])
+        } else {
+          // CASO 3: PLAYOFFS EXTRA (Si no hubo resultados en el anterior)
+          const { data: extraMatches } = await supabase
+            .from('extra_matches')
+            .select('player1_id, player2_id')
+            .eq('extra_id', catActiva)
+
+          if (extraMatches) ids = extraMatches.flatMap(m => [m.player1_id, m.player2_id])
+        }
       }
+
 
       // Limpiar IDs (quitar nulos/TBD/duplicados)
       const cleanIds = [...new Set(ids)].filter(id => id !== null)

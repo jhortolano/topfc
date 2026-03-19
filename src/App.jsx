@@ -226,11 +226,31 @@ function App() {
       .eq('season', config.current_season)
       .limit(1)
 
-    if (error) {
-      console.error("Error comprobando partidos:", error.message)
-      setIsActivePlayer(false)
+    if (matchesData && matchesData.length > 0) {
+      setIsActivePlayer(true);
     } else {
-      setIsActivePlayer(matchesData && matchesData.length > 0)
+      // 3. Si no está en matches, buscar en Playoffs Extra
+      // Primero obtenemos los IDs de los playoffs de esta temporada
+      const { data: poExtra } = await supabase
+        .from('playoffs_extra')
+        .select('id')
+        .eq('season_id', config.current_season);
+
+      if (poExtra && poExtra.length > 0) {
+        const extraIds = poExtra.map(po => po.id);
+
+        // Buscamos si el usuario tiene partidos en cualquiera de esos playoffs
+        const { data: extraMatches } = await supabase
+          .from('extra_matches')
+          .select('id')
+          .in('extra_id', extraIds)
+          .or(`player1_id.eq.${session.user.id},player2_id.eq.${session.user.id}`)
+          .limit(1);
+
+        setIsActivePlayer(extraMatches && extraMatches.length > 0);
+      } else {
+        setIsActivePlayer(false);
+      }
     }
     setLoading(false); // Terminamos de cargar
   }

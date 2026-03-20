@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NIFFgPgwyAQeUOdN7z6YJNUr43NcREoTILfpOiQ5E2wTkPkZ63hcipLmH25ker3
+\restrict uz0yJGCqEcI4iPJv8TgvqBrTPflcV4KtbeXKYjzao5BOQmn32Q0Ey3zabyLC0wx
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -4186,7 +4186,6 @@ COPY auth.identities (provider_id, user_id, identity_data, provider, last_sign_i
 c06aa55d-9cd6-4f14-8d85-6c5739913994	c06aa55d-9cd6-4f14-8d85-6c5739913994	{"sub": "c06aa55d-9cd6-4f14-8d85-6c5739913994", "nick": "Mr.Macson", "email": "jhortolano@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-16 14:41:52.44859+00	2026-02-16 14:41:52.448639+00	2026-02-16 14:41:52.448639+00	0470001a-6283-4048-a451-3bb0dab7fe83
 00872e2b-9e9c-442f-810c-bfd62ee8a524	00872e2b-9e9c-442f-810c-bfd62ee8a524	{"sub": "00872e2b-9e9c-442f-810c-bfd62ee8a524", "nick": "MELIODAS", "email": "mineclavelo11@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-28 09:22:43.213575+00	2026-02-28 09:22:43.213633+00	2026-02-28 09:22:43.213633+00	8093fddc-bd27-48e3-9316-67742d90b5e7
 ff1dccb8-00bc-4042-a869-3a55773f3701	ff1dccb8-00bc-4042-a869-3a55773f3701	{"sub": "ff1dccb8-00bc-4042-a869-3a55773f3701", "nick": "errejota", "email": "rjgcolino@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-16 15:24:06.240843+00	2026-02-16 15:24:06.240891+00	2026-02-16 15:24:06.240891+00	6b618aab-ff5b-47bb-a8e2-5fe49efaf923
-e2c0c4df-3aba-4f3e-9511-49df6b02b87b	e2c0c4df-3aba-4f3e-9511-49df6b02b87b	{"sub": "e2c0c4df-3aba-4f3e-9511-49df6b02b87b", "nick": "Javi GT", "email": "javigr77@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-17 15:36:20.324639+00	2026-02-17 15:36:20.32533+00	2026-02-17 15:36:20.32533+00	238d7966-30fd-4a4b-b6cd-8b41822158d5
 a9757a54-7b1b-4e90-a88e-2f03cc0ca478	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	{"sub": "a9757a54-7b1b-4e90-a88e-2f03cc0ca478", "nick": "payo_malo_89", "email": "mendyvillacity@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-19 23:23:42.984328+00	2026-02-19 23:23:42.984384+00	2026-02-19 23:23:42.984384+00	94455ede-60fe-4cf5-854c-1016af988d44
 b5d23981-469b-4353-a615-9e4d6c8d8daf	b5d23981-469b-4353-a615-9e4d6c8d8daf	{"sub": "b5d23981-469b-4353-a615-9e4d6c8d8daf", "nick": "AdriWins", "email": "adrianruizmartos16@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-21 18:35:14.281994+00	2026-02-21 18:35:14.283198+00	2026-02-21 18:35:14.283198+00	c2323181-9463-47b6-8022-b518654a096a
 449ee91c-f52f-4661-abd4-ebfd556c37c3	449ee91c-f52f-4661-abd4-ebfd556c37c3	{"sub": "449ee91c-f52f-4661-abd4-ebfd556c37c3", "nick": "Hukha", "email": "hukha221@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-02-25 11:50:01.917419+00	2026-02-25 11:50:01.917477+00	2026-02-25 11:50:01.917477+00	25e3ce3b-d667-4c2b-a3b6-f7bcc78cca5b
@@ -4198,11 +4197,17 @@ eae8c25a-a99d-480f-8e3e-854d36c5c8dc	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	{"sub"
 38f98f64-f2db-47bf-a5ea-dcd1804ce00a	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	{"sub": "38f98f64-f2db-47bf-a5ea-dcd1804ce00a", "nick": "themule089", "email": "david.cvega89@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-01 09:34:43.303239+00	2026-03-01 09:34:43.303294+00	2026-03-01 09:34:43.303294+00	f53590c9-0400-44ce-a2d4-0b9b9d2cfd04
 2f58705a-25ad-42c9-b953-5137532b3584	2f58705a-25ad-42c9-b953-5137532b3584	{"sub": "2f58705a-25ad-42c9-b953-5137532b3584", "nick": "Selu ", "email": "jluisdiazmaroto@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-01 19:03:49.225077+00	2026-03-01 19:03:49.225133+00	2026-03-01 19:03:49.225133+00	9d7e3810-3f22-4feb-a742-cb3446e5500d
 16f4402c-a1b5-4431-8d98-c454f52a6284	16f4402c-a1b5-4431-8d98-c454f52a6284	{"sub": "16f4402c-a1b5-4431-8d98-c454f52a6284", "nick": "Iker", "email": "ikerxu1985@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-02 22:26:22.691135+00	2026-03-02 22:26:22.691188+00	2026-03-02 22:26:22.691188+00	6282a820-367e-45ba-915b-de2f0d3e0c8a
-84cdd50e-ef22-4022-aeca-60bfe32b6018	84cdd50e-ef22-4022-aeca-60bfe32b6018	{"sub": "84cdd50e-ef22-4022-aeca-60bfe32b6018", "nick": "Seventowers", "email": "superivanft@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-04 14:14:20.174255+00	2026-03-04 14:14:20.174307+00	2026-03-04 14:14:20.174307+00	3a988ffb-e6e1-42f2-9613-faf8079c51c5
+696d8a57-be9d-40a9-a945-76eb20706f72	696d8a57-be9d-40a9-a945-76eb20706f72	{"sub": "696d8a57-be9d-40a9-a945-76eb20706f72", "nick": "Fernando", "email": "fernandoraslan@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 10:45:34.503716+00	2026-03-19 10:45:34.503766+00	2026-03-19 10:45:34.503766+00	76cf7899-f642-4e85-a1b8-c297cde6f1cb
 c96625ad-9941-423c-8b5a-6fdc1b54ac20	c96625ad-9941-423c-8b5a-6fdc1b54ac20	{"sub": "c96625ad-9941-423c-8b5a-6fdc1b54ac20", "nick": "SharkD", "email": "dari970417@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-09 11:32:15.835569+00	2026-03-09 11:32:15.835619+00	2026-03-09 11:32:15.835619+00	9c733f8a-3eec-4ef3-a5ea-75f5784e26ce
 45ef0325-e165-4aef-8836-03099f1d7bd9	45ef0325-e165-4aef-8836-03099f1d7bd9	{"sub": "45ef0325-e165-4aef-8836-03099f1d7bd9", "nick": "Chava_14", "email": "luischava1234@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-09 11:59:20.426085+00	2026-03-09 11:59:20.426136+00	2026-03-09 11:59:20.426136+00	facfb59d-d88c-4a0b-9b99-f679145c5642
 8d16ce77-1836-4ce6-a462-b9d16358fb3f	8d16ce77-1836-4ce6-a462-b9d16358fb3f	{"sub": "8d16ce77-1836-4ce6-a462-b9d16358fb3f", "nick": "Rubens_saga", "email": "muycontento10@hotmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-11 13:13:38.166838+00	2026-03-11 13:13:38.166887+00	2026-03-11 13:13:38.166887+00	e9d487b9-27c2-491b-9244-ccb3fa6b2531
-6060af3e-5fba-49c0-8583-f5ae3a04f813	6060af3e-5fba-49c0-8583-f5ae3a04f813	{"sub": "6060af3e-5fba-49c0-8583-f5ae3a04f813", "nick": "test1", "email": "test@test.com", "email_verified": false, "phone_verified": false}	email	2026-03-17 14:19:20.882073+00	2026-03-17 14:19:20.88212+00	2026-03-17 14:19:20.88212+00	5434441b-45cc-4827-b68c-587ca9f5ba78
+0e9bdb55-a555-467d-995a-62d64ab8a509	0e9bdb55-a555-467d-995a-62d64ab8a509	{"sub": "0e9bdb55-a555-467d-995a-62d64ab8a509", "nick": "libertojeans", "email": "libertogil@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 10:04:47.34459+00	2026-03-19 10:04:47.344641+00	2026-03-19 10:04:47.344641+00	402cd7d7-6ae6-4e53-952f-3dd2528332f5
+e92aa512-c44f-48c8-b983-7c7705e36a6f	e92aa512-c44f-48c8-b983-7c7705e36a6f	{"sub": "e92aa512-c44f-48c8-b983-7c7705e36a6f", "nick": "Excobar1208", "email": "escobarelkin@coruniamericana.edu.co", "email_verified": true, "phone_verified": false}	email	2026-03-19 11:35:33.545783+00	2026-03-19 11:35:33.545831+00	2026-03-19 11:35:33.545831+00	a2aad260-4e55-48e7-90cd-a98f7e9b5ee5
+4f008550-7b28-4437-923b-3438f4aed317	4f008550-7b28-4437-923b-3438f4aed317	{"sub": "4f008550-7b28-4437-923b-3438f4aed317", "nick": "L1amAiram", "email": "l14mkrls@icloud.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 11:47:53.548447+00	2026-03-19 11:47:53.548504+00	2026-03-19 11:47:53.548504+00	cf69c6e6-8981-442b-a0ad-33c2bea6748e
+31984a41-8b67-441c-abd6-2b3880940b87	31984a41-8b67-441c-abd6-2b3880940b87	{"sub": "31984a41-8b67-441c-abd6-2b3880940b87", "nick": "LlaveringL", "email": "sergiollaverogomez@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 13:35:47.461327+00	2026-03-19 13:35:47.461378+00	2026-03-19 13:35:47.461378+00	3919d303-9c06-4981-83ce-54b6985c120e
+74d1cfe5-421b-4be6-a055-0b7693ff2f1c	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	{"sub": "74d1cfe5-421b-4be6-a055-0b7693ff2f1c", "nick": "Kapi_86", "email": "kapi_86@hotmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 17:01:34.4432+00	2026-03-19 17:01:34.443254+00	2026-03-19 17:01:34.443254+00	da6ff530-d323-40f4-abc7-ba80b8a74a7c
+af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	{"sub": "af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76", "nick": "Fernando92", "email": "fernandoguardado04@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-19 17:06:58.667833+00	2026-03-19 17:06:58.667882+00	2026-03-19 17:06:58.667882+00	c9effdef-2b57-4a75-a43c-cf0660df7fac
+05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	{"sub": "05fcf0a8-e2f1-46b3-bad4-8d3b267fd003", "nick": "Egea", "email": "infoalbertoegea@gmail.com", "email_verified": true, "phone_verified": false}	email	2026-03-20 09:12:32.937796+00	2026-03-20 09:12:32.942365+00	2026-03-20 09:12:32.942365+00	f5175a35-13b5-4e9b-bc58-4613ede2243d
 \.
 
 
@@ -4219,9 +4224,7 @@ COPY auth.instances (id, uuid, raw_base_config, created_at, updated_at) FROM std
 --
 
 COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_method, id) FROM stdin;
-921211cb-2c1b-4f73-b316-c98e54e46770	2026-03-17 11:50:55.238095+00	2026-03-17 11:50:55.238095+00	password	f4598193-ad69-4afb-8b60-21692b6ed557
-57566662-30ad-47cf-af21-30bdfd466e8f	2026-03-17 14:21:52.375279+00	2026-03-17 14:21:52.375279+00	password	41f24bec-8681-4d14-8a70-eff09f0c193d
-3e70d263-0bf1-4eb4-90ae-5c62f8991a7f	2026-03-17 14:46:59.551313+00	2026-03-17 14:46:59.551313+00	password	9fb85b47-bf8c-44ba-9878-2150f743e53e
+5cbe4d4a-19e4-40a8-8567-4b28e76fae98	2026-03-20 09:58:13.846955+00	2026-03-20 09:58:13.846955+00	password	0d8eabd7-8638-43f6-b6b7-2fc3e15190a5
 \.
 
 
@@ -4286,28 +4289,10 @@ COPY auth.one_time_tokens (id, user_id, token_type, token_hash, relates_to, crea
 --
 
 COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, updated_at, parent, session_id) FROM stdin;
-00000000-0000-0000-0000-000000000000	641	pha3qyjhtyo4	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 11:50:55.219665+00	2026-03-17 12:54:49.617097+00	\N	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	642	2z4j5qfkccu7	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 12:54:49.645744+00	2026-03-17 13:53:56.992836+00	pha3qyjhtyo4	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	645	ysvsqg4rym3s	6060af3e-5fba-49c0-8583-f5ae3a04f813	f	2026-03-17 14:21:52.346585+00	2026-03-17 14:21:52.346585+00	\N	57566662-30ad-47cf-af21-30bdfd466e8f
-00000000-0000-0000-0000-000000000000	643	kpaptv7zt6vy	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 13:53:57.007268+00	2026-03-17 14:53:12.972202+00	2z4j5qfkccu7	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	646	l672yacp563a	6060af3e-5fba-49c0-8583-f5ae3a04f813	t	2026-03-17 14:46:59.539494+00	2026-03-17 15:46:09.330301+00	\N	3e70d263-0bf1-4eb4-90ae-5c62f8991a7f
-00000000-0000-0000-0000-000000000000	647	ixihnorwdar3	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 14:53:12.977235+00	2026-03-17 15:54:09.288465+00	kpaptv7zt6vy	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	648	tt4xvtf3tcj3	6060af3e-5fba-49c0-8583-f5ae3a04f813	t	2026-03-17 15:46:09.352957+00	2026-03-17 16:47:09.149947+00	l672yacp563a	3e70d263-0bf1-4eb4-90ae-5c62f8991a7f
-00000000-0000-0000-0000-000000000000	650	2cc6phifefh7	6060af3e-5fba-49c0-8583-f5ae3a04f813	f	2026-03-17 16:47:09.167491+00	2026-03-17 16:47:09.167491+00	tt4xvtf3tcj3	3e70d263-0bf1-4eb4-90ae-5c62f8991a7f
-00000000-0000-0000-0000-000000000000	649	paue4zbldawh	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 15:54:09.295239+00	2026-03-17 16:53:35.124418+00	ixihnorwdar3	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	651	2eydcdxq6w5w	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 16:53:35.128458+00	2026-03-17 17:52:10.003291+00	paue4zbldawh	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	652	fg3cmtxlmovh	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 17:52:10.028986+00	2026-03-17 18:52:13.084401+00	2eydcdxq6w5w	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	653	qdsv4anbie4x	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 18:52:13.10611+00	2026-03-17 19:51:23.089455+00	fg3cmtxlmovh	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	654	yujsgsvnotlu	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 19:51:23.121834+00	2026-03-17 21:32:55.945043+00	qdsv4anbie4x	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	655	znpunihaho4u	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 21:32:55.973912+00	2026-03-17 23:06:43.056153+00	yujsgsvnotlu	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	656	qwu3ybog263z	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-17 23:06:43.084514+00	2026-03-18 00:10:52.603707+00	znpunihaho4u	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	657	244as2f2fj4i	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 00:10:52.621004+00	2026-03-18 02:15:05.138222+00	qwu3ybog263z	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	658	aogqwdna2shw	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 02:15:05.167022+00	2026-03-18 04:02:48.374656+00	244as2f2fj4i	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	659	6r6m4ri7vdzg	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 04:02:48.384997+00	2026-03-18 05:54:18.201756+00	aogqwdna2shw	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	660	zomjqfbhld4a	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 05:54:18.230838+00	2026-03-18 07:00:13.261839+00	6r6m4ri7vdzg	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	661	trkbntt5dmgc	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 07:00:13.283313+00	2026-03-18 08:02:41.582551+00	zomjqfbhld4a	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	662	i4gtr55seoko	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-18 08:02:41.609996+00	2026-03-18 09:02:00.927044+00	trkbntt5dmgc	921211cb-2c1b-4f73-b316-c98e54e46770
-00000000-0000-0000-0000-000000000000	663	tgvftwo4rao5	c06aa55d-9cd6-4f14-8d85-6c5739913994	f	2026-03-18 09:02:00.953226+00	2026-03-18 09:02:00.953226+00	i4gtr55seoko	921211cb-2c1b-4f73-b316-c98e54e46770
+00000000-0000-0000-0000-000000000000	733	olyjogravrmj	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-20 09:58:13.840003+00	2026-03-20 10:56:48.595198+00	\N	5cbe4d4a-19e4-40a8-8567-4b28e76fae98
+00000000-0000-0000-0000-000000000000	734	6jo7brmswyag	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-20 10:56:48.609336+00	2026-03-20 14:06:30.961621+00	olyjogravrmj	5cbe4d4a-19e4-40a8-8567-4b28e76fae98
+00000000-0000-0000-0000-000000000000	735	sblhrapleqev	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-03-20 14:06:30.999591+00	2026-03-20 15:15:19.579109+00	6jo7brmswyag	5cbe4d4a-19e4-40a8-8567-4b28e76fae98
+00000000-0000-0000-0000-000000000000	736	m7subrscufck	c06aa55d-9cd6-4f14-8d85-6c5739913994	f	2026-03-20 15:15:19.60252+00	2026-03-20 15:15:19.60252+00	sblhrapleqev	5cbe4d4a-19e4-40a8-8567-4b28e76fae98
 \.
 
 
@@ -4415,9 +4400,7 @@ COPY auth.schema_migrations (version) FROM stdin;
 --
 
 COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after, refreshed_at, user_agent, ip, tag, oauth_client_id, refresh_token_hmac_key, refresh_token_counter, scopes) FROM stdin;
-57566662-30ad-47cf-af21-30bdfd466e8f	6060af3e-5fba-49c0-8583-f5ae3a04f813	2026-03-17 14:21:52.315541+00	2026-03-17 14:21:52.315541+00	\N	aal1	\N	\N	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	77.230.14.47	\N	\N	\N	\N	\N
-3e70d263-0bf1-4eb4-90ae-5c62f8991a7f	6060af3e-5fba-49c0-8583-f5ae3a04f813	2026-03-17 14:46:59.519462+00	2026-03-17 16:47:09.201593+00	\N	aal1	\N	2026-03-17 16:47:09.201479	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	77.230.14.47	\N	\N	\N	\N	\N
-921211cb-2c1b-4f73-b316-c98e54e46770	c06aa55d-9cd6-4f14-8d85-6c5739913994	2026-03-17 11:50:55.20232+00	2026-03-18 09:02:00.971417+00	\N	aal1	\N	2026-03-18 09:02:00.971303	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	77.230.14.47	\N	\N	\N	\N	\N
+5cbe4d4a-19e4-40a8-8567-4b28e76fae98	c06aa55d-9cd6-4f14-8d85-6c5739913994	2026-03-20 09:58:13.820026+00	2026-03-20 15:15:19.635553+00	\N	aal1	\N	2026-03-20 15:15:19.635452	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	77.230.14.47	\N	\N	\N	\N	\N
 \.
 
 
@@ -4444,24 +4427,29 @@ COPY auth.sso_providers (id, resource_id, created_at, updated_at, disabled) FROM
 COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) FROM stdin;
 00000000-0000-0000-0000-000000000000	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	authenticated	authenticated	57juanjose57@gmail.com	$2a$10$GpfQMhmVjoV1fepRVUu/x.3ST9sOJ4.eSwXLysQuYF4httGTlCyvO	2026-02-26 13:49:28.516411+00	\N		2026-02-26 13:49:18.39979+00		\N			\N	2026-02-26 13:49:28.52203+00	{"provider": "email", "providers": ["email"]}	{"sub": "eae8c25a-a99d-480f-8e3e-854d36c5c8dc", "nick": "Jeybiss", "email": "57juanjose57@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-26 13:49:18.323529+00	2026-03-15 19:16:26.650136+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	ff1dccb8-00bc-4042-a869-3a55773f3701	authenticated	authenticated	rjgcolino@gmail.com	$2a$10$b1OwVkzY25CoClpixZRi2u.iT3PteD.5CgBwjoA9QH7TESlZxigN2	2026-02-16 15:24:29.591924+00	\N		\N		\N			\N	2026-03-16 15:26:52.226829+00	{"provider": "email", "providers": ["email"]}	{"sub": "ff1dccb8-00bc-4042-a869-3a55773f3701", "nick": "errejota", "email": "rjgcolino@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-16 15:24:06.156321+00	2026-03-16 15:26:52.243538+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	b5d23981-469b-4353-a615-9e4d6c8d8daf	authenticated	authenticated	adrianruizmartos16@gmail.com	$2a$10$3CzUZUFSTOdmyKa24GZUTeHxdspGzj9NUEVLfXPEGNQ7cU.4zCSjW	2026-02-21 18:35:43.783589+00	\N		2026-02-21 18:35:14.305928+00		\N			\N	2026-02-21 18:35:43.795597+00	{"provider": "email", "providers": ["email"]}	{"sub": "b5d23981-469b-4353-a615-9e4d6c8d8daf", "nick": "AdriWins", "email": "adrianruizmartos16@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-21 18:35:14.190404+00	2026-03-15 11:26:43.861478+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	2549f3dd-74dd-473b-be44-d5983b70e1ba	authenticated	authenticated	francisaditrap@gmail.com	$2a$10$jFFnRA7o0GinaRFJJ0cDXuwET4InLx1Dvul6Yko8RcLfZ/Z1sV3ji	2026-02-25 11:51:51.26109+00	\N		2026-02-25 11:51:26.158647+00		\N			\N	2026-02-25 11:51:51.264208+00	{"provider": "email", "providers": ["email"]}	{"sub": "2549f3dd-74dd-473b-be44-d5983b70e1ba", "nick": "Franchesco", "email": "francisaditrap@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-25 11:51:26.140923+00	2026-03-19 17:46:08.291907+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	4d3815fd-7460-4eb3-a435-257850cd58ca	authenticated	authenticated	santipiedrahita7@gmail.com	$2a$10$YCHZneQqRwYUZTsQmtxi1ODIRWx0m0XzgTR/c9Vbt3YWLraEGSYHG	2026-02-26 17:36:26.877921+00	\N		2026-02-26 17:35:59.422929+00		\N			\N	2026-03-15 13:04:22.293403+00	{"provider": "email", "providers": ["email"]}	{"sub": "4d3815fd-7460-4eb3-a435-257850cd58ca", "nick": "Piedr4hita11", "email": "santipiedrahita7@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-26 17:35:59.323086+00	2026-03-15 13:04:22.310061+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	8c1c7bba-636d-42f2-820a-ac1131897e84	authenticated	authenticated	pedrorodriguezmoya83@gmail.com	$2a$10$/FcmxVkAnijV5/lFzHqeYeH/yBAQlLGgzGL9V6yfVlA3veR99Bxoe	2026-02-28 11:22:27.661093+00	\N		2026-02-28 11:22:16.502673+00		\N			\N	2026-02-28 11:22:27.668357+00	{"provider": "email", "providers": ["email"]}	{"sub": "8c1c7bba-636d-42f2-820a-ac1131897e84", "nick": "Don Ptr Squad", "email": "pedrorodriguezmoya83@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-28 11:22:16.41071+00	2026-03-16 08:45:17.367951+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	449ee91c-f52f-4661-abd4-ebfd556c37c3	authenticated	authenticated	hukha221@gmail.com	$2a$10$.4hVjkKqDx8fAPimAMChRukwgDs00ATBn4CqgzWQP1vkuxeREkAlW	2026-02-25 11:51:07.505688+00	\N		2026-02-25 11:50:01.928268+00		\N			\N	2026-02-25 11:51:07.531673+00	{"provider": "email", "providers": ["email"]}	{"sub": "449ee91c-f52f-4661-abd4-ebfd556c37c3", "nick": "Hukha", "email": "hukha221@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-25 11:50:01.842461+00	2026-03-10 18:37:02.071976+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	00872e2b-9e9c-442f-810c-bfd62ee8a524	authenticated	authenticated	mineclavelo11@gmail.com	$2a$10$Dc9MUV5Yh/xtbjnUENoW3urLVBaujjXfRv89LXEaf/X9LI/cRYonq	2026-02-28 09:27:58.646956+00	\N		2026-02-28 09:22:43.230979+00		\N			\N	2026-03-02 11:01:55.13382+00	{"provider": "email", "providers": ["email"]}	{"sub": "00872e2b-9e9c-442f-810c-bfd62ee8a524", "nick": "MELIODAS", "email": "mineclavelo11@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-28 09:22:43.120096+00	2026-03-16 11:34:31.48907+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	e2c0c4df-3aba-4f3e-9511-49df6b02b87b	authenticated	authenticated	javigr77@gmail.com	$2a$10$kvXOLw9KU3ZkZIZYEiJjxe.UmThcsVGKN6wc3naXI743/OnlNP68e	2026-02-17 15:36:36.276768+00	\N		\N		\N			\N	2026-03-03 15:41:24.938955+00	{"provider": "email", "providers": ["email"]}	{"sub": "e2c0c4df-3aba-4f3e-9511-49df6b02b87b", "nick": "Javi GT", "email": "javigr77@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-17 15:36:20.289572+00	2026-03-15 12:58:01.499949+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	00872e2b-9e9c-442f-810c-bfd62ee8a524	authenticated	authenticated	mineclavelo11@gmail.com	$2a$10$Dc9MUV5Yh/xtbjnUENoW3urLVBaujjXfRv89LXEaf/X9LI/cRYonq	2026-02-28 09:27:58.646956+00	\N		2026-02-28 09:22:43.230979+00		\N			\N	2026-03-02 11:01:55.13382+00	{"provider": "email", "providers": ["email"]}	{"sub": "00872e2b-9e9c-442f-810c-bfd62ee8a524", "nick": "MELIODAS", "email": "mineclavelo11@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-28 09:22:43.120096+00	2026-03-19 19:39:57.140487+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	b5d23981-469b-4353-a615-9e4d6c8d8daf	authenticated	authenticated	adrianruizmartos16@gmail.com	$2a$10$3CzUZUFSTOdmyKa24GZUTeHxdspGzj9NUEVLfXPEGNQ7cU.4zCSjW	2026-02-21 18:35:43.783589+00	\N		2026-02-21 18:35:14.305928+00		\N			\N	2026-02-21 18:35:43.795597+00	{"provider": "email", "providers": ["email"]}	{"sub": "b5d23981-469b-4353-a615-9e4d6c8d8daf", "nick": "AdriWins", "email": "adrianruizmartos16@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-21 18:35:14.190404+00	2026-03-19 20:21:02.877426+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	943a493d-044c-4c88-babc-e64804553bb4	authenticated	authenticated	angel_fgrico@hotmail.com	$2a$10$AJhZDcvdBiGI4gvMFzclZ.fdamdOU082Acq2op7DhHVeMmqdFlzSW	2026-02-25 19:24:42.860648+00	\N		2026-02-25 19:24:06.141473+00		\N			\N	2026-03-16 15:53:44.067785+00	{"provider": "email", "providers": ["email"]}	{"sub": "943a493d-044c-4c88-babc-e64804553bb4", "nick": "Angel_Rico", "email": "angel_fgrico@hotmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-25 19:24:06.031284+00	2026-03-16 15:53:44.128959+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	authenticated	authenticated	mendyvillacity@gmail.com	$2a$10$TGDFclME.y89VE0xvxHXqeCahLA6uTkwaRKCZpu8WK09qoCs8/7c.	2026-02-19 23:27:10.36821+00	\N		2026-02-19 23:26:37.941244+00		\N			\N	2026-03-09 21:31:55.678434+00	{"provider": "email", "providers": ["email"]}	{"sub": "a9757a54-7b1b-4e90-a88e-2f03cc0ca478", "nick": "payo_malo_89", "email": "mendyvillacity@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-19 23:23:42.884382+00	2026-03-14 15:11:10.852257+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	2549f3dd-74dd-473b-be44-d5983b70e1ba	authenticated	authenticated	francisaditrap@gmail.com	$2a$10$jFFnRA7o0GinaRFJJ0cDXuwET4InLx1Dvul6Yko8RcLfZ/Z1sV3ji	2026-02-25 11:51:51.26109+00	\N		2026-02-25 11:51:26.158647+00		\N			\N	2026-02-25 11:51:51.264208+00	{"provider": "email", "providers": ["email"]}	{"sub": "2549f3dd-74dd-473b-be44-d5983b70e1ba", "nick": "Franchesco", "email": "francisaditrap@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-25 11:51:26.140923+00	2026-03-09 20:31:52.326784+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	8c1c7bba-636d-42f2-820a-ac1131897e84	authenticated	authenticated	pedrorodriguezmoya83@gmail.com	$2a$10$/FcmxVkAnijV5/lFzHqeYeH/yBAQlLGgzGL9V6yfVlA3veR99Bxoe	2026-02-28 11:22:27.661093+00	\N		2026-02-28 11:22:16.502673+00		\N			\N	2026-02-28 11:22:27.668357+00	{"provider": "email", "providers": ["email"]}	{"sub": "8c1c7bba-636d-42f2-820a-ac1131897e84", "nick": "Don Ptr Squad", "email": "pedrorodriguezmoya83@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-28 11:22:16.41071+00	2026-03-20 06:07:03.84748+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	authenticated	authenticated	mendyvillacity@gmail.com	$2a$10$TGDFclME.y89VE0xvxHXqeCahLA6uTkwaRKCZpu8WK09qoCs8/7c.	2026-02-19 23:27:10.36821+00	\N		2026-02-19 23:26:37.941244+00		\N			\N	2026-03-09 21:31:55.678434+00	{"provider": "email", "providers": ["email"]}	{"sub": "a9757a54-7b1b-4e90-a88e-2f03cc0ca478", "nick": "payo_malo_89", "email": "mendyvillacity@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-19 23:23:42.884382+00	2026-03-18 19:53:18.597366+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	449ee91c-f52f-4661-abd4-ebfd556c37c3	authenticated	authenticated	hukha221@gmail.com	$2a$10$.4hVjkKqDx8fAPimAMChRukwgDs00ATBn4CqgzWQP1vkuxeREkAlW	2026-02-25 11:51:07.505688+00	\N		2026-02-25 11:50:01.928268+00		\N			\N	2026-02-25 11:51:07.531673+00	{"provider": "email", "providers": ["email"]}	{"sub": "449ee91c-f52f-4661-abd4-ebfd556c37c3", "nick": "Hukha", "email": "hukha221@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-25 11:50:01.842461+00	2026-03-18 11:53:21.576067+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	45ef0325-e165-4aef-8836-03099f1d7bd9	authenticated	authenticated	luischava1234@gmail.com	$2a$10$bR7jOnTDU5JKhYqtm5qjdOMiUoT97U7ihe2ksODQaCF1rnD2S/UHW	2026-03-09 11:59:31.830678+00	\N		2026-03-09 11:59:20.440525+00		\N			\N	2026-03-09 11:59:31.838669+00	{"provider": "email", "providers": ["email"]}	{"sub": "45ef0325-e165-4aef-8836-03099f1d7bd9", "nick": "Chava_14", "email": "luischava1234@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-09 11:59:20.359839+00	2026-03-09 16:51:59.409112+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	84cdd50e-ef22-4022-aeca-60bfe32b6018	authenticated	authenticated	superivanft@gmail.com	$2a$10$aWQcD47wkoyiTUysyRJFDOPzic/69J.dtDut3PXiKbmMvpdmdQTVq	2026-03-04 14:14:40.285736+00	\N		2026-03-04 14:14:20.193641+00		\N			\N	2026-03-04 14:14:40.292359+00	{"provider": "email", "providers": ["email"]}	{"sub": "84cdd50e-ef22-4022-aeca-60bfe32b6018", "nick": "Seventowers", "email": "superivanft@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-04 14:14:20.109309+00	2026-03-04 14:14:40.301987+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	2f58705a-25ad-42c9-b953-5137532b3584	authenticated	authenticated	jluisdiazmaroto@gmail.com	$2a$10$ARZ3KOiyTtDOM2dKu26GB.l.Fq95o.XszlbdwJviezIbwE4NmrzXS	2026-03-01 19:14:31.270691+00	\N		2026-03-01 19:03:49.246213+00		\N			\N	2026-03-01 19:14:31.308644+00	{"provider": "email", "providers": ["email"]}	{"sub": "2f58705a-25ad-42c9-b953-5137532b3584", "nick": "Selu ", "email": "jluisdiazmaroto@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-01 19:03:49.130763+00	2026-03-15 19:07:50.222463+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	authenticated	authenticated	david.cvega89@gmail.com	$2a$10$AdcjtQw1BYIwq8SUqvhclOvZrq2O2jY.DBNA1YRmbsxLV3iSUEmSy	2026-03-01 09:34:58.290428+00	\N		2026-03-01 09:34:43.322612+00		\N			\N	2026-03-01 09:34:58.29578+00	{"provider": "email", "providers": ["email"]}	{"sub": "38f98f64-f2db-47bf-a5ea-dcd1804ce00a", "nick": "themule089", "email": "david.cvega89@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-01 09:34:43.212688+00	2026-03-16 08:27:29.231944+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	c96625ad-9941-423c-8b5a-6fdc1b54ac20	authenticated	authenticated	dari970417@gmail.com	$2a$10$pFa07LiTSa42r.8BPD1TVOp4Kg/vk55m/V7KX.qiDCDI8zOPGEb3i	2026-03-09 11:32:37.14358+00	\N		2026-03-09 11:32:15.848157+00		\N			\N	2026-03-09 11:32:37.149201+00	{"provider": "email", "providers": ["email"]}	{"sub": "c96625ad-9941-423c-8b5a-6fdc1b54ac20", "nick": "SharkD", "email": "dari970417@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-09 11:32:15.759641+00	2026-03-16 12:09:04.368182+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	16f4402c-a1b5-4431-8d98-c454f52a6284	authenticated	authenticated	ikerxu1985@gmail.com	$2a$10$AruBsDX59U49ifBHVTmpWOU1npSlmeJGyUgoEO1WFXT8EvUZWYZLe	2026-03-02 22:26:38.729633+00	\N		2026-03-02 22:26:22.707407+00		\N			\N	2026-03-02 22:41:23.048837+00	{"provider": "email", "providers": ["email"]}	{"sub": "16f4402c-a1b5-4431-8d98-c454f52a6284", "nick": "Iker", "email": "ikerxu1985@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-02 22:26:22.573167+00	2026-03-20 08:48:46.976629+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	c96625ad-9941-423c-8b5a-6fdc1b54ac20	authenticated	authenticated	dari970417@gmail.com	$2a$10$pFa07LiTSa42r.8BPD1TVOp4Kg/vk55m/V7KX.qiDCDI8zOPGEb3i	2026-03-09 11:32:37.14358+00	\N		2026-03-09 11:32:15.848157+00		\N			\N	2026-03-09 11:32:37.149201+00	{"provider": "email", "providers": ["email"]}	{"sub": "c96625ad-9941-423c-8b5a-6fdc1b54ac20", "nick": "SharkD", "email": "dari970417@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-09 11:32:15.759641+00	2026-03-19 21:43:26.580276+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	8d16ce77-1836-4ce6-a462-b9d16358fb3f	authenticated	authenticated	muycontento10@hotmail.com	$2a$10$9hwtG3lBBxKAcR1EgH7q1OQBla9xhZ8wY45z3UmePbB9NQt5hfQCi	2026-03-11 13:14:34.072826+00	\N		2026-03-11 13:13:38.178514+00		\N			\N	2026-03-11 13:14:34.1365+00	{"provider": "email", "providers": ["email"]}	{"sub": "8d16ce77-1836-4ce6-a462-b9d16358fb3f", "nick": "Rubens_saga", "email": "muycontento10@hotmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-11 13:13:38.094624+00	2026-03-16 19:27:15.275435+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	16f4402c-a1b5-4431-8d98-c454f52a6284	authenticated	authenticated	ikerxu1985@gmail.com	$2a$10$AruBsDX59U49ifBHVTmpWOU1npSlmeJGyUgoEO1WFXT8EvUZWYZLe	2026-03-02 22:26:38.729633+00	\N		2026-03-02 22:26:22.707407+00		\N			\N	2026-03-02 22:41:23.048837+00	{"provider": "email", "providers": ["email"]}	{"sub": "16f4402c-a1b5-4431-8d98-c454f52a6284", "nick": "Iker", "email": "ikerxu1985@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-02 22:26:22.573167+00	2026-03-17 01:05:30.240283+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	c06aa55d-9cd6-4f14-8d85-6c5739913994	authenticated	authenticated	jhortolano@gmail.com	$2a$10$421fUnsaWu7hdBcR9.kKKO7HwLxElpwerwrZu/obwKtOx6K4WExcm	2026-02-16 14:42:03.862989+00	\N		\N		2026-03-08 20:04:20.645762+00			\N	2026-03-17 11:50:55.202223+00	{"provider": "email", "providers": ["email"]}	{"sub": "c06aa55d-9cd6-4f14-8d85-6c5739913994", "nick": "Mr.Macson", "email": "jhortolano@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-16 14:41:52.428558+00	2026-03-18 09:02:00.961627+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	6060af3e-5fba-49c0-8583-f5ae3a04f813	authenticated	authenticated	test@test.com	$2a$10$G4FJmZ.2ax5JCXeoAazq3eQieLR8v0T1cv/Cf3v7TDVa9rIApVaN.	2026-03-17 14:19:20.887841+00	\N		\N		\N			\N	2026-03-17 14:46:59.51936+00	{"provider": "email", "providers": ["email"]}	{"sub": "6060af3e-5fba-49c0-8583-f5ae3a04f813", "nick": "test1", "email": "test@test.com", "email_verified": true, "phone_verified": false}	\N	2026-03-17 14:19:20.848745+00	2026-03-17 16:47:09.176756+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	696d8a57-be9d-40a9-a945-76eb20706f72	authenticated	authenticated	fernandoraslan@gmail.com	$2a$10$IhH7ux7YCVtFatIwSaYalunzHO6zNj7pX3xlUVQgtwr.GaXZbpSkK	2026-03-19 10:46:02.31039+00	\N		2026-03-19 10:45:34.517835+00		\N			\N	2026-03-19 10:46:02.315951+00	{"provider": "email", "providers": ["email"]}	{"sub": "696d8a57-be9d-40a9-a945-76eb20706f72", "nick": "Fernando", "email": "fernandoraslan@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 10:45:34.43537+00	2026-03-19 22:12:22.292223+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	4f008550-7b28-4437-923b-3438f4aed317	authenticated	authenticated	l14mkrls@icloud.com	$2a$10$TOkcBfR/glYcNeHV9kZrju9MdS0tmuEmx3M8v61e1a5Qy2/12uDEa	2026-03-19 11:55:36.570621+00	\N		2026-03-19 11:47:53.555836+00		\N			\N	2026-03-19 11:55:36.598805+00	{"provider": "email", "providers": ["email"]}	{"sub": "4f008550-7b28-4437-923b-3438f4aed317", "nick": "L1amAiram", "email": "l14mkrls@icloud.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 11:47:53.522626+00	2026-03-19 11:55:36.643951+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	2f58705a-25ad-42c9-b953-5137532b3584	authenticated	authenticated	jluisdiazmaroto@gmail.com	$2a$10$ARZ3KOiyTtDOM2dKu26GB.l.Fq95o.XszlbdwJviezIbwE4NmrzXS	2026-03-01 19:14:31.270691+00	\N		2026-03-01 19:03:49.246213+00		\N			\N	2026-03-01 19:14:31.308644+00	{"provider": "email", "providers": ["email"]}	{"sub": "2f58705a-25ad-42c9-b953-5137532b3584", "nick": "Selu ", "email": "jluisdiazmaroto@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-01 19:03:49.130763+00	2026-03-19 20:55:47.170456+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	31984a41-8b67-441c-abd6-2b3880940b87	authenticated	authenticated	sergiollaverogomez@gmail.com	$2a$10$NN6zE.fngHd9ZH5.qtlcxOo2DDQc9qTuqeF6K3Ej9ANCIW0/Eiwfy	2026-03-19 13:38:05.498936+00	\N		2026-03-19 13:36:54.507146+00		\N			\N	2026-03-19 13:38:05.503822+00	{"provider": "email", "providers": ["email"]}	{"sub": "31984a41-8b67-441c-abd6-2b3880940b87", "nick": "LlaveringL", "email": "sergiollaverogomez@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 13:35:47.386644+00	2026-03-19 15:07:00.332101+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	e92aa512-c44f-48c8-b983-7c7705e36a6f	authenticated	authenticated	escobarelkin@coruniamericana.edu.co	$2a$10$Zj.BykjY3EmwbeIbkP2Q3O8Bt6DuY2k3XipzJXzQ18K/fyFdMLXBG	2026-03-19 11:35:59.392043+00	\N		2026-03-19 11:35:33.559298+00		\N			\N	2026-03-19 11:35:59.39835+00	{"provider": "email", "providers": ["email"]}	{"sub": "e92aa512-c44f-48c8-b983-7c7705e36a6f", "nick": "Excobar1208", "email": "escobarelkin@coruniamericana.edu.co", "email_verified": true, "phone_verified": false}	\N	2026-03-19 11:35:33.45285+00	2026-03-19 21:29:01.166185+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	authenticated	authenticated	kapi_86@hotmail.com	$2a$10$Fq83CG9bAzdHKRh7bUA/pum54dSt892mPjo3wRcOOZJZey6nxmJ06	2026-03-19 17:02:05.290035+00	\N		2026-03-19 17:01:34.457223+00		\N			\N	2026-03-19 17:02:05.295056+00	{"provider": "email", "providers": ["email"]}	{"sub": "74d1cfe5-421b-4be6-a055-0b7693ff2f1c", "nick": "Kapi_86", "email": "kapi_86@hotmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 17:01:34.348746+00	2026-03-19 17:02:05.323386+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	0e9bdb55-a555-467d-995a-62d64ab8a509	authenticated	authenticated	libertogil@gmail.com	$2a$10$xyKX3C2Hz5auNm8c7wVaxe03kvi.SiD6jbPd9hqHZUrWQoEVFrb7q	2026-03-19 10:05:01.416117+00	\N		2026-03-19 10:04:47.36198+00		\N			\N	2026-03-19 10:05:01.423269+00	{"provider": "email", "providers": ["email"]}	{"sub": "0e9bdb55-a555-467d-995a-62d64ab8a509", "nick": "libertojeans", "email": "libertogil@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 10:04:47.253605+00	2026-03-19 19:31:09.680316+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	authenticated	authenticated	david.cvega89@gmail.com	$2a$10$AdcjtQw1BYIwq8SUqvhclOvZrq2O2jY.DBNA1YRmbsxLV3iSUEmSy	2026-03-01 09:34:58.290428+00	\N		2026-03-01 09:34:43.322612+00		\N			\N	2026-03-01 09:34:58.29578+00	{"provider": "email", "providers": ["email"]}	{"sub": "38f98f64-f2db-47bf-a5ea-dcd1804ce00a", "nick": "themule089", "email": "david.cvega89@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-01 09:34:43.212688+00	2026-03-19 22:30:58.64163+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	authenticated	authenticated	fernandoguardado04@gmail.com	$2a$10$Yk6kJoarZa34olrUDQb/XuY6/5QVMwKVvI/CLSPI3ghVXDXj5iucm	2026-03-19 17:07:22.111419+00	\N		2026-03-19 17:06:58.672654+00		\N			\N	2026-03-19 17:07:22.11628+00	{"provider": "email", "providers": ["email"]}	{"sub": "af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76", "nick": "Fernando92", "email": "fernandoguardado04@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-19 17:06:58.635297+00	2026-03-19 17:07:22.137974+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	authenticated	authenticated	infoalbertoegea@gmail.com	$2a$10$UHlaTo0O1627pWle2tiWUOQLHP/puBAJPXPbI1NBIPcVMjiD1YwIG	2026-03-20 09:12:44.654041+00	\N		2026-03-20 09:12:32.961581+00		\N			\N	2026-03-20 09:12:44.670049+00	{"provider": "email", "providers": ["email"]}	{"sub": "05fcf0a8-e2f1-46b3-bad4-8d3b267fd003", "nick": "Egea", "email": "infoalbertoegea@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-20 09:12:32.847557+00	2026-03-20 09:12:44.707797+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	c06aa55d-9cd6-4f14-8d85-6c5739913994	authenticated	authenticated	jhortolano@gmail.com	$2a$10$421fUnsaWu7hdBcR9.kKKO7HwLxElpwerwrZu/obwKtOx6K4WExcm	2026-02-16 14:42:03.862989+00	\N		\N		2026-03-08 20:04:20.645762+00			\N	2026-03-20 09:58:13.819921+00	{"provider": "email", "providers": ["email"]}	{"sub": "c06aa55d-9cd6-4f14-8d85-6c5739913994", "nick": "Mr.Macson", "email": "jhortolano@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-16 14:41:52.428558+00	2026-03-20 15:15:19.61972+00	\N	\N			\N		0	\N		\N	f	\N	f
 \.
 
 
@@ -4497,8 +4485,9 @@ d222b220-a0c5-4783-bc0c-03a827e0f888	¿Quieres jugar la Champions? 1 partido adi
 --
 
 COPY public.extra_groups (id, extra_id, nombre_grupo, created_at) FROM stdin;
-a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	bf7dec42-1e13-4753-b470-ec9de10a14ee	Grupo A	2026-03-17 14:45:40.865052+00
-a4d6b29c-0824-458f-8a92-6184e653e7ab	bf7dec42-1e13-4753-b470-ec9de10a14ee	Grupo B	2026-03-17 14:45:41.136539+00
+4fd73f60-afbf-4ccc-90ea-d92b114dd55b	2bfbc76b-d2ba-426d-b777-e01516892815	Grupo A	2026-03-20 15:31:31.724631+00
+00cab261-d174-466d-a064-82a4ff018f88	2bfbc76b-d2ba-426d-b777-e01516892815	Grupo B	2026-03-20 15:31:31.953082+00
+ad0f811a-f44d-4e98-ad11-95212e151ade	2bfbc76b-d2ba-426d-b777-e01516892815	Grupo C	2026-03-20 15:31:32.181255+00
 \.
 
 
@@ -4507,10 +4496,18 @@ a4d6b29c-0824-458f-8a92-6184e653e7ab	bf7dec42-1e13-4753-b470-ec9de10a14ee	Grupo 
 --
 
 COPY public.extra_matches (id, extra_id, group_id, player1_id, player2_id, score1, score2, fecha_inicio, fecha_fin, fase, numero_jornada, is_played, next_match_id, stream_url) FROM stdin;
-df305f09-7aee-4e53-9368-f8a29847e906	bf7dec42-1e13-4753-b470-ec9de10a14ee	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	16f4402c-a1b5-4431-8d98-c454f52a6284	c06aa55d-9cd6-4f14-8d85-6c5739913994	4	1	\N	\N	j1	1	t	\N	
-6722d44d-7dd5-4162-9b8e-a0191025b07e	bf7dec42-1e13-4753-b470-ec9de10a14ee	a4d6b29c-0824-458f-8a92-6184e653e7ab	6060af3e-5fba-49c0-8583-f5ae3a04f813	ff1dccb8-00bc-4042-a869-3a55773f3701	3	1	\N	\N	j1	1	t	\N	
-17050aa1-d535-4811-acab-849fb24ee7fd	bf7dec42-1e13-4753-b470-ec9de10a14ee	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	c06aa55d-9cd6-4f14-8d85-6c5739913994	16f4402c-a1b5-4431-8d98-c454f52a6284	7	1	\N	\N	j2	2	t	\N	
-b9786d48-b60e-4f47-b118-5f155ab46b0f	bf7dec42-1e13-4753-b470-ec9de10a14ee	a4d6b29c-0824-458f-8a92-6184e653e7ab	ff1dccb8-00bc-4042-a869-3a55773f3701	6060af3e-5fba-49c0-8583-f5ae3a04f813	1	1	\N	\N	j2	2	t	\N	
+47eb23cb-f632-41d4-ba87-c1b262697a10	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	b5d23981-469b-4353-a615-9e4d6c8d8daf	\N	\N	\N	\N	j1	1	f	\N	\N
+b17ecd11-89d6-4e09-beda-5190af27fc11	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	e92aa512-c44f-48c8-b983-7c7705e36a6f	\N	\N	\N	\N	j1	1	f	\N	\N
+3ed3b413-81f1-4f92-a9c6-1f1cfa6a995a	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	e92aa512-c44f-48c8-b983-7c7705e36a6f	\N	\N	\N	\N	j2	2	f	\N	\N
+f5dcb557-0a56-4b47-89ba-dd1c37d2ef5f	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	b5d23981-469b-4353-a615-9e4d6c8d8daf	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	\N	\N	\N	\N	j2	2	f	\N	\N
+393087b5-8e52-4a63-b72c-17dba5799656	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	\N	\N	\N	\N	j3	3	f	\N	\N
+13f29fc6-75b1-4616-9ea4-55e36f7dfcdc	2bfbc76b-d2ba-426d-b777-e01516892815	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	e92aa512-c44f-48c8-b983-7c7705e36a6f	b5d23981-469b-4353-a615-9e4d6c8d8daf	\N	\N	\N	\N	j3	3	f	\N	\N
+d8ccf03f-4702-4689-a76a-3ed3deabbeb1	2bfbc76b-d2ba-426d-b777-e01516892815	ad0f811a-f44d-4e98-ad11-95212e151ade	2549f3dd-74dd-473b-be44-d5983b70e1ba	45ef0325-e165-4aef-8836-03099f1d7bd9	\N	\N	\N	\N	j1	1	f	\N	\N
+93777eeb-2887-4d33-9241-ed08cf1fe698	2bfbc76b-d2ba-426d-b777-e01516892815	ad0f811a-f44d-4e98-ad11-95212e151ade	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	45ef0325-e165-4aef-8836-03099f1d7bd9	\N	\N	\N	\N	j2	2	f	\N	\N
+93ad037e-f361-4ba8-9249-01f1d8abbc63	2bfbc76b-d2ba-426d-b777-e01516892815	ad0f811a-f44d-4e98-ad11-95212e151ade	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	2549f3dd-74dd-473b-be44-d5983b70e1ba	\N	\N	\N	\N	j3	3	f	\N	\N
+06175808-4760-4299-93c3-fcd7bfcd1d0b	2bfbc76b-d2ba-426d-b777-e01516892815	00cab261-d174-466d-a064-82a4ff018f88	ff1dccb8-00bc-4042-a869-3a55773f3701	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	\N	\N	\N	\N	j1	1	f	\N	\N
+87c35cad-3e22-4288-8d32-cefc6cdbd860	2bfbc76b-d2ba-426d-b777-e01516892815	00cab261-d174-466d-a064-82a4ff018f88	943a493d-044c-4c88-babc-e64804553bb4	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	\N	\N	\N	\N	j2	2	f	\N	\N
+3a7fb6a5-b09f-4c9b-b8b4-6fcc7e9aa45b	2bfbc76b-d2ba-426d-b777-e01516892815	00cab261-d174-466d-a064-82a4ff018f88	943a493d-044c-4c88-babc-e64804553bb4	ff1dccb8-00bc-4042-a869-3a55773f3701	\N	\N	\N	\N	j3	3	f	\N	\N
 \.
 
 
@@ -4519,11 +4516,13 @@ b9786d48-b60e-4f47-b118-5f155ab46b0f	bf7dec42-1e13-4753-b470-ec9de10a14ee	a4d6b2
 --
 
 COPY public.extra_playoffs_matches (id, playoff_extra_id, numero_jornada, player1_id, group_id_p1, posicion_p1, player2_id, group_id_p2, posicion_p2, score1, score2, is_played, created_at, p1_from_match_id, p2_from_match_id, stream_url, stream_updated_at) FROM stdin;
-39	bf7dec42-1e13-4753-b470-ec9de10a14ee	SEMIS VUELTA	16f4402c-a1b5-4431-8d98-c454f52a6284	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	2	c06aa55d-9cd6-4f14-8d85-6c5739913994	a4d6b29c-0824-458f-8a92-6184e653e7ab	1	2	5	t	2026-03-17 14:45:41.387891+00	\N	\N		\N
-37	bf7dec42-1e13-4753-b470-ec9de10a14ee	SEMIS VUELTA	ff1dccb8-00bc-4042-a869-3a55773f3701	a4d6b29c-0824-458f-8a92-6184e653e7ab	2	6060af3e-5fba-49c0-8583-f5ae3a04f813	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	1	3	7	t	2026-03-17 14:45:41.387891+00	\N	\N		\N
-40	bf7dec42-1e13-4753-b470-ec9de10a14ee	FINAL	6060af3e-5fba-49c0-8583-f5ae3a04f813	\N	\N	c06aa55d-9cd6-4f14-8d85-6c5739913994	\N	\N	2	4	t	2026-03-17 14:45:41.580092+00	36	38		\N
-38	bf7dec42-1e13-4753-b470-ec9de10a14ee	SEMIS IDA	c06aa55d-9cd6-4f14-8d85-6c5739913994	a4d6b29c-0824-458f-8a92-6184e653e7ab	1	16f4402c-a1b5-4431-8d98-c454f52a6284	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	2	3	1	t	2026-03-17 14:45:41.387891+00	\N	\N		\N
-36	bf7dec42-1e13-4753-b470-ec9de10a14ee	SEMIS IDA	6060af3e-5fba-49c0-8583-f5ae3a04f813	a41dbec7-1b14-42bb-bdbe-bd7fa63f0672	1	ff1dccb8-00bc-4042-a869-3a55773f3701	a4d6b29c-0824-458f-8a92-6184e653e7ab	2	4	3	t	2026-03-17 14:45:41.387891+00	\N	\N		\N
+80	2bfbc76b-d2ba-426d-b777-e01516892815	CUARTOS	\N	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	1	\N	\N	\N	\N	\N	f	2026-03-20 15:31:32.476569+00	\N	\N	\N	\N
+81	2bfbc76b-d2ba-426d-b777-e01516892815	CUARTOS	\N	4fd73f60-afbf-4ccc-90ea-d92b114dd55b	2	\N	00cab261-d174-466d-a064-82a4ff018f88	2	\N	\N	f	2026-03-20 15:31:32.476569+00	\N	\N	\N	\N
+82	2bfbc76b-d2ba-426d-b777-e01516892815	CUARTOS	\N	00cab261-d174-466d-a064-82a4ff018f88	1	\N	\N	\N	\N	\N	f	2026-03-20 15:31:32.476569+00	\N	\N	\N	\N
+83	2bfbc76b-d2ba-426d-b777-e01516892815	CUARTOS	\N	ad0f811a-f44d-4e98-ad11-95212e151ade	1	\N	ad0f811a-f44d-4e98-ad11-95212e151ade	2	\N	\N	f	2026-03-20 15:31:32.476569+00	\N	\N	\N	\N
+84	2bfbc76b-d2ba-426d-b777-e01516892815	SEMIS	\N	\N	\N	\N	\N	\N	\N	\N	f	2026-03-20 15:31:32.607514+00	80	81	\N	\N
+85	2bfbc76b-d2ba-426d-b777-e01516892815	SEMIS	\N	\N	\N	\N	\N	\N	\N	\N	f	2026-03-20 15:31:32.607514+00	82	83	\N	\N
+86	2bfbc76b-d2ba-426d-b777-e01516892815	FINAL	\N	\N	\N	\N	\N	\N	\N	\N	f	2026-03-20 15:31:32.727568+00	84	85	\N	\N
 \.
 
 
@@ -4544,6 +4543,8 @@ COPY public.match_streams (match_id, stream_url, updated_at) FROM stdin;
 31	https://discord.gg/YazeEmXE	2026-03-09 21:22:07.694+00
 1	https://www.twitch.tv/iakksadj?sr=a	2026-03-09 20:54:25.823+00
 3	https://www.twitch.tv/videos/2721544829	2026-03-13 21:32:29.265+00
+6	https://www.twitch.tv/videos/2726198609	2026-03-19 09:31:39.388+00
+36	https://www.twitch.tv/games__wtf	2026-03-19 21:01:44.018975+00
 \.
 
 
@@ -4552,7 +4553,6 @@ COPY public.match_streams (match_id, stream_url, updated_at) FROM stdin;
 --
 
 COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_played, created_at, season, division) FROM stdin;
-5	ff1dccb8-00bc-4042-a869-3a55773f3701	2f58705a-25ad-42c9-b953-5137532b3584	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	1
 8	943a493d-044c-4c88-babc-e64804553bb4	16f4402c-a1b5-4431-8d98-c454f52a6284	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	1
 9	2f58705a-25ad-42c9-b953-5137532b3584	c06aa55d-9cd6-4f14-8d85-6c5739913994	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	1
 11	8c1c7bba-636d-42f2-820a-ac1131897e84	943a493d-044c-4c88-babc-e64804553bb4	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	1
@@ -4569,8 +4569,6 @@ COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_
 25	2f58705a-25ad-42c9-b953-5137532b3584	b5d23981-469b-4353-a615-9e4d6c8d8daf	\N	\N	7	f	2026-03-05 09:55:52.787837+00	1	1
 26	16f4402c-a1b5-4431-8d98-c454f52a6284	8c1c7bba-636d-42f2-820a-ac1131897e84	\N	\N	7	f	2026-03-05 09:55:52.787837+00	1	1
 27	943a493d-044c-4c88-babc-e64804553bb4	ff1dccb8-00bc-4042-a869-3a55773f3701	\N	\N	7	f	2026-03-05 09:55:52.787837+00	1	1
-33	449ee91c-f52f-4661-abd4-ebfd556c37c3	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	2
-34	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	2549f3dd-74dd-473b-be44-d5983b70e1ba	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	2
 35	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	4d3815fd-7460-4eb3-a435-257850cd58ca	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	2
 37	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	2
 38	449ee91c-f52f-4661-abd4-ebfd556c37c3	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	2
@@ -4594,7 +4592,6 @@ COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_
 1	2f58705a-25ad-42c9-b953-5137532b3584	8c1c7bba-636d-42f2-820a-ac1131897e84	4	1	1	t	2026-03-05 09:55:52.787837+00	1	1
 30	4d3815fd-7460-4eb3-a435-257850cd58ca	449ee91c-f52f-4661-abd4-ebfd556c37c3	1	4	1	t	2026-03-05 09:55:52.787837+00	1	2
 18	45ef0325-e165-4aef-8836-03099f1d7bd9	16f4402c-a1b5-4431-8d98-c454f52a6284	\N	\N	5	f	2026-03-05 09:55:52.787837+00	1	1
-36	c96625ad-9941-423c-8b5a-6fdc1b54ac20	00872e2b-9e9c-442f-810c-bfd62ee8a524	\N	\N	2	f	2026-03-05 09:55:52.787837+00	1	2
 42	c96625ad-9941-423c-8b5a-6fdc1b54ac20	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	\N	\N	4	f	2026-03-05 09:55:52.787837+00	1	2
 55	c96625ad-9941-423c-8b5a-6fdc1b54ac20	449ee91c-f52f-4661-abd4-ebfd556c37c3	\N	\N	7	f	2026-03-05 09:55:52.787837+00	1	2
 39	2549f3dd-74dd-473b-be44-d5983b70e1ba	c96625ad-9941-423c-8b5a-6fdc1b54ac20	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	2
@@ -4607,7 +4604,11 @@ COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_
 10	ff1dccb8-00bc-4042-a869-3a55773f3701	45ef0325-e165-4aef-8836-03099f1d7bd9	\N	\N	3	f	2026-03-05 09:55:52.787837+00	1	1
 23	8c1c7bba-636d-42f2-820a-ac1131897e84	45ef0325-e165-4aef-8836-03099f1d7bd9	\N	\N	6	f	2026-03-05 09:55:52.787837+00	1	1
 3	16f4402c-a1b5-4431-8d98-c454f52a6284	c06aa55d-9cd6-4f14-8d85-6c5739913994	4	3	1	t	2026-03-05 09:55:52.787837+00	1	1
-6	c06aa55d-9cd6-4f14-8d85-6c5739913994	8c1c7bba-636d-42f2-820a-ac1131897e84	4	1	2	t	2026-03-05 09:55:52.787837+00	1	1
+5	ff1dccb8-00bc-4042-a869-3a55773f3701	2f58705a-25ad-42c9-b953-5137532b3584	2	5	2	t	2026-03-05 09:55:52.787837+00	1	1
+6	c06aa55d-9cd6-4f14-8d85-6c5739913994	8c1c7bba-636d-42f2-820a-ac1131897e84	4	3	2	t	2026-03-05 09:55:52.787837+00	1	1
+34	eae8c25a-a99d-480f-8e3e-854d36c5c8dc	2549f3dd-74dd-473b-be44-d5983b70e1ba	2	5	2	t	2026-03-05 09:55:52.787837+00	1	2
+33	449ee91c-f52f-4661-abd4-ebfd556c37c3	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	3	4	2	t	2026-03-05 09:55:52.787837+00	1	2
+36	c96625ad-9941-423c-8b5a-6fdc1b54ac20	00872e2b-9e9c-442f-810c-bfd62ee8a524	6	3	2	t	2026-03-05 09:55:52.787837+00	1	2
 \.
 
 
@@ -4616,8 +4617,7 @@ COPY public.matches (id, home_team, away_team, home_score, away_score, week, is_
 --
 
 COPY public.matches_rescheduled (id, match_id, match_id_uid, tipo_partido, player1_id, player2_id, fecha_inicio, fecha_fin, created_at) FROM stdin;
-10	2	\N	liga	b5d23981-469b-4353-a615-9e4d6c8d8daf	ff1dccb8-00bc-4042-a869-3a55773f3701	2026-03-09 23:00:00+00	2026-03-24 23:00:00+00	2026-03-18 09:24:14.198078+00
-11	8	\N	liga	943a493d-044c-4c88-babc-e64804553bb4	16f4402c-a1b5-4431-8d98-c454f52a6284	2026-04-19 22:00:00+00	2026-04-25 22:00:00+00	2026-03-18 09:36:41.284458+00
+2	4	\N	liga	943a493d-044c-4c88-babc-e64804553bb4	45ef0325-e165-4aef-8836-03099f1d7bd9	2026-03-22 23:00:00+00	2026-03-29 22:00:00+00	2026-03-18 10:24:14.766157+00
 \.
 
 
@@ -4642,7 +4642,7 @@ COPY public.playoffs (id, created_at, name, season, is_active, settings, current
 --
 
 COPY public.playoffs_extra (id, season_id, nombre, tipo_format, jugadores_por_grupo, estado, created_at, config_eliminatorias, config_fechas, num_grupos, pasan_por_grupo, current_round, use_auto_round, stream_puntos) FROM stdin;
-bf7dec42-1e13-4753-b470-ec9de10a14ee	1	ccccccccc	ida_vuelta	4	finalizado	2026-03-17 14:45:40.66616+00	{"final": "ida", "semis": "ida_vuelta", "cuartos": "ida_vuelta", "octavos": "ida", "dieciseisavos": "ida"}	{"j1": {"end_at": "2026-03-24T13:45:00.000Z", "start_at": "2026-03-17T13:45:00.000Z"}, "j2": {"end_at": "2026-03-31T13:45:00.000Z", "start_at": "2026-03-24T13:45:00.000Z"}, "final": {"end_at": "2026-04-21T13:45:00.000Z", "start_at": "2026-04-14T13:45:00.000Z"}, "semis_ida": {"end_at": "2026-04-07T13:45:00.000Z", "start_at": "2026-03-31T13:45:00.000Z"}, "semis_vuelta": {"end_at": "2026-04-14T13:45:00.000Z", "start_at": "2026-04-07T13:45:00.000Z"}}	2	2	final	f	t
+2bfbc76b-d2ba-426d-b777-e01516892815	1	rrrrr	ida	4	activo	2026-03-20 15:31:31.548243+00	{"final": "ida", "semis": "ida", "cuartos": "ida", "octavos": "ida", "dieciseisavos": "ida"}	{"j1": {"end_at": "2026-03-27T14:31:00.000Z", "start_at": "2026-03-20T14:31:00.000Z"}, "j2": {"end_at": "2026-04-03T14:31:00.000Z", "start_at": "2026-03-27T14:31:00.000Z"}, "j3": {"end_at": "2026-04-10T14:31:00.000Z", "start_at": "2026-04-03T14:31:00.000Z"}, "final": {"end_at": "2026-05-01T14:31:00.000Z", "start_at": "2026-04-24T14:31:00.000Z"}, "semis": {"end_at": "2026-04-24T14:31:00.000Z", "start_at": "2026-04-17T14:31:00.000Z"}, "cuartos": {"end_at": "2026-04-17T14:31:00.000Z", "start_at": "2026-04-10T14:31:00.000Z"}}	3	2	j1	t	f
 \.
 
 
@@ -4651,26 +4651,31 @@ bf7dec42-1e13-4753-b470-ec9de10a14ee	1	ccccccccc	ida_vuelta	4	finalizado	2026-03
 --
 
 COPY public.profiles (id, nick, email, avatar_url, is_confirmed, created_at, telegram_user, phone, is_admin, last_seen, is_colaborador) FROM stdin;
-a9757a54-7b1b-4e90-a88e-2f03cc0ca478	payo_malo_89	mendyvillacity@gmail.com	\N	f	2026-02-19 23:23:42.876383+00		+34671998795	f	2026-03-14 15:13:48.132+00	f
-b5d23981-469b-4353-a615-9e4d6c8d8daf	AdriWins	adrianruizmartos16@gmail.com	\N	f	2026-02-21 18:35:14.188818+00	\N	+34601520647	f	2026-03-15 11:26:43.674+00	f
-38f98f64-f2db-47bf-a5ea-dcd1804ce00a	themule089	david.cvega89@gmail.com	\N	f	2026-03-01 09:34:43.210041+00		+34692675304	f	2026-03-16 08:53:55.57+00	f
+449ee91c-f52f-4661-abd4-ebfd556c37c3	Hukha	hukha221@gmail.com	\N	f	2026-02-25 11:50:01.84082+00	@JamesDevG	\N	f	2026-03-18 11:53:21.188+00	f
+2f58705a-25ad-42c9-b953-5137532b3584	Selu 	Jluisdiazmaroto@gmail.com	\N	f	2026-03-01 19:03:49.128611+00	\N	+34684218724	f	2026-03-19 21:03:55.302+00	f
 8d16ce77-1836-4ce6-a462-b9d16358fb3f	Rubens_saga	muycontento10@hotmail.com	\N	f	2026-03-11 13:13:38.093043+00	\N	+34653038031	f	2026-03-16 19:27:15.401+00	f
-00872e2b-9e9c-442f-810c-bfd62ee8a524	MELIODAS	mineclavelo11@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/00872e2b-9e9c-442f-810c-bfd62ee8a524.webp?t=1772270955942	f	2026-02-28 09:22:43.119146+00	@Carlos200593	+34641653508	f	2026-03-16 11:34:31.583+00	f
 45ef0325-e165-4aef-8836-03099f1d7bd9	Chava_14	Luischava1234@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/45ef0325-e165-4aef-8836-03099f1d7bd9.webp?t=1773058181740	f	2026-03-09 11:59:20.35744+00	@chava_10	+34632657178	f	2026-03-09 16:51:59.391+00	f
-c96625ad-9941-423c-8b5a-6fdc1b54ac20	SharkD	dari970417@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c96625ad-9941-423c-8b5a-6fdc1b54ac20.webp?t=1773055989449	f	2026-03-09 11:32:15.759243+00		+34603377326	f	2026-03-16 12:09:04.375+00	f
-16f4402c-a1b5-4431-8d98-c454f52a6284	Iker	ikerxu1985@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/16f4402c-a1b5-4431-8d98-c454f52a6284.webp?t=1773441143926	f	2026-03-02 22:26:22.572768+00		+34619776212	f	2026-03-17 01:06:55.542+00	f
-2549f3dd-74dd-473b-be44-d5983b70e1ba	Franchesco	francisaditrap@gmail.com	\N	f	2026-02-25 11:51:26.140575+00	\N	+34692547413	f	2026-03-09 20:39:07.096+00	f
-2f58705a-25ad-42c9-b953-5137532b3584	Selu 	Jluisdiazmaroto@gmail.com	\N	f	2026-03-01 19:03:49.128611+00	\N	+34684218724	f	2026-03-15 19:07:50.264+00	f
-449ee91c-f52f-4661-abd4-ebfd556c37c3	Hukha	hukha221@gmail.com	\N	f	2026-02-25 11:50:01.84082+00	@JamesDevG	\N	f	2026-03-10 18:41:02.091+00	f
+a9757a54-7b1b-4e90-a88e-2f03cc0ca478	payo_malo_89	mendyvillacity@gmail.com	\N	f	2026-02-19 23:23:42.876383+00		+34671998795	f	2026-03-18 13:08:17.715+00	f
+4f008550-7b28-4437-923b-3438f4aed317	L1amAiram	l14mkrls@icloud.com	\N	f	2026-03-19 11:47:53.522266+00	\N	+34642933364	f	2026-03-19 12:09:12.421+00	f
+c96625ad-9941-423c-8b5a-6fdc1b54ac20	SharkD	dari970417@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c96625ad-9941-423c-8b5a-6fdc1b54ac20.webp?t=1773055989449	f	2026-03-09 11:32:15.759243+00		+34603377326	f	2026-03-19 21:43:25.489+00	f
+e92aa512-c44f-48c8-b983-7c7705e36a6f	Excobar1208	escobarelkin@coruniamericana.edu.co	\N	f	2026-03-19 11:35:33.448954+00	\N	+34624550144	f	2026-03-19 21:45:30.455+00	f
+38f98f64-f2db-47bf-a5ea-dcd1804ce00a	themule089	david.cvega89@gmail.com	\N	f	2026-03-01 09:34:43.210041+00		+34692675304	f	2026-03-19 22:30:58.683+00	f
+0e9bdb55-a555-467d-995a-62d64ab8a509	libertojeans	libertogil@gmail.com	\N	f	2026-03-19 10:04:47.244235+00	\N	+34655085368	f	2026-03-19 19:31:09.607+00	f
+696d8a57-be9d-40a9-a945-76eb20706f72	Fernando	fernandoraslan@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/696d8a57-be9d-40a9-a945-76eb20706f72.webp?t=1773917198126	f	2026-03-19 10:45:34.434355+00		+34685342528	f	2026-03-19 22:41:10.189+00	f
 eae8c25a-a99d-480f-8e3e-854d36c5c8dc	Jeybiss	57juanjose57@gmail.com	\N	f	2026-02-26 13:49:18.323124+00	\N	+48511397460	f	2026-03-15 19:16:26.683+00	f
 4d3815fd-7460-4eb3-a435-257850cd58ca	Piedr4hita11	santipiedrahita7@gmail.com	\N	f	2026-02-26 17:35:59.322688+00	\N	+573172699704	f	2026-03-15 13:08:22.468+00	f
+74d1cfe5-421b-4be6-a055-0b7693ff2f1c	Kapi_86	Kapi_86@hotmail.com	\N	f	2026-03-19 17:01:34.347951+00	Kapi_86	+34663582278	f	2026-03-19 17:11:49.425+00	f
 943a493d-044c-4c88-babc-e64804553bb4	Angel_Rico	Angel_fgrico@hotmail.com	\N	f	2026-02-25 19:24:06.029584+00	@angelvk	+34626179294	f	2026-03-16 15:53:44.198+00	f
-84cdd50e-ef22-4022-aeca-60bfe32b6018	Retirado (Seventowers)	retirado_1773650490028@liga.com	\N	f	2026-03-04 14:14:20.10833+00	\N	\N	f	2026-03-04 14:46:53.979+00	f
-e2c0c4df-3aba-4f3e-9511-49df6b02b87b	Retirado (Javi GT)	retirado_1773650523716@liga.com	\N	f	2026-02-17 15:36:20.287975+00	\N	\N	f	2026-03-15 13:22:16.321+00	f
-8c1c7bba-636d-42f2-820a-ac1131897e84	Don Ptr Squad	pedrorodriguezmoya83@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/8c1c7bba-636d-42f2-820a-ac1131897e84.webp?t=1772706351861	f	2026-02-28 11:22:16.409045+00	@donptrsquad	+34615475002	f	2026-03-16 08:45:17.671+00	f
+8c1c7bba-636d-42f2-820a-ac1131897e84	Don Ptr Squad	pedrorodriguezmoya83@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/8c1c7bba-636d-42f2-820a-ac1131897e84.webp?t=1772706351861	f	2026-02-28 11:22:16.409045+00	@donptrsquad	+34615475002	f	2026-03-20 06:07:04.179+00	f
+af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	Fernando92	fernandoguardado04@gmail.com	\N	f	2026-03-19 17:06:58.626939+00	\N	+34641822342	f	2026-03-19 17:12:19.171+00	f
+00872e2b-9e9c-442f-810c-bfd62ee8a524	MELIODAS	mineclavelo11@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/00872e2b-9e9c-442f-810c-bfd62ee8a524.webp?t=1772270955942	f	2026-02-28 09:22:43.119146+00	@Carlos200593	+34641653508	f	2026-03-19 20:10:57.716+00	f
+b5d23981-469b-4353-a615-9e4d6c8d8daf	AdriWins	adrianruizmartos16@gmail.com	\N	f	2026-02-21 18:35:14.188818+00	\N	+34601520647	f	2026-03-19 20:21:04.625+00	f
+05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	Egea	Infoalbertoegea@gmail.com	\N	f	2026-03-20 09:12:32.84487+00	\N	+34653882016	f	2026-03-20 09:21:14.876+00	f
 ff1dccb8-00bc-4042-a869-3a55773f3701	errejota	rjgcolino@gmail.com	\N	f	2026-02-16 15:24:06.155978+00	@rrjjggcc	+34665957216	f	2026-03-16 16:18:17.344+00	f
-6060af3e-5fba-49c0-8583-f5ae3a04f813	test1	test@test.com	\N	f	2026-03-17 14:19:20.847918+00	\N	\N	f	2026-03-17 17:14:11.845+00	f
-c06aa55d-9cd6-4f14-8d85-6c5739913994	Mr.Macson	jhortolano@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c06aa55d-9cd6-4f14-8d85-6c5739913994.webp?t=1771253637914	f	2026-02-16 14:41:52.426307+00	@jl_hvv	+34655391764	t	2026-03-18 09:40:22.285+00	f
+31984a41-8b67-441c-abd6-2b3880940b87	LlaveringL	sergiollaverogomez@gmail.com	\N	f	2026-03-19 13:35:47.385648+00	\N	+34677139194	f	2026-03-19 15:21:36.468+00	f
+16f4402c-a1b5-4431-8d98-c454f52a6284	Iker	ikerxu1985@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/16f4402c-a1b5-4431-8d98-c454f52a6284.webp?t=1773441143926	f	2026-03-02 22:26:22.572768+00		+34619776212	f	2026-03-20 09:32:54.61+00	f
+2549f3dd-74dd-473b-be44-d5983b70e1ba	Franchesco	francisaditrap@gmail.com	\N	f	2026-02-25 11:51:26.140575+00	\N	+34692547413	f	2026-03-19 17:58:07.461+00	f
+c06aa55d-9cd6-4f14-8d85-6c5739913994	Mr.Macson	jhortolano@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c06aa55d-9cd6-4f14-8d85-6c5739913994.webp?t=1771253637914	f	2026-02-16 14:41:52.426307+00	@jl_hvv	+34655391764	t	2026-03-20 15:35:53.675+00	f
 \.
 
 
@@ -4698,6 +4703,19 @@ c1af288a-1476-4c1e-a77d-835b7df9a71c	d222b220-a0c5-4783-bc0c-03a827e0f888	4d3815
 4b4199ab-55b4-4998-ad64-6ea977a39093	d222b220-a0c5-4783-bc0c-03a827e0f888	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	0	2026-03-16 08:28:07.002025+00
 94f7599f-9dc4-4d4f-8eca-48c6dcb95058	d222b220-a0c5-4783-bc0c-03a827e0f888	8d16ce77-1836-4ce6-a462-b9d16358fb3f	0	2026-03-16 15:07:47.293199+00
 0e3c47a4-a67e-4bf0-a2c5-1bd9322d192b	d222b220-a0c5-4783-bc0c-03a827e0f888	943a493d-044c-4c88-babc-e64804553bb4	0	2026-03-16 15:53:50.022757+00
+e2af74c2-79a9-4645-9e62-b2f7b2944bf8	d222b220-a0c5-4783-bc0c-03a827e0f888	2f58705a-25ad-42c9-b953-5137532b3584	0	2026-03-17 20:37:40.184401+00
+7fce66be-eb83-474f-b332-b5af0f415523	d222b220-a0c5-4783-bc0c-03a827e0f888	449ee91c-f52f-4661-abd4-ebfd556c37c3	0	2026-03-18 11:53:47.230237+00
+33dc0f68-c8ab-47de-a557-2c5d56d9a175	d222b220-a0c5-4783-bc0c-03a827e0f888	a9757a54-7b1b-4e90-a88e-2f03cc0ca478	0	2026-03-18 13:08:27.269684+00
+50b16ebd-dbf6-403f-8dcc-05a1a033eb28	d222b220-a0c5-4783-bc0c-03a827e0f888	8c1c7bba-636d-42f2-820a-ac1131897e84	0	2026-03-19 09:31:24.157346+00
+79899e26-ebab-41c0-9ca0-88978de04fd2	d222b220-a0c5-4783-bc0c-03a827e0f888	0e9bdb55-a555-467d-995a-62d64ab8a509	0	2026-03-19 10:09:24.442148+00
+2822e257-0747-414a-b5b1-c6c13ee2a4ab	d222b220-a0c5-4783-bc0c-03a827e0f888	696d8a57-be9d-40a9-a945-76eb20706f72	0	2026-03-19 10:47:00.797668+00
+de32fdda-9cf3-4544-8023-4859ba16467a	d222b220-a0c5-4783-bc0c-03a827e0f888	4f008550-7b28-4437-923b-3438f4aed317	0	2026-03-19 12:09:27.114965+00
+08795031-1b8a-4586-89a1-894f2bcc41ce	d222b220-a0c5-4783-bc0c-03a827e0f888	31984a41-8b67-441c-abd6-2b3880940b87	0	2026-03-19 13:41:11.005347+00
+aed804e8-5648-49b5-9307-6885753eb36b	d222b220-a0c5-4783-bc0c-03a827e0f888	e92aa512-c44f-48c8-b983-7c7705e36a6f	0	2026-03-19 15:33:33.783311+00
+796aea47-a574-4bc8-98fd-0dbfd74838a7	d222b220-a0c5-4783-bc0c-03a827e0f888	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	0	2026-03-19 17:11:24.610285+00
+bd5e5ba8-abfb-4265-8827-f5c0e0b1232c	d222b220-a0c5-4783-bc0c-03a827e0f888	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	0	2026-03-19 17:12:30.013785+00
+640d536f-5c3d-4767-be81-d4db183d696c	d222b220-a0c5-4783-bc0c-03a827e0f888	2549f3dd-74dd-473b-be44-d5983b70e1ba	0	2026-03-19 17:46:16.802906+00
+6c2c821d-c7fc-4ac5-a5e9-1303f3c07bd2	d222b220-a0c5-4783-bc0c-03a827e0f888	b5d23981-469b-4353-a615-9e4d6c8d8daf	0	2026-03-19 20:21:24.64482+00
 \.
 
 
@@ -4934,7 +4952,7 @@ COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, up
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: supabase_auth_admin
 --
 
-SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 663, true);
+SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 736, true);
 
 
 --
@@ -4948,7 +4966,7 @@ SELECT pg_catalog.setval('public.config_id_seq', 1, false);
 -- Name: extra_playoffs_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.extra_playoffs_matches_id_seq', 40, true);
+SELECT pg_catalog.setval('public.extra_playoffs_matches_id_seq', 86, true);
 
 
 --
@@ -4962,7 +4980,7 @@ SELECT pg_catalog.setval('public.matches_id_seq', 56, true);
 -- Name: matches_rescheduled_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.matches_rescheduled_id_seq', 11, true);
+SELECT pg_catalog.setval('public.matches_rescheduled_id_seq', 2, true);
 
 
 --
@@ -8388,6 +8406,14 @@ GRANT ALL ON TABLE public.matches_rescheduled TO service_role;
 
 
 --
+-- Name: SEQUENCE matches_rescheduled_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.matches_rescheduled_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.matches_rescheduled_id_seq TO authenticated;
+
+
+--
 -- Name: TABLE partidos_detallados; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -8895,5 +8921,5 @@ ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NIFFgPgwyAQeUOdN7z6YJNUr43NcREoTILfpOiQ5E2wTkPkZ63hcipLmH25ker3
+\unrestrict uz0yJGCqEcI4iPJv8TgvqBrTPflcV4KtbeXKYjzao5BOQmn32Q0Ey3zabyLC0wx
 

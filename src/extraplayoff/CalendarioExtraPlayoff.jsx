@@ -209,7 +209,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
       {/* Mapeamos directamente las llaves del JSON para respetar su orden */}
       {Object.keys(fechasConfig)
         .sort((a, b) => {
-          const ordenLógico = ['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10', 'dieciseis', 'octavos', 'cuartos_ida', 'cuartos_vuelta', 'semis', 'final'];
+          const ordenLógico = ['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10', 'dieciseis','dieciseis_ida','dieciseis_vuelta', 'octavos','octavos_ida','octavos_vuelta','cuartos', 'cuartos_ida', 'cuartos_vuelta', 'semis','semis_ida','semis_vuelta', 'final', 'final_ida', 'final_vuelta'];
 
           // Obtenemos el índice del orden lógico (si no existe, lo manda al final)
           const indexA = ordenLógico.findIndex(item => a.startsWith(item) || a === item);

@@ -29,6 +29,10 @@ export default function AdminPlayoffsExtras({ config, profile }) {
 
   const [ocultarRetirados, setOcultarRetirados] = useState(true);
 
+  // --- ESTADOS PARA INTERCAMBIO ---
+  const [swapP1, setSwapP1] = useState('');
+  const [swapP2, setSwapP2] = useState('');
+
   const [fechasConfig, setFechasConfig] = useState({});
   const [configElims, setConfigElims] = useState({
     dieciseisavos: 'ida', // Añadir esta línea
@@ -115,30 +119,6 @@ export default function AdminPlayoffsExtras({ config, profile }) {
     const { error } = await supabase.from('playoffs_extra').update({ config_fechas: fechasConfig, config_eliminatorias: configElims }).eq('id', torneoEnGestion.id);
     if (error) alert("Error al guardar fechas");
     else { alert("✅ Calendario y Formatos actualizados"); fetchTorneosExtra(); }
-  };
-
-  const gestionarCambioJugador = async (idJugadorAnterior, idJugadorNuevo, grupoId) => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      if (idJugadorAnterior) await supabase.from('extra_matches').delete().eq('extra_id', torneoEnGestion.id).or(`player1_id.eq.${idJugadorAnterior},player2_id.eq.${idJugadorAnterior}`);
-      if (idJugadorNuevo) {
-        await supabase.from('extra_matches').delete().eq('extra_id', torneoEnGestion.id).or(`player1_id.eq.${idJugadorNuevo},player2_id.eq.${idJugadorNuevo}`);
-        const rivales = obtenerJugadoresUnicosPorGrupo(parseInt(grupoId)).filter(r => r.id !== idJugadorNuevo);
-        if (rivales.length > 0) {
-          const nuevosPartidos = [];
-          rivales.forEach(rival => {
-            nuevosPartidos.push({ extra_id: torneoEnGestion.id, group_id: grupoId, player1_id: idJugadorNuevo, player2_id: rival.id, is_played: false });
-            if (torneoEnGestion.tipo_format === 'ida_vuelta') nuevosPartidos.push({ extra_id: torneoEnGestion.id, group_id: grupoId, player1_id: rival.id, player2_id: idJugadorNuevo, is_played: false });
-          });
-          await supabase.from('extra_matches').insert(nuevosPartidos);
-          await supabase.from('extra_matches').delete().eq('group_id', grupoId).is('player2_id', null);
-        } else {
-          await supabase.from('extra_matches').insert({ extra_id: torneoEnGestion.id, group_id: grupoId, player1_id: idJugadorNuevo, player2_id: null, is_played: false });
-        }
-      }
-      await verEsquema(torneoEnGestion);
-    } catch (err) { console.error(err); alert("Error en el cambio"); } finally { setLoading(false); }
   };
 
   const obtenerJugadoresUnicosPorGrupo = (grupoId) => {
@@ -454,6 +434,40 @@ export default function AdminPlayoffsExtras({ config, profile }) {
     return coincideBusqueda;
   });
 
+  const intercambiarJugadores = async () => {
+    if (!swapP1 || !swapP2 || swapP1 === swapP2) return alert("Selecciona dos jugadores distintos");
+    if (!confirm("¿Seguro que quieres intercambiar a estos dos jugadores?")) return;
+
+    setLoading(true);
+    const torneoId = torneoEnGestion.id;
+
+    try {
+      // PASO 1: "Vaciamos" al Jugador 1 poniéndolo a NULL temporalmente
+      // Esto es legal porque tus columnas permiten NULL (según el .sql)
+      await supabase.from('extra_matches').update({ player1_id: null }).eq('extra_id', torneoId).eq('player1_id', swapP1);
+      await supabase.from('extra_matches').update({ player2_id: null }).eq('extra_id', torneoId).eq('player2_id', swapP1);
+
+      // PASO 2: Donde esté el Jugador 2, ponemos al Jugador 1
+      await supabase.from('extra_matches').update({ player1_id: swapP1 }).eq('extra_id', torneoId).eq('player1_id', swapP2);
+      await supabase.from('extra_matches').update({ player2_id: swapP1 }).eq('extra_id', torneoId).eq('player2_id', swapP2);
+
+      // PASO 3: Donde dejamos los huecos (NULL), ponemos al Jugador 2
+      await supabase.from('extra_matches').update({ player1_id: swapP2 }).eq('extra_id', torneoId).is('player1_id', null);
+      await supabase.from('extra_matches').update({ player2_id: swapP2 }).eq('extra_id', torneoId).is('player2_id', null);
+
+      alert("✅ ¡Intercambio completado con éxito!");
+      setSwapP1('');
+      setSwapP2('');
+      verEsquema(torneoEnGestion);
+
+    } catch (err) {
+      console.error("Error en el intercambio:", err);
+      alert("Hubo un problema con la base de datos. Verifica que los jugadores no tengan resultados ya anotados.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const totalJornadas = torneoEnGestion ? calcularMaxJornadasGrupos() : 0;
 
@@ -638,6 +652,56 @@ export default function AdminPlayoffsExtras({ config, profile }) {
                   ))}
                 </div>
                 <button onClick={guardarCalendario} style={{ marginTop: '15px', background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', width: '100%', fontWeight: 'bold' }}>Guardar Calendario y Formatos</button>
+                <div style={{
+                  marginTop: '25px',
+                  padding: '15px',
+                  background: '#fff3cd',
+                  border: '1px solid #ffeeba',
+                  borderRadius: '8px'
+                }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#856404' }}>🔄 Intercambiar Jugadores (Swap)</h5>
+                  <p style={{ fontSize: '0.7rem', margin: '0 0 10px 0' }}>
+                    Esto intercambiará todas las apariciones del Jugador 1 por las del Jugador 2 en este torneo liguilla.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <select
+                      value={swapP1}
+                      onChange={e => setSwapP1(e.target.value)}
+                      style={{ flex: 1, padding: '8px', fontSize: '0.8rem' }}
+                    >
+                      <option value="">-- Jugador 1 --</option>
+                      {todosLosPerfiles.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
+                    </select>
+
+                    <span style={{ fontWeight: 'bold' }}>↔️</span>
+
+                    <select
+                      value={swapP2}
+                      onChange={e => setSwapP2(e.target.value)}
+                      style={{ flex: 1, padding: '8px', fontSize: '0.8rem' }}
+                    >
+                      <option value="">-- Jugador 2 --</option>
+                      {todosLosPerfiles.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
+                    </select>
+
+                    <button
+                      onClick={intercambiarJugadores}
+                      disabled={loading || !swapP1 || !swapP2}
+                      style={{
+                        padding: '8px 15px',
+                        background: '#856404',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {loading ? '...' : 'Sustituir'}
+                    </button>
+                  </div>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginTop: '20px' }}>
                   {gruposGestion.map(g => (
                     <div key={g.id} style={{ padding: '10px', background: '#f0f4f8', borderRadius: '8px' }}>
@@ -645,7 +709,15 @@ export default function AdminPlayoffsExtras({ config, profile }) {
                       {[0, 1, 2, 3].map(i => {
                         const jug = obtenerJugadoresUnicosPorGrupo(g.id)[i];
                         return (
-                          <select key={i} value={jug?.id || ''} onChange={(e) => gestionarCambioJugador(jug?.id, e.target.value, g.id)} style={{ width: '100%', marginTop: '4px', fontSize: '0.75rem' }}>
+                          <select  key={i}   value={jug?.id || ''}    disabled 
+                            style={{
+                              width: '100%',
+                              marginTop: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: '#e9ecef', // Color grisáceo para indicar que está bloqueado
+                              cursor: 'not-allowed'       // Cursor de "prohibido" al pasar por encima
+                            }}
+                          >
                             <option value="">-- Vacío --</option>
                             {todosLosPerfiles.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
                           </select>

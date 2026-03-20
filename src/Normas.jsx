@@ -88,6 +88,28 @@ function Normas() {
           </ul>
         </div>
 
+        {/* Escenarios Especiales */}
+        <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
+          <strong>⚠️ Escenarios Especiales (Lag y Desconexiones):</strong>
+          
+          <div style={{ marginTop: '12px', color: '#333' }}>
+            <strong>1. Incidencias por Lag persistente:</strong>
+            <ul style={{ margin: '5px 0 10px 0', paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>
+              <li><strong>Minuto 0-30:</strong> El jugador afectado puede abandonar y posponer el encuentro.</li>
+              <li><strong>Minuto 30+:</strong> El partido debe finalizarse obligatoriamente pese al lag.</li>
+              <li><strong>Marcador:</strong> Si hay una diferencia de 2 o más goles al abandonar, se arrastrará esa ventaja al nuevo partido. Si la diferencia es de 1 gol o empate, se empieza de cero.</li>
+            </ul>
+          </div>
+
+          <div style={{ marginTop: '10px', color: '#333' }}>
+            <strong>2. Desconexión de red:</strong>
+            <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>
+              <li><strong>Antes del min 30:</strong> Se juega un partido nuevo completo y se suma el resultado del primer partido al marcador final.</li>
+              <li><strong>Después del min 30:</strong> Se juega un nuevo partido solo los minutos restantes (hasta el min 90 total). Se debe detener el juego inmediatamente al cumplir el tiempo acordado, sin esperar a terminar la jugada. El marcador del primer partido se suma al marcador del segundo partido.</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
     try {
       const { data: torneos } = await supabase
         .from('playoffs_extra')
-        .select('id, nombre, current_round, config_fechas')
+        .select('id, nombre, current_round, config_fechas, use_auto_round')
         .eq('estado', 'activo');
 
       if (!torneos || torneos.length === 0) return setPartidosExtra([]);
@@ -24,12 +24,22 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
       let acumulados = [];
 
       for (const torneo of torneos) {
-        const { current_round, config_fechas, id: torneoId, nombre: torneoNombre } = torneo;
+        const { current_round, config_fechas, id: torneoId, nombre: torneoNombre, use_auto_round } = torneo;
 
         if (!config_fechas || !current_round) continue;
 
         const configActual = config_fechas[current_round];
         if (!configActual) continue;
+
+        if (use_auto_round === true) {
+          const ahora = new Date();
+          const fechaInicio = new Date(configActual.start_at);
+
+          if (ahora < fechaInicio) {
+            //console.log(`Torneo ${torneoNombre}: La ronda ${current_round} aún no ha comenzado.`);
+            continue;
+          }
+        }
 
         const desdeActual = configActual.start_at;
         const hastaActual = configActual.end_at;
@@ -37,7 +47,8 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
         const rondasActivas = Object.entries(config_fechas)
           .filter(([_, rango]) => rango.start_at === desdeActual && rango.end_at === hastaActual)
           .map(([nombreRonda]) => nombreRonda);
-        
+
+        //console.log(configActual);
         //console.log(rondasActivas);
 
         const jornadasLiguilla = rondasActivas
@@ -127,40 +138,40 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
     }
   };
 
-const manejarProgresionAutomática = async (partidoOriginal) => {
-  const torneoId = partidoOriginal.playoff_extra_id || partidoOriginal.extra_id;
-  if (!torneoId) return;
+  const manejarProgresionAutomática = async (partidoOriginal) => {
+    const torneoId = partidoOriginal.playoff_extra_id || partidoOriginal.extra_id;
+    if (!torneoId) return;
 
-  try {
-    // 1. Traer el partido fresco de la base de datos
-    const tabla = Number.isInteger(Number(partidoOriginal.numero_jornada)) 
-                   ? 'extra_matches' 
-                   : 'extra_playoffs_matches';
+    try {
+      // 1. Traer el partido fresco de la base de datos
+      const tabla = Number.isInteger(Number(partidoOriginal.numero_jornada))
+        ? 'extra_matches'
+        : 'extra_playoffs_matches';
 
-    const { data: partidoFresco } = await supabase
-      .from(tabla)
-      .select('*')
-      .eq('id', partidoOriginal.id)
-      .single();
+      const { data: partidoFresco } = await supabase
+        .from(tabla)
+        .select('*')
+        .eq('id', partidoOriginal.id)
+        .single();
 
-    if (!partidoFresco || !partidoFresco.is_played) {
-      console.log("El partido aún no figura como jugado en la DB.");
-      return;
+      if (!partidoFresco || !partidoFresco.is_played) {
+        console.log("El partido aún no figura como jugado en la DB.");
+        return;
+      }
+
+      const esNumero = Number.isInteger(Number(partidoFresco.numero_jornada));
+
+      if (esNumero) {
+        await procesarYPublicarPlayoffs(torneoId);
+      } else {
+        // Ahora pasamos el partidoFresco que ya tiene los goles y el is_played: true
+        await promocionarGanadorPlayoff(torneoId, partidoFresco);
+        await verificarYActualizarEstadoFinal(torneoId);
+      }
+    } catch (error) {
+      console.error("Error en la progresión automática:", error);
     }
-
-    const esNumero = Number.isInteger(Number(partidoFresco.numero_jornada));
-
-    if (esNumero) {
-      await procesarYPublicarPlayoffs(torneoId);
-    } else {
-      // Ahora pasamos el partidoFresco que ya tiene los goles y el is_played: true
-      await promocionarGanadorPlayoff(torneoId, partidoFresco);
-      await verificarYActualizarEstadoFinal(torneoId);
-    }
-  } catch (error) {
-    console.error("Error en la progresión automática:", error);
-  }
-};
+  };
 
   if (partidosExtra.length === 0) return null;
 

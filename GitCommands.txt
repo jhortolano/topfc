@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Nuevas normas y boton jugadores sin partidos"
+git commit -m "Solucion CSS"
 git push origin silver
 
 git checkout main

@@ -142,7 +142,7 @@ export default function Jugadores({ config }) {
       if (cleanIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('nick, telegram_user, phone, avatar_url')
+          .select('nick, telegram_user, phone, avatar_url, eafc_user')
           .in('id', cleanIds)
           .order('nick', { ascending: true })
         setUsuarios(profiles || [])
@@ -207,7 +207,27 @@ export default function Jugadores({ config }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <AvatarConZoom url={u.avatar_url} nick={u.nick} />
-                <span style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem' }}>{u.nick}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{
+                    fontWeight: 'bold',
+                    color: '#2c3e50',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.1' // Ajustamos para que no haya demasiado espacio entre ellos
+                  }}>
+                    {u.nick}
+                  </span>
+
+                  {u.eafc_user && (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      color: '#7f8c8d',
+                      fontWeight: 'normal',
+                      marginTop: '2px'
+                    }}>
+                      ID: {u.eafc_user}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

@@ -5,6 +5,7 @@ export default function UserInfo({ profile, onUpdate }) {
   const [loading, setLoading] = useState(false)
   const [telegram, setTelegram] = useState(profile?.telegram_user || '')
   const [phone, setPhone] = useState(profile?.phone || '')
+  const [eafcUser, setEafcUser] = useState(profile?.eafc_user || '')
   const [mensaje, setMensaje] = useState('')
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [uploading, setUploading] = useState(false)
@@ -18,7 +19,7 @@ export default function UserInfo({ profile, onUpdate }) {
     setLoading(true)
     const { error } = await supabase
       .from('profiles')
-      .update({ telegram_user: telegram, phone: phone })
+      .update({ telegram_user: telegram, phone: phone, eafc_user: eafcUser })
       .eq('id', profile.id)
 
     if (error) setMensaje('❌ Error: ' + error.message)
@@ -155,6 +156,9 @@ export default function UserInfo({ profile, onUpdate }) {
 
         <label style={labelStyle}>Whatsapp</label>
         <input style={editableInputStyle} type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+34..." />
+
+        <label style={labelStyle}>EA Sports FC User</label>
+        <input style={editableInputStyle} type="text" value={eafcUser} onChange={e => setEafcUser(e.target.value)} placeholder="ID de EA FC" />
 
         {mensaje && <p style={{ fontSize: '0.85rem', textAlign: 'center', color: mensaje.startsWith('✅') ? '#27ae60' : '#e74c3c' }}>{mensaje}</p>}
 

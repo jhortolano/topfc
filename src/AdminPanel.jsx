@@ -34,13 +34,23 @@ function PartidoEditable({ partido, onUpdate }) {
     gV != (partido.away_score ?? '') ||
     streamUrl !== (partido.stream_url || '');
 
-
+  // Condición: is_played es false/null Y los scores en la DB NO son null
+  const esNoJugadoConGoles =
+    !partido.is_played &&
+    partido.home_score !== null &&
+    partido.away_score !== null;
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', // Cambiado a column para el input debajo
-      background: modificado ? '#ebf8ff' : '#f8f9fa',
+      // Prioridad de colores: 1. Modificado (Azul), 2. No jugado con goles (Naranja), 3. Normal (Gris)
+      background: modificado
+        ? '#ebf8ff'
+        : (esNoJugadoConGoles ? '#fff3e0' : '#f8f9fa'),
       borderRadius: '10px', marginBottom: '8px', border: modificado ? '1px solid #4299e1' : '1px solid #edf2f7',
+      border: modificado
+        ? '1px solid #4299e1'
+        : (esNoJugadoConGoles ? '1px solid #ffb74d' : '1px solid #edf2f7'),
       transition: 'all 0.2s'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -84,6 +94,19 @@ function PartidoEditable({ partido, onUpdate }) {
             title="Resetear"
             style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
           >↺</button>
+          <button
+            onClick={() => {
+              // Lógica: Si no hay goles en el estado local, ponemos 0-0
+              const finalGL = gL === '' ? 0 : gL;
+              const finalGV = gV === '' ? 0 : gV;
+              setGL(finalGL);
+              setGV(finalGV);
+              // Llamamos a onUpdate con is_played = false
+              onUpdate(partido.id, finalGL, finalGV, false, streamUrl);
+            }}
+            title="Marcar como No Jugado"
+            style={{ background: '#f39c12', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          >NJ</button>
         </div>
       </div>
 

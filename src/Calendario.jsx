@@ -281,7 +281,9 @@ export default function CalendarioCompleto({ config }) {
 
                       {/* Marcador */}
                       <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
-                        {(p.is_played || p.played) ? `${p.home_score}-${p.away_score}` : 'vs'}
+                        {(p.is_played || p.played) || (p.home_score !== null && p.away_score !== null)
+                          ? `${p.home_score}-${p.away_score}`
+                          : 'vs'}
                       </div>
 
                       {/* Visitante */}
@@ -327,6 +329,31 @@ export default function CalendarioCompleto({ config }) {
                         </div>
                       );
                     })()}
+                    {/* 3. FILA DE ESTADO "NO JUGADO" (Cuando hay goles pero el flag es falso/null) */}
+                    {(!(p.is_played || p.played)) && (p.home_score !== null && p.away_score !== null) && (
+                      <div style={{
+                        width: '100%',
+                        textAlign: 'center',
+                        paddingBottom: '8px',
+                        marginTop: '-4px',
+                        pointerEvents: 'none'
+                      }}>
+                        <span style={{
+                          fontSize: '0.55rem',
+                          color: '#e74c3c', // Un rojo suave para indicar la inconsistencia
+                          fontWeight: 'bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          background: 'rgba(255,255,255,0.9)',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid #fab1a0',
+                          display: 'inline-block'
+                        }}>
+                          ⚠️ No Jugado
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

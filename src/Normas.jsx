@@ -56,7 +56,8 @@ function Normas() {
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
             <li style={{ marginBottom: '5px' }}>Si no puedes jugar una semana, intenta adelantar el partido en lugar de retrasarlo.</li>
             <li>No se pueden retrasar partidos más allá del final de la temporada.</li>
-            <li>Partidos no jugados al final de la temporada serán marcados como 3-0 en contra de la persona que no podía jugar en la semana que tocaba</li>
+            <li>Partidos no jugados pueden ser reprogramados contactando con la administración e indicando la semana a jugarlo. Si no se reprograma el partido en la siguiente jornada y ningún jugador contacta con la administración, el partido se marca 0-0 sin posibilidad de jugarlo.</li>
+            <li>Si un partido no es reprogramado debido a que un sólo jugador no puede, el partido se marca como 3-0 a favor del jugador que podía jugarlo.</li>
           </ul>
         </div>
 

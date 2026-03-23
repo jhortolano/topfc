@@ -167,6 +167,9 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
   const [hideRetired, setHideRetired] = useState(true); // Por defecto seleccionado
 
+  const [onlyNoGame, setOnlyNoGame] = useState(false);
+  const [activePlayerIds, setActivePlayerIds] = useState([]);
+
   // Sincronizar si la config cambia desde fuera
   useEffect(() => {
     setAllowReg(config?.allow_registration ?? true);
@@ -194,6 +197,46 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
     fetchPartidosParaEditar();
     if (editSeason) loadSeasonRules(editSeason);
   }, [editSeason, editWeek, editDiv]);
+
+  useEffect(() => {
+    const fetchActivePlayers = async () => {
+      if (!onlyNoGame) return;
+
+      const s = config?.current_season;
+      if (!s) return;
+
+      let ids = new Set();
+
+      // 1. Liga (matches)
+      const { data: m } = await supabase.from('matches').select('home_team, away_team').eq('season', s);
+      m?.forEach(p => { if (p.home_team) ids.add(p.home_team); if (p.away_team) ids.add(p.away_team); });
+
+      // 2. Playoff Matches
+      const { data: pl } = await supabase.from('playoffs').select('id').eq('season', s);
+      if (pl?.length > 0) {
+        const plIds = pl.map(p => p.id);
+        const { data: pm } = await supabase.from('playoff_matches').select('home_team, away_team').in('playoff_id', plIds);
+        pm?.forEach(p => { if (p.home_team) ids.add(p.home_team); if (p.away_team) ids.add(p.away_team); });
+      }
+
+      // 3. Extra Playoff Matches & Extra Matches
+      const { data: ex } = await supabase.from('playoffs_extra').select('id').eq('season_id', s);
+      if (ex?.length > 0) {
+        const exIds = ex.map(e => e.id);
+
+        // Tabla extra_playoff_matches
+        const { data: epm } = await supabase.from('extra_playoffs_matches').select('player1_id, player2_id').in('playoff_extra_id', exIds);
+        epm?.forEach(p => { if (p.player1_id) ids.add(p.player1_id); if (p.player2_id) ids.add(p.player2_id); });
+
+        // Tabla extra_matches
+        const { data: em } = await supabase.from('extra_matches').select('player1_id, player2_id').in('extra_id', exIds);
+        em?.forEach(p => { if (p.player1_id) ids.add(p.player1_id); if (p.player2_id) ids.add(p.player2_id); });
+      }
+      setActivePlayerIds(Array.from(ids));
+    };
+
+    fetchActivePlayers();
+  }, [onlyNoGame, config?.current_season]);
 
 
   const fetchSeasons = async () => {
@@ -512,7 +555,11 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
     const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
     const pasaFiltroRetirados = hideRetired ? !esRetirado : true;
 
-    return coincideBusqueda && pasaFiltroRetirados;
+    // 3: Filtro de "Sin Juego"
+    const estaJugando = activePlayerIds.includes(u.id);
+    const pasaFiltroSinJuego = onlyNoGame ? (!estaJugando && !esRetirado) : true;
+
+    return coincideBusqueda && pasaFiltroRetirados && pasaFiltroSinJuego;
   });
 
   return (
@@ -969,6 +1016,14 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
                   onChange={(e) => setHideRetired(e.target.checked)}
                 />
                 Ocultar usuarios retirados
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', color: onlyNoGame ? '#3498db' : '#7f8c8d', fontWeight: onlyNoGame ? 'bold' : 'normal' }}>
+                <input
+                  type="checkbox"
+                  checked={onlyNoGame}
+                  onChange={(e) => setOnlyNoGame(e.target.checked)}
+                />
+                Mostrar solo sin juego (T{config?.current_season})
               </label>
             </div>
           </div>

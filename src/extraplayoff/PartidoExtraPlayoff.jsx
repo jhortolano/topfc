@@ -16,7 +16,7 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
     try {
       const { data: torneos } = await supabase
         .from('playoffs_extra')
-        .select('id, nombre, current_round, config_fechas, use_auto_round')
+        .select('id, nombre, current_round, config_fechas, use_auto_round, limit_ga_enabled, max_ga_playoff')
         .eq('estado', 'activo');
 
       if (!torneos || torneos.length === 0) return setPartidosExtra([]);
@@ -89,7 +89,9 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
               visitante_avatar: m.visitante_avatar?.avatar_url,
               playoff_name: torneoNombre,
               round: `Jornada ${m.numero_jornada}`,
-              is_extra_liguilla: true
+              is_extra_liguilla: true,
+              limit_ga_enabled: torneo.limit_ga_enabled,
+              max_ga_playoff: torneo.max_ga_playoff
             })));
           }
         }
@@ -126,12 +128,13 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
               visitante_avatar: m.visitante_avatar?.avatar_url,
               playoff_name: torneoNombre,
               round: (m.numero_jornada || m.fase || "Playoff").toString().toUpperCase().replace(/_/g, " "),
-              is_extra_playoff: true
+              is_extra_playoff: true,
+              limit_ga_enabled: torneo.limit_ga_enabled,
+              max_ga_playoff: torneo.max_ga_playoff
             })));
           }
         }
       }
-
       setPartidosExtra(acumulados);
     } catch (err) {
       console.error("Error cargando partidos extra:", err);

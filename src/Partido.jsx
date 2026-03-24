@@ -82,6 +82,9 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
         // Usamos los datos que inyectaste en el mapeo: po.limit_ga_enabled y po.max_ga_playoff
         activo = String(partido.playoff_limit_ga) === 'true' || partido.playoff_limit_ga === true;
         maximo = parseInt(partido.playoff_max_ga);
+      } else if(isExtraLiguilla || isExtraPlayoff){
+        activo = String(partido.limit_ga_enabled) === 'true' || partido.limit_ga_enabled === true;
+        maximo = parseInt(partido.max_ga_playoff);
       } else {
         // Usamos las reglas de la liga que vienen por props
         activo = String(limitGaEnabled) === 'true' || limitGaEnabled === true;
@@ -612,7 +615,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
             usuario_id: profile.id,
             opcion_index: opcionIndex
           },
-          { onConflict: 'encuesta_id, usuario_id' } // <-- ESTA LÍNEA ES LA CLAVE
+          { onConflict: 'encuesta_id, usuario_id' }
         );
 
       if (error) throw error;

@@ -605,6 +605,25 @@ export default function AdminPlayoffsExtras({ config, profile }) {
                     Streams cuentan para puntos en liga
                   </label>
                 </div>
+                {/* --- LIMITAR GOLES (FAIR PLAY) --- */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px', background: '#fffbf0', padding: '5px 10px', borderRadius: '8px', border: '1px solid #ffeeba' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', color: '#856404', whiteSpace: 'nowrap' }}>
+                    <input type="checkbox" checked={t.limit_ga_enabled} onChange={e => actualizarConfigRonda(t.id, 'limit_ga_enabled', e.target.checked)} />
+                    ¿Limitar Goles?
+                  </label>
+                  {t.limit_ga_enabled && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#856404', fontWeight: 'bold' }}>Máx:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={t.max_ga_playoff || 0}
+                        onChange={e => actualizarConfigRonda(t.id, 'max_ga_playoff', parseInt(e.target.value) || 0)}
+                        style={{ width: '45px', fontSize: '0.75rem', padding: '2px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button onClick={() => verEsquema(t)} style={{ background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Esquema</button>
@@ -709,7 +728,7 @@ export default function AdminPlayoffsExtras({ config, profile }) {
                       {[0, 1, 2, 3].map(i => {
                         const jug = obtenerJugadoresUnicosPorGrupo(g.id)[i];
                         return (
-                          <select  key={i}   value={jug?.id || ''}    disabled 
+                          <select key={i} value={jug?.id || ''} disabled
                             style={{
                               width: '100%',
                               marginTop: '4px',

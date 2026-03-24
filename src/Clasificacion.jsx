@@ -576,9 +576,9 @@ export default function Clasificacion({ config }) {
                     <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
                     <td>{j.pj ?? 0}</td>
                     {/* Sumamos victorias de casa y fuera */}
-                    <td>{(j.pg_casa || 0) + (j.pg_fuera || 0)}</td>
+                     <td>{j.pg ?? 0}</td>
                     {/* Sumamos empates de casa y fuera */}
-                    <td>{(j.pe_casa || 0) + (j.pe_fuera || 0)}</td>
+                     <td>{j.pe ?? 0}</td>
                     {/* Cambiado: j.goles_fuera/casa por j.gf y j.gc */}
                     <td>{j.gf ?? 0}</td>
                     <td>{j.gc ?? 0}</td>

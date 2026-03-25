@@ -183,17 +183,17 @@ const calcularStatsStreams = (
 
   // Extra: Liguilla (solo de torneos con stream_puntos activo)
   const extraLiguillaMatches = allExtraLiguilla.filter(m =>
-    validExtraIds.has(m.extra_id) && 
+    validExtraIds.has(m.extra_id) &&
     (m.player1_id === jugadorId || m.player2_id === jugadorId) &&
-    m.player1_id !== null && 
+    m.player1_id !== null &&
     m.player2_id !== null // <--- Filtro de rival real
   );
 
   // Extra: Eliminatorias (solo de torneos con stream_puntos activo)
   const extraElimsMatches = allExtraElims.filter(m =>
-    validExtraIds.has(m.playoff_extra_id) && 
+    validExtraIds.has(m.playoff_extra_id) &&
     (m.player1_id === jugadorId || m.player2_id === jugadorId) &&
-    m.player1_id !== null && 
+    m.player1_id !== null &&
     m.player2_id !== null // <--- Filtro de rival real
   );
 
@@ -223,6 +223,43 @@ const calcularStatsStreams = (
   const porcentaje = totalPartidos > 0 ? Math.round((totalStreams / totalPartidos) * 100) : 0;
 
   return { totalStreams, totalPartidos, porcentaje };
+};
+
+const getPosicionStyle = (pos, div, total) => {
+  const baseStyle = {
+    // CAMBIOS AQUÍ:
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+    borderRadius: '6px',
+    fontWeight: '900',
+    fontSize: '0.75rem',
+    textAlign: 'center',
+    lineHeight: '1' 
+  };
+
+  // Lógica de colores por División
+  if (div === 1) {
+    if (pos === 1) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Campeón
+    if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // 9 y 10 (Rojo)
+    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 8 (Naranja)
+  }
+
+  if (div === 2) {
+    if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Ascenso
+    if (pos === 3) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+    if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // Últimos dos
+    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // Penúltimo naranja
+  }
+
+  if (div === 3) {
+    if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' };
+    if (pos === 3) return { ...baseStyle, background: '#e3e31b', color: 'white' };
+  }
+
+  return { ...baseStyle, color: '#94a3b8', background: '#f1f5f9' }; // Resto
 };
 
 // --- COMPONENTE PRINCIPAL ---
@@ -560,45 +597,54 @@ export default function Clasificacion({ config }) {
                   <th style={{ padding: '10px' }}>📺</th>
                 </tr>
               </thead>
-              {/* ... dentro de !esPlayoff ... */}
+
               <tbody>
-                {lista.map((j, i) => (
-                  <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
-                    <td style={{
-                      padding: '10px 5px', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 'bold', width: '20px'
-                    }}>
-                      {i + 1}
-                    </td>
-                    <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Avatar url={j.avatar_url} size="24px" />
-                      <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
-                    </td>
-                    <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
-                    <td>{j.pj ?? 0}</td>
-                    {/* Sumamos victorias de casa y fuera */}
-                     <td>{j.pg ?? 0}</td>
-                    {/* Sumamos empates de casa y fuera */}
-                     <td>{j.pe ?? 0}</td>
-                    {/* Cambiado: j.goles_fuera/casa por j.gf y j.gc */}
-                    <td>{j.gf ?? 0}</td>
-                    <td>{j.gc ?? 0}</td>
-                    <td style={{ color: (j.dg ?? 0) > 0 ? '#2ecc71' : (j.dg ?? 0) < 0 ? '#e74c3c' : '#7f8c8d', fontWeight: '600' }}>{j.dg ?? 0}</td>
-                    <td style={{ padding: '10px', color: '#64748b', fontWeight: 'bold' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem' }}>
-                        <span>{j.streamStats?.totalStreams || 0}/{j.streamStats?.totalPartidos || 0}</span>
-                        <span style={{ color: j.bonusStream?.aplica ? '#9b59b6' : '#94a3b8' }}>
-                          ({j.streamStats?.porcentaje || 0}%)
-                          {j.bonusStream?.aplica && (
-                            <span style={{ color: '#2ecc71', fontWeight: 'bold', marginLeft: '4px' }}>
-                              (+{j.bonusStream.puntos})
-                            </span>
-                          )}
+                {lista.map((j, i) => {
+                  const pos = i + 1;
+                  const total = lista.length;
+
+                  return (
+                    <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
+                      {/* ESTA ES LA CELDA QUE CAMBIA */}
+                      <td style={{ padding: '10px 5px', width: '35px' }}>
+                        <span style={getPosicionStyle(pos, vD, total)}>
+                          {pos}
                         </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* El resto de la fila se queda igual que antes... */}
+                      <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Avatar url={j.avatar_url} size="24px" />
+                        <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
+                      </td>
+                      <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
+                      <td>{j.pj ?? 0}</td>
+                      <td>{j.pg ?? 0}</td>
+                      <td>{j.pe ?? 0}</td>
+                      <td>{j.gf ?? 0}</td>
+                      <td>{j.gc ?? 0}</td>
+                      <td style={{ color: (j.dg ?? 0) > 0 ? '#2ecc71' : (j.dg ?? 0) < 0 ? '#e74c3c' : '#7f8c8d', fontWeight: '600' }}>{j.dg ?? 0}</td>
+                      <td style={{ padding: '10px', color: '#64748b', fontWeight: 'bold' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem' }}>
+                          <span>{j.streamStats?.totalStreams || 0}/{j.streamStats?.totalPartidos || 0}</span>
+                          <span style={{ color: j.bonusStream?.aplica ? '#9b59b6' : '#94a3b8' }}>
+                            ({j.streamStats?.porcentaje || 0}%)
+                            {j.bonusStream?.aplica && (
+                              <span style={{ color: '#2ecc71', fontWeight: 'bold', marginLeft: '4px' }}>
+                                (+{j.bonusStream.puntos})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
+
+
+
+
             </table>
           </div>
         );

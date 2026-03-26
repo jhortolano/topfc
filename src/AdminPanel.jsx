@@ -156,6 +156,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
   const [showReschedule, setShowReschedule] = useState(false);
 
+  const [seasonRules, setSeasonRules] = useState(null);
+
   // --- ESTADOS PARA COLABORADORES ---
   const [colaboradorSearch, setColaboradorSearch] = useState('');
   const [showColaboradorResults, setShowColaboradorResults] = useState(false);
@@ -185,7 +187,7 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
 
 
-  const [autoWeek, setAutoWeek] = useState(config?.auto_week_by_date || false);
+  const [autoWeek, setAutoWeek] = useState(false);
   const [allowReg, setAllowReg] = useState(config?.allow_registration ?? true);
 
   const [hideRetired, setHideRetired] = useState(true); // Por defecto seleccionado
@@ -200,8 +202,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
   // Sincroniza si la prop cambia desde fuera
   useEffect(() => {
-    setAutoWeek(config?.auto_week_by_date || false);
-  }, [config?.auto_week_by_date]);
+    setAutoWeek(autoWeek || false);
+  }, [autoWeek]);
 
   useEffect(() => {
     fetchSeasons();
@@ -220,6 +222,36 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
     fetchPartidosParaEditar();
     if (editSeason) loadSeasonRules(editSeason);
   }, [editSeason, editWeek, editDiv]);
+
+  useEffect(() => {
+    const fetchSeasonRules = async () => {
+      if (config?.current_season) {
+        const { data, error } = await supabase
+          .from('season_rules')
+          .select('*')
+          .eq('season', config.current_season)
+          .maybeSingle(); // Usa maybeSingle para que no de error si no encuentra nada
+
+        if (error) {
+          console.error("Error cargando reglas:", error);
+          return;
+        }
+
+        if (data) {
+          setSeasonRules(data);
+          setAutoWeek(data.auto_week_by_date);
+        } else {
+          // Si no existe la fila, ponemos valores por defecto para evitar el crash
+          setSeasonRules({ auto_week_by_date: false });
+          setAutoWeek(false);
+
+          // OPCIONAL: Podrías crear la fila aquí si falta
+          console.warn("No se encontraron reglas para la temporada actual.");
+        }
+      }
+    };
+    fetchSeasonRules();
+  }, [config?.current_season]);
 
   useEffect(() => {
     const fetchActivePlayers = async () => {
@@ -561,6 +593,22 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       currentStart = new Date(currentEnd.getTime());
     }
     await supabase.from('weeks_schedule').insert(scheduleEntries);
+    // 2. Crear automáticamente las reglas para la nueva temporada
+    const { error: rulesError } = await supabase
+      .from('season_rules')
+      .insert([{
+        season: seasonNum,
+        bonus_enabled: false,
+        bonus_min_percentage: 80,
+        bonus_points: 1,
+        limit_ga_enabled: true,
+        max_ga_league: 3,
+        auto_week_by_date: false,
+        auto_playoff_by_date: false
+      }]);
+    if (rulesError) {
+      console.error("Error al crear season_rules:", rulesError);
+    }
     setShowUserSelector(false);
     fetchSeasons();
     onConfigChange();
@@ -604,8 +652,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span>Jornada Activa:</span>
                 <button
-                  style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
-                  disabled={config?.auto_week_by_date}
+                  style={{ padding: '2px 8px', cursor: autoWeek ? 'not-allowed' : 'pointer' }}
+                  disabled={autoWeek}
                   onClick={async () => {
                     await supabase.from('config').update({ current_week: config.current_week - 1 }).eq('id', 1);
                     onConfigChange();
@@ -614,21 +662,21 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
                 <strong style={{
                   margin: '0 5px',
-                  color: config?.auto_week_by_date ? '#95a5a6' : '#2c3e50'
+                  color: autoWeek ? '#95a5a6' : '#2c3e50'
                 }}>
                   {config?.current_week}
                 </strong>
 
                 <button
-                  style={{ padding: '2px 8px', cursor: config?.auto_week_by_date ? 'not-allowed' : 'pointer' }}
-                  disabled={config?.auto_week_by_date}
+                  style={{ padding: '2px 8px', cursor: autoWeek ? 'not-allowed' : 'pointer' }}
+                  disabled={autoWeek}
                   onClick={async () => {
                     await supabase.from('config').update({ current_week: config.current_week + 1 }).eq('id', 1);
                     onConfigChange();
                   }}
                 >+</button>
 
-                {config?.auto_week_by_date && (
+                {autoWeek && (
                   <span style={{ fontSize: '0.65rem', color: '#2ecc71', fontWeight: 'bold' }}>
                     (AUTO)
                   </span>
@@ -662,8 +710,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
                 gap: '8px',
                 fontSize: '0.8rem',
                 cursor: 'pointer',
-                color: config?.auto_week_by_date ? '#2ecc71' : '#7f8c8d',
-                fontWeight: config?.auto_week_by_date ? 'bold' : 'normal'
+                color: autoWeek ? '#2ecc71' : '#7f8c8d',
+                fontWeight: autoWeek ? 'bold' : 'normal'
               }}>
                 <input
                   type="checkbox"
@@ -676,9 +724,9 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
                     // 2. Guardar en Base de Datos
                     const { error } = await supabase
-                      .from('config')
-                      .update({ auto_week_by_date: checked })
-                      .eq('id', 1);
+                      .from('season_rules')
+                      .update({ autoWeek: checked })
+                      .eq('season', config.current_season);
 
                     if (error) {
                       alert("Error al guardar en DB");

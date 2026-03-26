@@ -17,7 +17,8 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
       const { data: torneos } = await supabase
         .from('playoffs_extra')
         .select('id, nombre, current_round, config_fechas, use_auto_round, limit_ga_enabled, max_ga_playoff')
-        .eq('estado', 'activo');
+        .eq('estado', 'activo')
+        .eq('season_id', config.current_season);
 
       if (!torneos || torneos.length === 0) return setPartidosExtra([]);
 

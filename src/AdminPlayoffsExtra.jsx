@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import AdminPlayoffsMatches from './extraplayoff/AdminPlayoffsMatches';
 
-export default function AdminPlayoffsExtras({ config, profile }) {
+export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccionada }) {
   // --- NUEVO ESTADO PARA SLIDEDOWN ---
   const [showConfig, setShowConfig] = useState(false);
 
@@ -99,9 +99,12 @@ export default function AdminPlayoffsExtras({ config, profile }) {
   };
 
   const fetchTorneosExtra = async () => {
-    const { data } = await supabase.from('playoffs_extra').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('playoffs_extra').select('*').eq('season_id', temporadaSeleccionada).order('created_at', { ascending: false });
     if (data) setListaExtras(data);
   };
+  useEffect(() => {
+    fetchTorneosExtra();
+  }, [temporadaSeleccionada]);
 
   const verEsquema = async (torneo) => {
     setLoading(true);

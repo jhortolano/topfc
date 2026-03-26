@@ -20,12 +20,12 @@ export default function AdminPlayoffs({ config, profile }) {
   const [roundSettings, setRoundSettings] = useState({
     "Dieciseisavos": false, "Octavos": false, "Cuartos": false, "Semifinales": false, "Final": false
   });
-  const [autoPlayoff, setAutoPlayoff] = useState(config?.auto_playoff_by_date || false);
+  const [autoPlayoff, setAutoPlayoff] = useState(false);
 
   // Sincronizar con la config global si cambia fuera
   useEffect(() => {
-    setAutoPlayoff(config?.auto_playoff_by_date || false);
-  }, [config?.auto_playoff_by_date]);
+    setAutoPlayoff(autoPlayoff || false);
+  }, [autoPlayoff]);
 
   const rondasNombres = { 2: "Final", 4: "Semifinales", 8: "Cuartos", 16: "Octavos", 32: "Dieciseisavos" };
   const orderRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Final"];
@@ -42,12 +42,24 @@ export default function AdminPlayoffs({ config, profile }) {
   useEffect(() => { if (temporadaSeleccionada) fetchPlayoffs(); }, [temporadaSeleccionada]);
 
   const fetchSeasons = async () => {
-    const { data } = await supabase.from('matches').select('season');
-    if (data) {
-      const unique = [...new Set(data.map(d => d.season))].sort((a, b) => b - a);
-      setSeasons(unique);
-    }
+    const { data } = await supabase.from('matches').select('season').order('season', { ascending: false });
+    if (data) setSeasons([...new Set(data.map(d => d.season))]);
   };
+  useEffect(() => {
+    if (config?.current_season) {
+      setTemporadaSeleccionada(config.current_season);
+    }
+  }, [config]);
+  useEffect(() => {
+    fetchSeasons();
+    fetchAllPlayers();
+  }, []);
+  useEffect(() => {
+    if (temporadaSeleccionada) {
+      fetchPlayoffs();
+    }
+  }, [temporadaSeleccionada]);
+
 
   const fetchAllPlayers = async () => {
     const { data } = await supabase.from('profiles').select('id, nick');
@@ -61,6 +73,24 @@ export default function AdminPlayoffs({ config, profile }) {
       checkExistingMatches(data);
     }
   };
+
+  const fetchAutoPlayoffRule = async () => {
+    if (!temporadaSeleccionada) return;
+    const { data } = await supabase
+      .from('season_rules')
+      .select('auto_playoff_by_date')
+      .eq('season', temporadaSeleccionada)
+      .maybeSingle();
+
+    if (data) {
+      setAutoPlayoff(data.auto_playoff_by_date);
+    } else {
+      setAutoPlayoff(false);
+    }
+  };
+  useEffect(() => {
+    fetchAutoPlayoffRule();
+  }, [temporadaSeleccionada]);
 
   const checkExistingMatches = async (playoffs) => {
     const ids = playoffs.map(p => p.id);
@@ -674,7 +704,19 @@ export default function AdminPlayoffs({ config, profile }) {
 
   return (
     <div style={{ padding: '10px', fontSize: '0.85rem', color: '#333' }}>
-      <h3 style={{ marginTop: 0 }}>🏆 Gestión de Eliminatorias</h3>
+
+      <div style={{ marginBottom: '20px', padding: '15px', background: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <label style={{ fontWeight: 'bold', color: '#2c3e50' }}>Temporada Activa:</label>
+        <select
+          value={temporadaSeleccionada || ''}
+          onChange={(e) => setTemporadaSeleccionada(Number(e.target.value))}
+          style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #dcdde1', backgroundColor: '#f8f9fa', fontSize: '1rem', cursor: 'pointer', outline: 'none' }}
+        >
+          {seasons.map(s => <option key={s} value={s}>Temporada {s}</option>)}
+        </select>
+      </div>
+
+      <h3 style={{ marginTop: 0 }}>🏆 Gestión de Eliminatorias - Temp. {temporadaSeleccionada}</h3>
 
       {!selectedTorneo && !viewBracket && !viewCalendar ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -723,9 +765,9 @@ export default function AdminPlayoffs({ config, profile }) {
                       setAutoPlayoff(checked); // Cambio visual instantáneo
 
                       const { error } = await supabase
-                        .from('config')
+                        .from('season_rules')
                         .update({ auto_playoff_by_date: checked })
-                        .eq('id', 1);
+                        .eq('season', temporadaSeleccionada);
 
                       if (error) {
                         alert("Error al actualizar config");
@@ -1187,6 +1229,7 @@ export default function AdminPlayoffs({ config, profile }) {
       <AdminPlayoffsExtra
         config={config}
         profile={profile}
+        temporadaSeleccionada={temporadaSeleccionada}
       />
 
     </div>

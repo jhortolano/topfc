@@ -144,8 +144,13 @@ function App() {
     const { data: configData } = await supabase.from('config').select('*').eq('id', 1).maybeSingle();
 
     if (configData) {
+      const { data: sRules } = await supabase
+        .from('season_rules')
+        .select('auto_week_by_date')
+        .eq('season', configData.current_season)
+        .maybeSingle();
       // 2. Si el modo automático está activo, verificamos la fecha
-      if (configData.auto_week_by_date) {
+      if (sRules.auto_week_by_date) {
         const { data: schedule } = await supabase
           .from('weeks_schedule')
           .select('week, start_at, end_at')

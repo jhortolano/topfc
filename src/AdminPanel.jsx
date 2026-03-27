@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import SwitchPlayer from './utils/SwitchPlayer'
 import MatchesRescheduled from './utils/MatchesRescheduled'
+import AdminLogs from './utils/AdminLogs'
 
 
 const getOnlineStatus = (lastSeen) => {
@@ -635,6 +636,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+
+      <AdminLogs />
 
       {isAdminReal && (
         <>

@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Movido el auto week a otras tablas"
+git commit -m "Info Logs añadido"
 git push origin silver
 
 git checkout main

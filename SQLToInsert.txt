@@ -1,8 +1,0 @@
-ALTER TABLE season_rules 
-ADD COLUMN auto_week_by_date BOOLEAN DEFAULT FALSE,
-ADD COLUMN auto_playoff_by_date BOOLEAN DEFAULT FALSE;
-
-
-
-ALTER TABLE config DROP COLUMN IF EXISTS auto_week_by_date;
-ALTER TABLE config DROP COLUMN IF EXISTS auto_playoff_by_date;

@@ -724,11 +724,10 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
                     // 1. Cambio visual INSTANTÁNEO
                     setAutoWeek(checked);
-
                     // 2. Guardar en Base de Datos
                     const { error } = await supabase
                       .from('season_rules')
-                      .update({ autoWeek: checked })
+                      .update({ auto_week_by_date: checked })
                       .eq('season', config.current_season);
 
                     if (error) {

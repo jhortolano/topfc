@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import AdminPlayoffsMatches from './extraplayoff/AdminPlayoffsMatches';
+import SwitchPlayersExtraPlayoff from './extraplayoff/SwitchPlayersExtraPlayoff';
 
 export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccionada }) {
-  // --- NUEVO ESTADO PARA SLIDEDOWN ---
   const [showConfig, setShowConfig] = useState(false);
 
   const [nombreTorneo, setNombreTorneo] = useState('');
@@ -26,6 +26,8 @@ export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccio
   const [torneoEnGestion, setTorneoEnGestion] = useState(null);
   const [gruposGestion, setGruposGestion] = useState([]);
   const [partidosGestion, setPartidosGestion] = useState([]);
+
+  const [showSustituirId, setShowSustituirId] = useState(null);
 
   const [ocultarRetirados, setOcultarRetirados] = useState(true);
 
@@ -627,6 +629,20 @@ export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccio
                     </div>
                   )}
                 </div>
+                {/* --- BOTÓN SUSTITUIR --- */}
+                <button onClick={() => setShowSustituirId(showSustituirId === t.id ? null : t.id)}
+                  style={{ marginTop: '10px', background: '#f8f9fa', border: '1px solid #ccc', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'block' }}>
+                  {showSustituirId === t.id ? '✕ Cancelar Sustitución' : '👤 Sustituir jugador'}
+                </button>
+
+                {/* --- SECCIÓN SUSTITUIR --- */}
+                {showSustituirId === t.id && (
+                  <SwitchPlayersExtraPlayoff
+                    torneoId={t.id}
+                    allProfiles={todosLosPerfiles}
+                    onFinished={() => { setShowSustituirId(null); fetchTorneosExtra(); }}
+                  />
+                )}
               </div>
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button onClick={() => verEsquema(t)} style={{ background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Esquema</button>

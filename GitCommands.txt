@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Info Logs añadido"
+git commit -m "Sustituir en ExtraPlayoff"
 git push origin silver
 
 git checkout main

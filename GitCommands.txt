@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Informacion adicional en resultado"
+git commit -m "SVG Telegram arreglado"
 git push origin silver
 
 git checkout main

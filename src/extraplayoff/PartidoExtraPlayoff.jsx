@@ -68,7 +68,9 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
               local_nick:profiles!player1_id(nick),
               local_avatar:profiles!player1_id(avatar_url),
               visitante_nick:profiles!player2_id(nick),
-              visitante_avatar:profiles!player2_id(avatar_url)
+              visitante_avatar:profiles!player2_id(avatar_url),
+              p1:profiles!player1_id(id, nick, eafc_user, phone, telegram_user),
+              p2:profiles!player2_id(id, nick, eafc_user, phone, telegram_user)
             `)
             .eq('extra_id', torneoId)
             .in('numero_jornada', jornadasLiguilla)
@@ -106,7 +108,9 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
               local_nick:profiles!player1_id(nick),
               local_avatar:profiles!player1_id(avatar_url),
               visitante_nick:profiles!player2_id(nick),
-              visitante_avatar:profiles!player2_id(avatar_url)
+              visitante_avatar:profiles!player2_id(avatar_url),
+              p1:profiles!player1_id(id, nick, eafc_user, phone, telegram_user),
+              p2:profiles!player2_id(id, nick, eafc_user, phone, telegram_user)
             `)
             .eq('playoff_extra_id', torneoId)
             .in('numero_jornada', fasesEliminatoria)

@@ -24,14 +24,20 @@ const Avatar = ({ url }) => (
   </div>
 );
 
-function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
+function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, userId }) {
   const [gL, setGL] = useState(partido.home_score ?? '');
   const [gV, setGV] = useState(partido.away_score ?? '');
   const [enviando, setEnviando] = useState(false);
   const [urlStream, setUrlStream] = useState('');
   const [ajustado, setAjustado] = useState(false);
 
+  const idLocal = partido.player1_id || partido.home_team;
+  const idVisitante = partido.player2_id || partido.away_team;
+  const esLocal = idLocal === userId;
 
+  const rival = esLocal ? partido.p2 : partido.p1;
+  const partidoYaJugado = partido.is_played === true || partido.played === true || partido.home_score !== null;
+  const [showRivalContact, setShowRivalContact] = useState(false);
 
   useEffect(() => {
     const yaJugado = partido.played === true || partido.is_played === true;
@@ -82,7 +88,7 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
         // Usamos los datos que inyectaste en el mapeo: po.limit_ga_enabled y po.max_ga_playoff
         activo = String(partido.playoff_limit_ga) === 'true' || partido.playoff_limit_ga === true;
         maximo = parseInt(partido.playoff_max_ga);
-      } else if(isExtraLiguilla || isExtraPlayoff){
+      } else if (isExtraLiguilla || isExtraPlayoff) {
         activo = String(partido.limit_ga_enabled) === 'true' || partido.limit_ga_enabled === true;
         maximo = parseInt(partido.max_ga_playoff);
       } else {
@@ -251,22 +257,50 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
         }
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '10px', marginTop: '15px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', gap: '15px', marginBottom: '10px', marginTop: '15px' }}>
+        {/* COLUMNA LOCAL */}
+        <div
+          onClick={() => !esLocal && setShowRivalContact(!showRivalContact)}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', cursor: !esLocal ? 'pointer' : 'default' }}
+        >
           <Avatar url={partido.local_avatar} />
           <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {partido.local_nick}
           </div>
+          {/* CONTACTO SI EL RIVAL ES EL LOCAL */}
+          {!esLocal && rival && showRivalContact && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '3px' }}>
+              {rival.eafc_user && <span style={{ fontSize: '0.6rem', color: '#2ecc71' }}>{rival.eafc_user}</span>}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                {rival.phone && (
+                  <a href={`https://wa.me/${rival.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    {/* Icono de WhatsApp SVG */}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                    </svg>
+                  </a>
+                )}
+                {rival.telegram_user && (
+                  <a href={`https://t.me/${rival.telegram_user.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    {/* Icono de Telegram SVG */}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#0088cc">
+                      <path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.156.021.31.061.435.158.125.097.227.234.254.385.033.18.003.35-.045.51-.433 1.433-1.63 5.397-2.115 7.026-.145.49-.407.728-.718.728-.31 0-.568-.238-.853-.427-.3-.2-.596-.407-.893-.615-.466-.325-.93-.65-1.4-.973-.247-.17-.492-.34-.73-.52-.25-.19-.487-.39-.71-.6-.23-.21-.45-.43-.65-.66-.18-.21-.35-.43-.5-.66-.14-.21-.26-.43-.37-.66-.1-.23-.17-.46-.22-.69-.05-.23-.07-.46-.07-.69 0-.22.02-.44.06-.66.04-.22.11-.44.21-.65.1-.21.23-.41.38-.6.15-.19.33-.37.52-.54.19-.17.4-.33.62-.48.22-.15.46-.29.7-.42.24-.13.49-.25.75-.36.26-.11.53-.2.8-.28.27-.08.55-.14.83-.18.28-.04.56-.06.84-.06.28 0 .56.02.84.06z" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
           {jugadoLocal ? (
             <div style={{
               background: '#34495e', padding: '8px 15px', borderRadius: '8px',
               border: `2px solid ${isPlayoff ? '#9b59b6' : '#2ecc71'}`,
               fontWeight: 'bold', fontSize: '1.2rem', minWidth: '60px'
             }}>
-              {gL} - {gV}  {/* <-- Usamos los estados locales para respuesta inmediata */}
+              {gL} - {gV}
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
@@ -277,11 +311,39 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
           )}
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+        {/* COLUMNA VISITANTE */}
+        <div
+          onClick={() => esLocal && setShowRivalContact(!showRivalContact)}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', cursor: esLocal ? 'pointer' : 'default' }}
+        >
           <Avatar url={partido.visitante_avatar} />
           <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {partido.visitante_nick}
           </div>
+          {/* CONTACTO SI EL RIVAL ES EL VISITANTE */}
+          {esLocal && rival && showRivalContact && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '3px' }}>
+              {rival.eafc_user && <span style={{ fontSize: '0.6rem', color: '#2ecc71' }}>{rival.eafc_user}</span>}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                {rival.phone && (
+                  <a href={`https://wa.me/${rival.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    {/* Icono de WhatsApp SVG */}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                    </svg>
+                  </a>
+                )}
+                {rival.telegram_user && (
+                  <a href={`https://t.me/${rival.telegram_user.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    {/* Icono de Telegram SVG */}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#0088cc">
+                      <path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.156.021.31.061.435.158.125.097.227.234.254.385.033.18.003.35-.045.51-.433 1.433-1.63 5.397-2.115 7.026-.145.49-.407.728-.718.728-.31 0-.568-.238-.853-.427-.3-.2-.596-.407-.893-.615-.466-.325-.93-.65-1.4-.973-.247-.17-.492-.34-.73-.52-.25-.19-.487-.39-.71-.6-.23-.21-.45-.43-.65-.66-.18-.21-.35-.43-.5-.66-.14-.21-.26-.43-.37-.66-.1-.23-.17-.46-.22-.69-.05-.23-.07-.46-.07-.69 0-.22.02-.44.06-.66.04-.22.11-.44.21-.65.1-.21.23-.41.38-.6.15-.19.33-.37.52-.54.19-.17.4-.33.62-.48.22-.15.46-.29.7-.42.24-.13.49-.25.75-.36.26-.11.53-.2.8-.28.27-.08.55-.14.83-.18.28-.04.56-.06.84-.06.28 0 .56.02.84.06z" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -292,16 +354,13 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
           borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex',
           flexDirection: 'column', gap: '4px'
         }}>
-          {/* Etiqueta que siempre aparece si hay algo que mostrar */}
           <label style={{ fontSize: '0.65rem', color: '#bdc3c7', textAlign: 'left', marginLeft: '2px' }}>
             Retransmisión:
           </label>
 
           {jugadoLocal ? (
-            /* MODO LECTURA */
             urlStream && (
               urlStream.includes('http') ? (
-                /* LINK VÁLIDO */
                 <a
                   href={urlStream.trim()}
                   target="_blank"
@@ -317,7 +376,6 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
                   📺 {urlStream.replace('https://', '').replace('http://', '')}
                 </a>
               ) : (
-                /* TEXTO NO VÁLIDO CON AVISO A LA DERECHA */
                 <div style={{
                   background: 'rgba(255,255,255,0.05)',
                   padding: '8px',
@@ -339,13 +397,12 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague }) {
                     whiteSpace: 'nowrap',
                     textTransform: 'uppercase'
                   }}>
-                    ⚠️ Link no válido, no contará
+                    ⚠️ Link no válido
                   </span>
                 </div>
               )
             )
           ) : (
-            /* MODO EDICIÓN */
             <input
               type="text"
               value={urlStream}
@@ -474,7 +531,11 @@ function ProximoPartido({ profile, config, onUpdated }) {
 
           const { data } = await supabase
             .from('partidos_detallados')
-            .select('*')
+            .select(`
+                     *,
+                    p1:profiles!home_team(id, nick, eafc_user, phone, telegram_user),
+                    p2:profiles!away_team(id, nick, eafc_user, phone, telegram_user)
+                  `)
             .eq('season', config.current_season)
             .in('week', weekNumbers)
             .or(`local_nick.eq."${profile.nick}",visitante_nick.eq."${profile.nick}"`);
@@ -702,6 +763,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
         renderTarjeta={(p, refresh) => (
           <TarjetaResultado
             key={`extra-${p.id}`}
+            userId={profile.id}
             partido={p}
             onUpdated={() => { cargar(true); refresh(); }}
             limitGaEnabled={false} // Ajustar si los extra tienen límites
@@ -719,6 +781,7 @@ function ProximoPartido({ profile, config, onUpdated }) {
           <TarjetaResultado
             key={p.playoff_id ? `po-${p.id}` : `li-${p.id}`}
             partido={p}
+            userId={profile.id}
             onUpdated={() => cargar(true)}
             // Pasamos los datos del nuevo estado 'reglas'
             limitGaEnabled={reglas.limit_ga_enabled}

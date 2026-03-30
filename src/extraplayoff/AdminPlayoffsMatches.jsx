@@ -217,6 +217,16 @@ export default function AdminPlayoffsMatches({ torneo, profiles, onClose }) {
         if (a.includes('VUELTA') && b.includes('IDA')) return 1;
       }
 
+      // --- SOLUCIÓN PARA LIGUILLA (J1, J2, J3...) ---
+      // Extraemos solo los números de la llave (ej: "j1" -> 1, "j10" -> 10)
+      const numA = parseInt(a.replace(/\D/g, ''));
+      const numB = parseInt(b.replace(/\D/g, ''));
+
+      // Si ambos tienen número (son tipo J1, J2...), ordenamos numéricamente
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+
       // Orden por fecha para la Liguilla normal
       const fechaA = config[a]?.start_at ? new Date(config[a].start_at).getTime() : 0;
       const fechaB = config[b]?.start_at ? new Date(config[b].start_at).getTime() : 0;

@@ -15,11 +15,11 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
 
 --CARGAR USUARIOS:
-SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/usuarios_prod_20260327.sql  
+SILVER:  psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/usuarios_prod_20260330.sql  
 
 
 --CARGAR TABLAS:
-SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/backup_produccion_completo_20260327.sql
+SILVER: psql -h aws-1-eu-north-1.pooler.supabase.com -p 6543 -U postgres.yzudeybjzjmzsnjlgsui -d postgres -f /Users/jhortolano/Discos/DISCO6/dev/topfc-BKDB/backup_produccion_completo_20260330.sql
 
 
 

@@ -110,10 +110,13 @@ function CategorySelector({ current, onChange, season }) {
       })) : []
       const all = [...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })), ...formattedPlayoffs, ...formattedExtras]
       setCategories(all)
-      if (all.length > 0 && !all.find(c => c.id === current)) onChange(all[0].id)
+      if (all.length > 0 && !all.find(c => c.id === current)) {
+         // Si el usuario no está en ninguna div de esta temporada, ponemos la primera disponible
+         onChange(all[0].id)
+      }
     }
     load()
-  }, [season])
+  }, [season, current])
 
   return (
     <div style={{ display: 'flex', gap: '5px', marginBottom: '15px', flexWrap: 'wrap' }}>
@@ -237,7 +240,7 @@ const getPosicionStyle = (pos, div, total) => {
     fontWeight: '900',
     fontSize: '0.75rem',
     textAlign: 'center',
-    lineHeight: '1' 
+    lineHeight: '1'
   };
 
   // Lógica de colores por División
@@ -265,12 +268,57 @@ const getPosicionStyle = (pos, div, total) => {
 // --- COMPONENTE PRINCIPAL ---
 export default function Clasificacion({ config }) {
   const [vS, setVS] = useState(config?.current_season);
-  const [vD, setVD] = useState(1);
+  const [vD, setVD] = useState(() => {
+    const cached = localStorage.getItem(`pref_div_${config?.current_season}`);
+    return cached ? (isNaN(cached) ? cached : parseInt(cached)) : 1;
+  });
   const [lista, setLista] = useState([]);
   const [playoffMatches, setPlayoffMatches] = useState([]);
   const [datosExtra, setDatosExtra] = useState({ extras: [], liguilla: [], elims: [] });
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const esPlayoff = typeof vD === 'string';
+
+  // Lógica de detección de división con CACHÉ
+  useEffect(() => {
+    async function getInitialData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setCurrentUserId(user.id);
+
+      // Clave única por temporada para el caché
+      const cacheKey = `pref_div_${vS}`;
+      const cachedDiv = localStorage.getItem(cacheKey);
+
+      if (cachedDiv) {
+        // Si ya lo tenemos en caché, actualizamos el estado y no pedimos a DB
+        const parsedDiv = isNaN(cachedDiv) ? cachedDiv : parseInt(cachedDiv);
+        setVD(parsedDiv);
+      } else {
+        // Si NO hay caché, pedimos a Supabase una sola vez
+        const { data: userDiv } = await supabase
+          .from('clasificacion')
+          .select('division')
+          .eq('season', vS)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userDiv?.division) {
+          setVD(userDiv.division);
+          localStorage.setItem(cacheKey, userDiv.division); // Guardamos para la próxima
+        }
+      }
+    }
+
+    if (vS) getInitialData();
+  }, [vS]);
+
+  // Nuevo: Si el usuario cambia manualmente la pestaña, actualizamos su preferencia en caché
+  const handleDivisionChange = (newDiv) => {
+    setVD(newDiv);
+    localStorage.setItem(`pref_div_${vS}`, newDiv);
+  };
 
   useEffect(() => {
     async function fetch() {
@@ -344,6 +392,14 @@ export default function Clasificacion({ config }) {
     }
     if (vS) fetch();
   }, [vS, vD, esPlayoff]);
+
+  useEffect(() => {
+    async function getSession() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    }
+    getSession();
+  }, []);
 
   const renderPlayoffBrackets = () => {
     const getBaseRound = (r) => r ? r.replace(/\(.*\)/g, '').replace(/Ida|Vuelta|IDA|VUELTA/gi, '').trim() : "OTRA";
@@ -557,7 +613,7 @@ export default function Clasificacion({ config }) {
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <CategorySelector season={vS} current={vD} onChange={setVD} />
+       <CategorySelector season={vS} current={vD} onChange={handleDivisionChange} />
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
 
@@ -602,9 +658,10 @@ export default function Clasificacion({ config }) {
                 {lista.map((j, i) => {
                   const pos = i + 1;
                   const total = lista.length;
+                  const esMiFila = currentUserId && j.user_id === currentUserId;
 
                   return (
-                    <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center' }}>
+                    <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center', background: esMiFila ? 'rgba(46, 204, 113, 0.08)' : 'transparent', borderLeft: esMiFila ? '4px solid #2ecc71' : '4px solid transparent', transition: 'background 0.3s ease' }}>
                       {/* ESTA ES LA CELDA QUE CAMBIA */}
                       <td style={{ padding: '10px 5px', width: '35px' }}>
                         <span style={getPosicionStyle(pos, vD, total)}>
@@ -613,11 +670,11 @@ export default function Clasificacion({ config }) {
                       </td>
 
                       {/* El resto de la fila se queda igual que antes... */}
-                      <td style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <td style={{ padding: '10px', textAlign: 'left', fontWeight: esMiFila ? '900' : 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Avatar url={j.avatar_url} size="24px" />
-                        <span style={{ whiteSpace: 'nowrap' }}>{j.nick}</span>
+                        {j.nick} {esMiFila && <span style={{ fontSize: '0.6rem', color: '#2ecc71', marginLeft: '4px' }}></span>}
                       </td>
-                      <td style={{ fontWeight: 'bold', color: '#2ecc71' }}>{j.total_pts ?? 0}</td>
+                      <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: esMiFila ? '0.85rem' : '0.75rem' }}>{j.total_pts ?? 0}</td>
                       <td>{j.pj ?? 0}</td>
                       <td>{j.pg ?? 0}</td>
                       <td>{j.pe ?? 0}</td>

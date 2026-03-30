@@ -57,7 +57,13 @@ function SeasonSelector({ current, onChange }) {
 // --- COMPONENTE PRINCIPAL ---
 export default function CalendarioCompleto({ config }) {
   const [vS, setVS] = useState(config?.current_season);
-  const [vD, setVD] = useState(1);
+  const [vD, setVD] = useState(() => {
+    const cached = localStorage.getItem(`pref_cal_div_${config?.current_season}`);
+    // Si es un número (division), lo parseamos; si es un UUID (playoff), lo dejamos como string
+    return cached ? (isNaN(cached) ? cached : parseInt(cached)) : 1;
+  });
+  const [userNick, setUserNick] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [playoffs, setPlayoffs] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [partidos, setPartidos] = useState([]);
@@ -72,6 +78,40 @@ export default function CalendarioCompleto({ config }) {
     if (!dateStr) return '??/??';
     const d = new Date(dateStr);
     return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  };
+
+  // Lógica para detectar la división del usuario logueado y cachearla
+  useEffect(() => {
+    async function checkUserContext() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+
+      const cacheKey = `pref_cal_div_${vS}`;
+      const cachedValue = localStorage.getItem(cacheKey);
+
+      if (!cachedValue) {
+        // Solo consultamos la DB si no tenemos preferencia guardada
+        const { data: userDiv } = await supabase
+          .from('clasificacion')
+          .select('division')
+          .eq('season', vS)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userDiv?.division) {
+          setVD(userDiv.division);
+          localStorage.setItem(cacheKey, userDiv.division);
+        }
+      }
+    }
+    if (vS) checkUserContext();
+  }, [vS]);
+
+  // 3. Función para cambiar de pestaña y actualizar caché
+  const handleTabChange = (newVD) => {
+    setVD(newVD);
+    localStorage.setItem(`pref_cal_div_${vS}`, newVD);
   };
 
   useEffect(() => {
@@ -182,6 +222,21 @@ export default function CalendarioCompleto({ config }) {
     fetch();
   }, [vS, vD, config, playoffs]);
 
+  useEffect(() => {
+    async function getMyNick() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('nick')
+          .eq('id', user.id)
+          .single();
+        if (data) setUserNick(data.nick);
+      }
+    }
+    getMyNick();
+  }, [supabase.auth]);
+
   const isPlayoffActive = typeof vD === 'string';
   const grupos = [...new Set(partidos.map(p => isPlayoffActive ? p.round : p.week))].filter(Boolean);
 
@@ -190,22 +245,19 @@ export default function CalendarioCompleto({ config }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
           {divisions.map(d => (
-            <button key={d} onClick={() => setVD(d)} style={{
+            <button key={d} onClick={() => handleTabChange(d)} style={{
               padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
               background: vD === d ? '#2ecc71' : '#ecf0f1', color: vD === d ? 'white' : '#7f8c8d'
             }}> DIV {d} </button>
           ))}
           {playoffs.map(po => (
-            <button key={po.id} onClick={() => setVD(po.id)} style={{
+            <button key={po.id} onClick={() => handleTabChange(po.id)} style={{
               padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
               background: vD === po.id ? '#34495e' : '#ecf0f1', color: vD === po.id ? 'white' : '#7f8c8d'
             }}> {po.name.toUpperCase()} </button>
           ))}
           {extraPlayoffs.map(ep => (
-            <button
-              key={ep.id}
-              onClick={() => setVD(ep.id)} // Guardamos el ID en vD
-              style={{
+            <button key={ep.id} onClick={() => handleTabChange(ep.id)} style={{
                 padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
                 background: vD === ep.id ? '#e67e22' : '#ecf0f1',
                 color: vD === ep.id ? 'white' : '#7f8c8d'
@@ -268,94 +320,98 @@ export default function CalendarioCompleto({ config }) {
                     </div>
                   )}
                 </div>
-                {partidosVisibles.map(p => (
-                  <div key={p.id} style={{ borderBottom: '1px solid #fafafa', position: 'relative' }}>
-                    {/* 1. FILA DE CONTENIDO (NICKS, MARCADOR Y TV) */}
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px' }}>
+                {partidosVisibles.map(p => {
+                  const esMiPartido = userNick && (p.local_nick === userNick || p.visitante_nick === userNick);
+                  return (
+                    <div key={p.id} style={{ borderBottom: '1px solid #fafafa', position: 'relative', background: esMiPartido ? 'rgba(92, 203, 138, 0.04)' : 'transparent', borderLeft: esMiPartido ? '3px solid #2ecc71' : '3px solid transparent' }}>
+                      {/* 1. FILA DE CONTENIDO (NICKS, MARCADOR Y TV) */}
+                      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
 
-                      {/* Local */}
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
-                        <AvatarConZoom url={p.local_avatar} />
+                        {/* Local */}
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
+                          <AvatarConZoom url={p.local_avatar} />
+                        </div>
+
+                        {/* Marcador */}
+                        <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
+                          {(p.is_played || p.played) || (p.home_score !== null && p.away_score !== null)
+                            ? `${p.home_score}-${p.away_score}`
+                            : 'vs'}
+                        </div>
+
+                        {/* Visitante */}
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
+                          <AvatarConZoom url={p.visitante_avatar} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
+                        </div>
+
+                        {/* Icono TV (A la derecha del todo) */}
+                        <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
+                          {p.stream_url && p.stream_url.includes('http') && (
+                            <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
+                              style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
+                              📺
+                            </a>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Marcador */}
-                      <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
-                        {(p.is_played || p.played) || (p.home_score !== null && p.away_score !== null)
-                          ? `${p.home_score}-${p.away_score}`
-                          : 'vs'}
-                      </div>
-
-                      {/* Visitante */}
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
-                        <AvatarConZoom url={p.visitante_avatar} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
-                      </div>
-
-                      {/* Icono TV (A la derecha del todo) */}
-                      <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
-                        {p.stream_url && p.stream_url.includes('http') && (
-                          <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
-                            style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
-                            📺
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 2. FILA DE REPROGRAMACIÓN (FUERA DEL FLEX PARA QUE VAYA DEBAJO) */}
-                    {!isPlayoffActive && reprogramaciones.find(r => r.match_id === p.id) && (() => {
-                      const resched = reprogramaciones.find(r => r.match_id === p.id);
-                      return (
+                      {/* 2. FILA DE REPROGRAMACIÓN (FUERA DEL FLEX PARA QUE VAYA DEBAJO) */}
+                      {!isPlayoffActive && reprogramaciones.find(r => r.match_id === p.id) && (() => {
+                        const resched = reprogramaciones.find(r => r.match_id === p.id);
+                        return (
+                          <div style={{
+                            width: '100%',
+                            textAlign: 'center',
+                            paddingBottom: '8px', // Espacio abajo para que no pegue a la siguiente fila
+                            marginTop: '-4px',    // Para que no quede un hueco enorme
+                            pointerEvents: 'none'
+                          }}>
+                            <span style={{
+                              fontSize: '0.55rem',
+                              color: '#e67e22',
+                              fontStyle: 'italic',
+                              whiteSpace: 'nowrap',
+                              background: 'rgba(255,255,255,0.8)',
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              display: 'inline-block'
+                            }}>
+                              (Reprogramado de {formatShortDate(resched.fecha_inicio)} a {formatShortDate(resched.fecha_fin)})
+                            </span>
+                          </div>
+                        );
+                      })()}
+                      {/* 3. FILA DE ESTADO "NO JUGADO" (Cuando hay goles pero el flag es falso/null) */}
+                      {(!(p.is_played || p.played)) && (p.home_score !== null && p.away_score !== null) && (
                         <div style={{
                           width: '100%',
                           textAlign: 'center',
-                          paddingBottom: '8px', // Espacio abajo para que no pegue a la siguiente fila
-                          marginTop: '-4px',    // Para que no quede un hueco enorme
+                          paddingBottom: '8px',
+                          marginTop: '-4px',
                           pointerEvents: 'none'
                         }}>
                           <span style={{
                             fontSize: '0.55rem',
-                            color: '#e67e22',
-                            fontStyle: 'italic',
-                            whiteSpace: 'nowrap',
-                            background: 'rgba(255,255,255,0.8)',
-                            padding: '2px 4px',
+                            color: '#e74c3c', // Un rojo suave para indicar la inconsistencia
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            background: 'rgba(255,255,255,0.9)',
+                            padding: '2px 6px',
                             borderRadius: '4px',
+                            border: '1px solid #fab1a0',
                             display: 'inline-block'
                           }}>
-                            (Reprogramado de {formatShortDate(resched.fecha_inicio)} a {formatShortDate(resched.fecha_fin)})
+                            ⚠️ No Jugado
                           </span>
                         </div>
-                      );
-                    })()}
-                    {/* 3. FILA DE ESTADO "NO JUGADO" (Cuando hay goles pero el flag es falso/null) */}
-                    {(!(p.is_played || p.played)) && (p.home_score !== null && p.away_score !== null) && (
-                      <div style={{
-                        width: '100%',
-                        textAlign: 'center',
-                        paddingBottom: '8px',
-                        marginTop: '-4px',
-                        pointerEvents: 'none'
-                      }}>
-                        <span style={{
-                          fontSize: '0.55rem',
-                          color: '#e74c3c', // Un rojo suave para indicar la inconsistencia
-                          fontWeight: 'bold',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          background: 'rgba(255,255,255,0.9)',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid #fab1a0',
-                          display: 'inline-block'
-                        }}>
-                          ⚠️ No Jugado
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                }
+                )}
               </div>
             )
           })

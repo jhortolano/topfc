@@ -40,6 +40,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
   const [loading, setLoading] = useState(true);
   const [nombrePlayoff, setNombrePlayoff] = useState('');
   const [collapsedRounds, setCollapsedRounds] = useState({});
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const renderExtraBrackets = () => {
     const rondasOrden = ["DIECISEISAVOS", "OCTAVOS", "CUARTOS", "SEMIFINALES", "FINAL"];
@@ -183,6 +184,13 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
     );
   };
 
+  useEffect(() => {
+    async function getSession() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    }
+    getSession();
+  }, []);
 
   useEffect(() => {
     async function loadExtraData() {
@@ -332,28 +340,32 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {grupos[groupName].map((j, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center' }}>
-                        {/* Columna de posición */}
-                        <td style={{ padding: '10px 5px', color: '#95a5a6', fontSize: '0.65rem', fontWeight: 'bold', width: '20px' }}>
-                          {i + 1}
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-                          <Avatar url={j.avatar_url} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {j.nick}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>
-                        <td>{j.pj}</td>
-                        <td style={{ color: '#27ae60' }}>{j.pg}</td>
-                        <td style={{ color: '#f39c12' }}>{j.pe}</td>
-                        <td style={{ color: '#e74c3c' }}>{j.pp}</td>
-                        <td>{j.gf}</td>
-                        <td>{j.gc}</td>
-                        <td style={{ fontWeight: 'bold' }}>{j.dg}</td>
-                      </tr>
-                    ))}
+                    {grupos[groupName].map((j, i) => {
+                      const esMiFila = currentUserId && j.user_id === currentUserId;
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center', background: esMiFila ? 'rgba(46, 204, 113, 0.08)' : 'transparent', borderLeft: esMiFila ? '4px solid #2ecc71' : '4px solid transparent', transition: 'background 0.3s ease' }}>
+                          {/* Columna de posición */}
+                          <td style={{ padding: '10px 5px', color: '#95a5a6', fontSize: '0.65rem', fontWeight: 'bold', width: '20px' }}>
+                            {i + 1}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: esMiFila ? '900' : '600' }}>
+                            <Avatar url={j.avatar_url} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {j.nick} {esMiFila && <span style={{ fontSize: '0.55rem', color: '#2ecc71', marginLeft: '4px' }}></span>}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>
+                          <td>{j.pj}</td>
+                          <td style={{ color: '#27ae60' }}>{j.pg}</td>
+                          <td style={{ color: '#f39c12' }}>{j.pe}</td>
+                          <td style={{ color: '#e74c3c' }}>{j.pp}</td>
+                          <td>{j.gf}</td>
+                          <td>{j.gc}</td>
+                          <td style={{ fontWeight: 'bold' }}>{j.dg}</td>
+                        </tr>
+                      );
+                    }
+                    )}
                   </tbody>
                 </table>
               </div>

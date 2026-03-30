@@ -39,6 +39,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
   const [jornadaActual, setJornadaActual] = useState(null);
   const [fechasConfig, setFechasConfig] = useState({});
   const [rondasActivas, setRondasActivas] = useState([]);
+  const [userNick, setUserNick] = useState(null);
 
   useEffect(() => {
     async function fetchAllExtraData() {
@@ -178,6 +179,21 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
     fetchAllExtraData();
   }, [season, extraId]);
 
+  useEffect(() => {
+    async function getMyNick() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('nick')
+          .eq('id', user.id)
+          .single();
+        if (data) setUserNick(data.nick);
+      }
+    }
+    getMyNick();
+  }, [supabase.auth]);
+
   // Obtenemos los IDs de fase únicos presentes en los partidos
   const fasesUnicas = [...new Set(partidos.map(p => p.fase_id))];
 
@@ -209,7 +225,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
       {/* Mapeamos directamente las llaves del JSON para respetar su orden */}
       {Object.keys(fechasConfig)
         .sort((a, b) => {
-          const ordenLógico = ['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10', 'dieciseis','dieciseis_ida','dieciseis_vuelta', 'octavos','octavos_ida','octavos_vuelta','cuartos', 'cuartos_ida', 'cuartos_vuelta', 'semis','semis_ida','semis_vuelta', 'final', 'final_ida', 'final_vuelta'];
+          const ordenLógico = ['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10', 'dieciseis', 'dieciseis_ida', 'dieciseis_vuelta', 'octavos', 'octavos_ida', 'octavos_vuelta', 'cuartos', 'cuartos_ida', 'cuartos_vuelta', 'semis', 'semis_ida', 'semis_vuelta', 'final', 'final_ida', 'final_vuelta'];
 
           // Obtenemos el índice del orden lógico (si no existe, lo manda al final)
           const indexA = ordenLógico.findIndex(item => a.startsWith(item) || a === item);
@@ -251,6 +267,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
               </div>
 
               {partidosDeFase.map(p => {
+                const esMiPartido = userNick && (p.local_nick === userNick || p.visitante_nick === userNick);
                 // 1. Identificamos si son TBD o nulos
                 const localEsTBD = !p.local_nick || p.local_nick === 'TBD';
                 const visitanteEsTBD = !p.visitante_nick || p.visitante_nick === 'TBD';
@@ -271,9 +288,11 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                     fontSize: '0.75rem',
                     gap: '8px',
                     borderBottom: '1px solid #fffaf5',
-                    background: esBye ? '#f9f9f9' : 'transparent' // Fondo gris si es BYE
+                    background: esBye ? '#f9f9f9' : (esMiPartido ? 'rgba(204, 128, 46, 0.03)' : 'transparent'),
+                    borderLeft: esMiPartido ? '4px solid #d35400' : '4px solid transparent',
+                    transition: 'all 0.3s ease'
                   }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
                       <span style={{ fontSize: '0.55rem', color: '#999' }}>({p.grupo_nombre})</span>
 
                       {/* Usamos las variables para el texto y color */}
@@ -295,7 +314,7 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                       {p.is_played && !esBye ? `${p.home_score}-${p.away_score}` : (esBye ? '-' : 'vs')}
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
                       <AvatarConZoom url={p.visitante_avatar} />
 
                       <span style={{ color: visitanteEsBye ? '#94a3b8' : 'inherit', fontStyle: visitanteEsBye ? 'italic' : 'normal' }}>

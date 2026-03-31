@@ -16,7 +16,7 @@ function Normas() {
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
           <strong>🤝 Respeto y Fair Play:</strong>
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
-            <li style={{ marginBottom: '8px' }}>Jugamos por diversión. Respeta a tu adversario e intenta saltar las celebraciones.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Jugamos por diversión.</strong> Respeta a tu adversario e intenta saltar las celebraciones.</li>
             <li style={{ marginBottom: '8px' }}>
               <strong>Ajuste deportivo de marcadores:</strong> Con el fin de mantener la competitividad y un ambiente amistoso, el programa reseteará automáticamente los resultados con diferencias muy altas:
               <ul style={{ marginTop: '5px', listStyleType: 'circle' }}>
@@ -24,6 +24,7 @@ function Normas() {
                 <li>En <strong>Playoffs</strong>: Diferencia máxima de 5 goles (Ej: un 2-9 se registrará como 2-7).</li>
               </ul>
             </li>
+            <li style={{ marginBottom: '8px' }}>Abandono de partido: Si por cualquier razón no estás cómodo en el partido, puedes abandonarlo, se lo indicas a tu oponente y se finaliza el partido. El resultado será 3-0 en liga o 5-0 en playoff a favor del oponente.</li>
           </ul>
         </div>
 
@@ -107,6 +108,14 @@ function Normas() {
             <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>
               <li><strong>Antes del min 30:</strong> Se juega un partido nuevo completo y se suma el resultado del primer partido al marcador final.</li>
               <li><strong>Después del min 30:</strong> Se juega un nuevo partido solo los minutos restantes (hasta el min 90 total). Se debe detener el juego inmediatamente al cumplir el tiempo acordado, sin esperar a terminar la jugada. El marcador del primer partido se suma al marcador del segundo partido.</li>
+            </ul>
+          </div>
+          <div style={{ marginTop: '10px', color: '#333' }}>
+            <strong>3. Otras incidencias:</strong>
+            <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>
+              <li><strong>Tipos:</strong> Aquí se engloban el resto de incidencias como por ejemplo, el partido empezó pero... viene un repartidor, me tengo que ir, tengo que atender una llamada, etc., y las pausas del juego no son suficientes.</li>
+              <li><strong>Antes del min 30:</strong> Si la persona que no tuvo la incidencia va ganando, se juega un nuevo partido solo los minutos restantes (hasta el min 90 total). Se debe detener el juego inmediatamente al cumplir el tiempo acordado, sin esperar a terminar la jugada. El marcador del primer partido se suma al marcador del segundo partido. En caso de que la persona que no tuvo la incidencia va perdiendo o en empate, se juega un nuevo partido entero, sin suma de goles.</li>
+              <li><strong>Después del min 30:</strong> El partido lo pierde la persona que tuvo la incidencia por 3-0 en liga o 5-0 en playoffs.</li>
             </ul>
           </div>
         </div>

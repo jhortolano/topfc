@@ -247,19 +247,23 @@ const getPosicionStyle = (pos, div, total) => {
   if (div === 1) {
     if (pos === 1) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Campeón
     if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // 9 y 10 (Rojo)
-    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 8 (Naranja)
+    if (pos === total - 2) return { ...baseStyle, background: '#f37312', color: 'white' }; // 8 (Naranja-Rojo)
+    if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
   }
 
   if (div === 2) {
     if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Ascenso
-    if (pos === 3) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+    if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
+    if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
     if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // Últimos dos
-    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // Penúltimo naranja
+    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // Penúltimo Naranja-Rojo
+    if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
   }
 
   if (div === 3) {
     if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' };
-    if (pos === 3) return { ...baseStyle, background: '#e3e31b', color: 'white' };
+    if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
+    if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
   }
 
   return { ...baseStyle, color: '#94a3b8', background: '#f1f5f9' }; // Resto

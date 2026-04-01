@@ -35,30 +35,32 @@ function Normas() {
             <li>Controles: Cualquiera</li>
             <li>Vel de juego: Normal</li>
             <li>Tipo de plantilla: Online  --  <strong>No se pueden usar plantillas personalizadas</strong></li>
-            <img 
-            src="/ajustesOnline.jpg" 
-            alt="Configuración recomendada" 
-            style={{ 
-              marginTop: '15px', 
-              borderRadius: '6px', 
-              width: '100%', 
-              maxWidth: '400px', 
-              display: 'block',
-              border: '1px solid #ddd' 
-            }} 
-          />
+            <img
+              src="/ajustesOnline.jpg"
+              alt="Configuración recomendada"
+              style={{
+                marginTop: '15px',
+                borderRadius: '6px',
+                width: '100%',
+                maxWidth: '400px',
+                display: 'block',
+                border: '1px solid #ddd'
+              }}
+            />
           </ul>
         </div>
 
         {/* Partidos Semanales con subpuntos */}
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
           <strong>⚽ Partidos semanales:</strong>
-          <div style={{ marginTop: '8px' }}>Un partido a la semana.</div>
+          <div style={{ marginTop: '8px' }}>Jugamos un partido a la semana.</div>
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
-            <li style={{ marginBottom: '5px' }}>Si no puedes jugar una semana, intenta adelantar el partido en lugar de retrasarlo.</li>
-            <li>No se pueden retrasar partidos más allá del final de la temporada.</li>
-            <li>Partidos no jugados pueden ser reprogramados contactando con la administración e indicando la semana a jugarlo. Si no se reprograma el partido en la siguiente jornada y ningún jugador contacta con la administración, el partido se marca 0-0 sin posibilidad de jugarlo.</li>
-            <li>Si un partido no es reprogramado debido a que un sólo jugador no puede, el partido se marca como 3-0 a favor del jugador que podía jugarlo.</li>
+            <li style={{ marginBottom: '8px' }}><strong>¿No puedes jugar?:</strong> Si te surge algo, intenta <strong>adelantar</strong> el partido. Siempre es mejor jugar antes que dejarlo para después.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Fecha límite:</strong> No se puede reprogramar partidos pendientes más allá del final de la temporada.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Avisa a los admins:</strong> Si necesitas reprogramarlo, <strong>una vez habiendolo organizado con tu oponente y no antes,</strong> dinos qué semana lo vas a jugar. Si llega la siguiente jornada, el partido no se juega y nadie ha avisado, se queda en <strong>0-0</strong> y se pierde la oportunidad de jugarlo.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Si uno no aparece:</strong> Si el partido se queda sin jugar porque solo uno de los dos no ha podido (o no ha querido), el que sí estaba disponible gana <strong>3-0</strong> en liga o <strong>5-0</strong> en playoff.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Empate técnico:</strong> Si ninguno de los dos puede jugar ni ponerse de acuerdo, se marca un <strong>0-0</strong>. Eso sí, si hay una diferencia clara en la disponibilidad de un jugador sobre el otro, se le dará la victoria al que más disponibilidad tenía ganando este con <strong>3-0</strong> en liga o <strong>5-0</strong> en playoff.</li>
+            <li><strong>¡No desaparezcas!:</strong> Avisa siempre a tu rival. Si alguien pasa <strong>10 días sin contestar</strong> a los mensajes, la administración podrá buscarle un reemplazo. <em>(Ojo: esto es por no contestar; si avisas de que no puedes, no pasa nada)</em>.</li>
           </ul>
         </div>
 
@@ -93,7 +95,7 @@ function Normas() {
         {/* Escenarios Especiales */}
         <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2ecc71' }}>
           <strong>⚠️ Escenarios Especiales (Lag y Desconexiones):</strong>
-          
+
           <div style={{ marginTop: '12px', color: '#333' }}>
             <strong>1. Incidencias por Lag persistente:</strong>
             <ul style={{ margin: '5px 0 10px 0', paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>

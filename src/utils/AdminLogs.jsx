@@ -111,7 +111,12 @@ export default function AdminLogs() {
                 <span>Partido: <b>{log.p1}</b> vs <b>{log.p2}</b></span>
                 <span style={{ marginLeft: '8px', color: '#27ae60', fontWeight: 'bold' }}>({log.res})</span>
                 <span style={{ float: 'right', color: '#95a5a6', fontSize: '0.65rem' }}>
-                  {log.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {log.fecha.toLocaleString([], {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </span>
               </div>
             ))

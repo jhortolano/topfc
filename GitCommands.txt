@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Normas actualizadas"
+git commit -m "Fecha en los logs"
 git push origin silver
 
 git checkout main

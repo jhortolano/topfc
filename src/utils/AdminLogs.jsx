@@ -75,8 +75,9 @@ export default function AdminLogs() {
           res: `${m.score1} - ${m.score2}`,
           fecha: new Date(m.updated_at)
         }))
-      ].sort((a, b) => b.fecha - a.fecha).slice(0, 20)
-
+      ].filter(m => !m.res.includes('null'))
+        .sort((a, b) => b.fecha - a.fecha)
+        .slice(0, 20);
       setLogs(combined)
     } catch (error) {
       console.error("Error cargando logs:", error)

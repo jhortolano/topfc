@@ -1,60 +1,166 @@
-import os
-from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+# Asegúrate de importar el cliente supabase desde tu archivo de gestión
+from gestorPartidos import partidosPendientes, supabase
+import DATABASECONNECTION 
+import subprocess
+import time
 
-# Configuración de Supabase
-SUPABASE_URL = "https://nkecyqwcrsicsyladdhw.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rZWN5cXdjcnNpY3N5bGFkZGh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMjY0NDMsImV4cCI6MjA4NTcwMjQ0M30.0VNiNVNrW-qXXKHs6oSc6BousAjBwSUUTg69CgycNww"
 
-def obtener_partidos_pendientes():
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Constante para la limpieza de logs
+DIAS_LIMPIEZA_LOGS = 7
+DIAS_PARA_EXPIRAR = 3
+
+
+def limpiar_notificaciones_antiguas():
+    """
+    Borra los registros de la tabla notificaciones_enviadas que tengan 
+    una antigüedad superior a DIAS_LIMPIEZA_LOGS.
+    """
+    print(
+        f"Iniciando limpieza de notificaciones antiguas (más de {DIAS_LIMPIEZA_LOGS} días)...")
+
+    # Calculamos la fecha límite (UTC)
+    fecha_corte = (datetime.now(timezone.utc) -
+                   timedelta(days=DIAS_LIMPIEZA_LOGS)).isoformat()
 
     try:
-        # Usamos week_id:weeks_scheduled para indicar explícitamente la columna de unión
-        query = supabase.table("matches").select(
-            "id, played, "
-            "weeks_scheduled:week_id(end_date, type), "
-            "player1:player1_id(nick), "
-            "player2:player2_id(nick)"
-        ).eq("played", False).execute()
+        # Borramos registros donde created_at sea menor o igual a la fecha de corte
+        res = supabase.table("notificaciones_enviadas")\
+            .delete()\
+            .lte("created_at", fecha_corte)\
+            .execute()
 
-        partidos = query.data
-
-        if not partidos:
-            print("No hay partidos pendientes para jugar actualmente.")
-            return
-
-        print(f"{'TIPO':<15} | {'PARTIDO':<40} | {'FECHA LÍMITE'}")
-        print("-" * 75)
-
-        for p in partidos:
-            # Extraer info de la semana
-            week_info = p.get('weeks_scheduled', {})
-            tipo = "Liga"
-            fecha_limite = "Sin fecha"
-            
-            if week_info:
-                tipo = week_info.get('type', 'Liga').replace('_', ' ').capitalize()
-                fecha_limite = week_info.get('end_date', 'Sin fecha')
-
-            # Extraer nicks
-            nick1 = p.get('player1', {}).get('nick', 'Desconocido')
-            nick2 = p.get('player2', {}).get('nick', 'Desconocido')
-            
-            # Formatear la fecha
-            if fecha_limite and fecha_limite != "Sin fecha":
-                try:
-                    fecha_dt = datetime.fromisoformat(fecha_limite.replace('Z', '+00:00'))
-                    fecha_formateada = fecha_dt.strftime('%d/%m/%Y %H:%M')
-                except:
-                    fecha_formateada = fecha_limite
-            else:
-                fecha_formateada = "Sin fecha"
-
-            print(f"{tipo:<15} | {nick1} vs {nick2:<36} | {fecha_formateada}")
-
+        # res.data suele contener los registros borrados
+        print(f"Limpieza completada. Registros eliminados: {len(res.data)}")
     except Exception as e:
-        print(f"Error al consultar la base de datos: {e}")
+        print(f"Error durante la limpieza de la tabla: {e}")
+
+
+def enviarNotificacion(fila):
+    nick = fila[0]
+    # Aseguramos que el teléfono sea un string y quitamos espacios o símbolos raros
+    telefono = str(fila[1]).replace(" ", "").replace("+", "")
+    rival = fila[3]
+    fase = fila[6]
+    fecha_limite_raw = fila[5]
+
+    # --- LÓGICA DE FORMATEO DE FECHA ---
+    meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    dias_semana = ["Lunes", "Martes", "Miércoles",
+                   "Jueves", "Viernes", "Sábado", "Domingo"]
+
+    try:
+        fecha_obj = datetime.fromisoformat(fecha_limite_raw.replace('Z', '+00:00'))
+        dia = fecha_obj.day
+        nombre_mes = meses[fecha_obj.month - 1]
+        nombre_dia = dias_semana[fecha_obj.weekday()]
+        fecha_formateada = f"{dia} de {nombre_mes} ({nombre_dia})"
+    except:
+        fecha_formateada = fecha_limite_raw
+
+    # --- CONSTRUCCIÓN DEL MENSAJE ---
+    mensaje = (
+        f"Hola {nick}, tienes un partido pendiente en *{fase}* contra {rival}. "
+        f"La fecha límite es el *{fecha_formateada}*. ¡No olvides jugarlo!"
+    )
+
+    print(f"--- EJECUTANDO MUDSLIDE ---")
+    print(f"Destinatario: {nick} ({telefono})")
+
+    try:
+        # Ejecutamos el comando de mudslide: npx mudslide send <numero> <mensaje>
+        # Nota: Mudslide gestiona internamente la conexión si ya hiciste 'npx mudslide login'
+        resultado = subprocess.run(
+            ["npx", "mudslide", "send", telefono, mensaje],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        print(f"Respuesta de Mudslide: {resultado.stdout.strip()}")
+        print(f"WhatsApp enviado correctamente a {nick}")
+        
+        # Un pequeño delay para no saturar el proceso de la Raspberry si hay varios envíos
+        time.sleep(1)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar Mudslide para {nick}: {e.stderr}")
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+
+
+def guardarDBNotificacionEnviada(id_base):
+    # ... (tu código se mantiene igual)
+    try:
+        data = {"id": id_base}
+        supabase.table("notificaciones_enviadas").insert(data).execute()
+        print(f"ID {id_base} guardado en la base de datos.")
+    except Exception as e:
+        print(f"Error al guardar en DB: {e}")
+
+
+def verificar_notificacion_existente(id_base):
+    # ... (tu código se mantiene igual)
+    res = supabase.table("notificaciones_enviadas").select(
+        "id").eq("id", id_base).execute()
+    return len(res.data) > 0
+
+
+def filtrar_partidos_por_expiracion(lista_partidos, dias_limite=3):
+    # ... (tu código se mantiene igual)
+    lista_partidos_expiran_pronto = []
+    ahora = datetime.now(timezone.utc)
+
+    for fila in lista_partidos:
+        fecha_final_str = fila[5]
+        if fecha_final_str == "N/A" or not fecha_final_str:
+            continue
+
+        try:
+            fecha_final = datetime.fromisoformat(
+                fecha_final_str.replace('Z', '+00:00'))
+            diferencia = fecha_final - ahora
+
+            if timedelta(0) <= diferencia <= timedelta(days=dias_limite):
+                nick_usuario = str(fila[0])
+                nick_rival = str(fila[3])
+                fase = str(fila[6])
+                fecha_limite = str(fila[5])
+
+                cadena_base = f"{nick_usuario}{nick_rival}{fase}{fecha_limite}"
+                fila.append(cadena_base)
+                lista_partidos_expiran_pronto.append(fila)
+        except ValueError:
+            continue
+    return lista_partidos_expiran_pronto
+
+
+def ejecutar_reporte():
+    # 0. LO PRIMERO: Limpiar registros viejos
+    limpiar_notificaciones_antiguas()
+
+    print("\nConsultando partidos pendientes...")
+    lista_total = partidosPendientes()
+
+    lista_proximos = filtrar_partidos_por_expiracion(
+        lista_total, DIAS_PARA_EXPIRAR)
+
+    if not lista_proximos:
+        print("No hay partidos próximos a expirar.")
+    else:
+        for fila in lista_proximos:
+            id_base = fila[7]
+
+            if verificar_notificacion_existente(id_base):
+                print(
+                    f"Saltando: La notificación para {fila[0]} vs {fila[3]} ya fue enviada.")
+            else:
+                enviarNotificacion(fila)
+                guardarDBNotificacionEnviada(id_base)
+
+            print("-" * 30)
+
 
 if __name__ == "__main__":
-    obtener_partidos_pendientes()
+    ejecutar_reporte()

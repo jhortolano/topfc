@@ -1,0 +1,8 @@
+
+# PRODUCTION
+SUPABASE_URL = "https://nkecyqwcrsicsyladdhw.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rZWN5cXdjcnNpY3N5bGFkZGh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMjY0NDMsImV4cCI6MjA4NTcwMjQ0M30.0VNiNVNrW-qXXKHs6oSc6BousAjBwSUUTg69CgycNww"
+
+#SILVER
+#SUPABASE_URL = "https://yzudeybjzjmzsnjlgsui.supabase.co"
+#SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6dWRleWJqemptenNuamxnc3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNjk1MjAsImV4cCI6MjA4Njc0NTUyMH0.Uw-MI01-4o4rXngYi2EazHHFKDEhYQL3v2bhWam67QQ"

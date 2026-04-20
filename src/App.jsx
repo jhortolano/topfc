@@ -10,7 +10,8 @@ import Jugadores from './Jugadores'
 import Normas from './Normas'
 import AdminPlayoffs from './AdminPlayoffs'
 import AvisosAdmin from './AvisosAdmin'
-import ResetPassword from './reset-password' // Asegúrate de que el nombre del archivo coincida
+import ResetPassword from './reset-password'
+import AdminPromo from './AdminPromo' //
 
 let playoffsActualizadosEnSesion = false; // Control de ejecución única
 
@@ -378,6 +379,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   if (isAdmin) {
     tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
+    tabs.push({ id: 'admin_promo', label: 'ADMIN PROMO' });
     tabs.push({ id: 'avisos_admin', label: 'AVISOS' });
   }
 
@@ -491,6 +493,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'calendario' && <CalendarioCompleto config={config} />}
         {activeTab === 'admin' && <AdminPanel config={config} onConfigChange={onConfigChange} profile={profile} />}
         {activeTab === 'admin_playoffs' && <AdminPlayoffs config={config} profile={profile} />}
+        {activeTab === 'admin_promo' && <AdminPromo config={config} profile={profile} />}
         {activeTab === 'avisos_admin' && <AvisosAdmin />}
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}

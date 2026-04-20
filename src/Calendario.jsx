@@ -54,6 +54,94 @@ function SeasonSelector({ current, onChange }) {
   )
 }
 
+// --- NUEVO SELECTOR DE CATEGORÍAS CON MEMORIA ---
+function CategorySelector({ current, onChange, season }) {
+  const [categories, setCategories] = useState([]);
+  const [activeTab, setActiveTab] = useState('div');
+  const [lastSelected, setLastSelected] = useState({ div: null, po: null });
+
+  useEffect(() => {
+    async function load() {
+      if (!season) return;
+
+      const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
+      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
+
+      const { data: pData } = await supabase.from('playoffs').select('*').eq('season', season);
+      const formattedPlayoffs = pData ? pData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
+
+      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
+      const formattedExtras = extraData ? extraData.map(e => ({ id: e.id, label: e.nombre.toUpperCase(), type: 'extra' })) : [];
+
+      const all = [
+        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+        ...formattedPlayoffs,
+        ...formattedExtras
+      ];
+      setCategories(all);
+
+      const currentCat = all.find(c => c.id === current);
+      if (currentCat) {
+        const type = currentCat.type === 'div' ? 'div' : 'po';
+        setActiveTab(type);
+        setLastSelected(prev => ({ ...prev, [type]: currentCat.id }));
+      }
+    }
+    load();
+  }, [season]);
+
+  const filteredCategories = categories.filter(cat =>
+    activeTab === 'div' ? cat.type === 'div' : (cat.type === 'po' || cat.type === 'extra')
+  );
+
+  const hasLigas = categories.some(c => c.type === 'div');
+  const hasPlayoffs = categories.some(c => c.type === 'po' || c.type === 'extra');
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (lastSelected[tab]) {
+      onChange(lastSelected[tab]);
+    } else {
+      const first = categories.find(c => tab === 'div' ? c.type === 'div' : (c.type === 'po' || cat.type === 'extra'));
+      if (first) onChange(first.id);
+    }
+  };
+
+  const handleCategoryClick = (cat) => {
+    const type = cat.type === 'div' ? 'div' : 'po';
+    setLastSelected(prev => ({ ...prev, [type]: cat.id }));
+    onChange(cat.id);
+  };
+
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+        {hasLigas && (
+          <button onClick={() => handleTabChange('div')} style={{
+            padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
+            background: activeTab === 'div' ? '#2ecc71' : 'transparent', color: activeTab === 'div' ? 'white' : '#64748b'
+          }}> ⚽ LIGA </button>
+        )}
+        {hasPlayoffs && (
+          <button onClick={() => handleTabChange('po')} style={{
+            padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
+            background: activeTab === 'po' ? '#34495e' : 'transparent', color: activeTab === 'po' ? 'white' : '#64748b'
+          }}> 🏆 PLAYOFFS </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+        {filteredCategories.map(cat => (
+          <button key={cat.id} onClick={() => handleCategoryClick(cat)} style={{
+            padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
+            background: current === cat.id ? (cat.type === 'div' ? '#2ecc71' : '#34495e') : '#ecf0f1',
+            color: current === cat.id ? 'white' : '#7f8c8d'
+          }}> {cat.label} </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // --- COMPONENTE PRINCIPAL ---
 export default function CalendarioCompleto({ config }) {
   const [vS, setVS] = useState(config?.current_season);
@@ -242,32 +330,17 @@ export default function CalendarioCompleto({ config }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px', gap: '10px' }}>
-        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-          {divisions.map(d => (
-            <button key={d} onClick={() => handleTabChange(d)} style={{
-              padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
-              background: vD === d ? '#2ecc71' : '#ecf0f1', color: vD === d ? 'white' : '#7f8c8d'
-            }}> DIV {d} </button>
-          ))}
-          {playoffs.map(po => (
-            <button key={po.id} onClick={() => handleTabChange(po.id)} style={{
-              padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
-              background: vD === po.id ? '#34495e' : '#ecf0f1', color: vD === po.id ? 'white' : '#7f8c8d'
-            }}> {po.name.toUpperCase()} </button>
-          ))}
-          {extraPlayoffs.map(ep => (
-            <button key={ep.id} onClick={() => handleTabChange(ep.id)} style={{
-                padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
-                background: vD === ep.id ? '#e67e22' : '#ecf0f1',
-                color: vD === ep.id ? 'white' : '#7f8c8d'
-              }}
-            >
-              {ep.nombre.toUpperCase()}
-            </button>
-          ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '15px' }}>
+        {/* Usamos el nuevo componente selector */}
+        <CategorySelector
+          season={vS}
+          current={vD}
+          onChange={handleTabChange}
+        />
+
+        <div style={{ paddingTop: '5px' }}>
+          <SeasonSelector current={vS} onChange={setVS} />
         </div>
-        <SeasonSelector current={vS} onChange={setVS} />
       </div>
 
       {currentExtraPlayoff ? (

@@ -94,42 +94,127 @@ const StreamIcon = ({ url }) => {
 
 // --- SELECTORES ---
 function CategorySelector({ current, onChange, season }) {
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState([]);
+  const [activeTab, setActiveTab] = useState('div');
+
+  // --- NUEVO: Memoria por pestaña ---
+  const [lastSelected, setLastSelected] = useState({
+    div: null,
+    po: null
+  });
+
   useEffect(() => {
     async function load() {
       if (!season) return;
-      const { data: divData } = await supabase.from('matches').select('division').eq('season', season)
-      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : []
-      const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season)
-      const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : []
-      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season)
+
+      const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
+      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
+
+      const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season);
+      const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
+
+      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
       const formattedExtras = extraData ? extraData.map(e => ({
         id: `extra-${e.id}`,
         label: e.nombre.toUpperCase(),
         type: 'extra'
-      })) : []
-      const all = [...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })), ...formattedPlayoffs, ...formattedExtras]
-      setCategories(all)
-      if (all.length > 0 && !all.find(c => c.id === current)) {
-         // Si el usuario no está en ninguna div de esta temporada, ponemos la primera disponible
-         onChange(all[0].id)
+      })) : [];
+
+      const all = [
+        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+        ...formattedPlayoffs,
+        ...formattedExtras
+      ];
+      setCategories(all);
+
+      const currentCat = all.find(c => c.id === current);
+      if (currentCat) {
+        const type = currentCat.type === 'div' ? 'div' : 'po';
+        setActiveTab(type);
+        // Guardamos la selección inicial en la memoria
+        setLastSelected(prev => ({ ...prev, [type]: currentCat.id }));
+      } else if (all.length > 0) {
+        const initialCat = all[0];
+        const type = initialCat.type === 'div' ? 'div' : 'po';
+        onChange(initialCat.id);
+        setActiveTab(type);
+        setLastSelected(prev => ({ ...prev, [type]: initialCat.id }));
       }
     }
-    load()
-  }, [season, current])
+    load();
+  }, [season]);
+
+  const filteredCategories = categories.filter(cat => {
+    if (activeTab === 'div') return cat.type === 'div';
+    return cat.type === 'po' || cat.type === 'extra';
+  });
+
+  const hasLigas = categories.some(c => c.type === 'div');
+  const hasPlayoffs = categories.some(c => c.type === 'po' || c.type === 'extra');
+
+  // --- MODIFICADO: Lógica de cambio de pestaña con memoria ---
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+
+    // Si tenemos algo guardado en la memoria para esa pestaña, volvemos a ello
+    if (lastSelected[tab]) {
+      onChange(lastSelected[tab]);
+    } else {
+      // Si no hay memoria (primera vez), buscamos el primero de ese grupo
+      const firstOfTab = categories.find(c => tab === 'div' ? c.type === 'div' : (c.type === 'po' || c.type === 'extra'));
+      if (firstOfTab) {
+        onChange(firstOfTab.id);
+      }
+    }
+  };
+
+  // --- MODIFICADO: Al hacer click en un botón, actualizamos la memoria ---
+  const handleCategoryClick = (cat) => {
+    const type = cat.type === 'div' ? 'div' : 'po';
+    setLastSelected(prev => ({ ...prev, [type]: cat.id }));
+    onChange(cat.id);
+  };
 
   return (
-    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px', flexWrap: 'wrap' }}>
-      {categories.map(cat => (
-        <button key={cat.id} onClick={() => onChange(cat.id)} style={{
-          padding: '6px 12px', borderRadius: '15px', border: 'none',
-          background: current === cat.id ? (cat.type === 'div' ? '#2ecc71' : '#34495e') : '#ecf0f1',
-          color: current === cat.id ? 'white' : '#7f8c8d',
-          fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer'
-        }}> {cat.label} </button>
-      ))}
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+        {hasLigas && (
+          <button
+            onClick={() => handleTabChange('div')}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: activeTab === 'div' ? '#2ecc71' : 'transparent',
+              color: activeTab === 'div' ? 'white' : '#64748b',
+              fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem'
+            }}
+          > ⚽ LIGA </button>
+        )}
+        {hasPlayoffs && (
+          <button
+            onClick={() => handleTabChange('po')}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: activeTab === 'po' ? '#34495e' : 'transparent',
+              color: activeTab === 'po' ? 'white' : '#64748b',
+              fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem'
+            }}
+          > 🏆 PLAYOFFS </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+        {filteredCategories.map(cat => (
+          <button key={cat.id} onClick={() => handleCategoryClick(cat)} style={{
+            padding: '6px 12px', borderRadius: '15px', border: 'none',
+            background: current === cat.id ? (cat.type === 'div' ? '#2ecc71' : '#34495e') : '#ecf0f1',
+            color: current === cat.id ? 'white' : '#7f8c8d',
+            fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}> {cat.label} </button>
+        ))}
+      </div>
     </div>
-  )
+  );
 }
 
 function SeasonSelector({ current, onChange }) {
@@ -161,9 +246,9 @@ const calcularBonusPorStream = (porcentaje, rules) => {
 
   if (enabled && porcentaje >= umbral) {
     return { puntos: puntosExtra, aplica: true };
-  }else if (enabled && porcentaje >= umbralb) {
+  } else if (enabled && porcentaje >= umbralb) {
     return { puntos: puntosExtrab, aplica: true };
-  }else if (enabled && porcentaje >= umbralc) {
+  } else if (enabled && porcentaje >= umbralc) {
     return { puntos: puntosExtrac, aplica: true };
   }
   return { puntos: 0, aplica: false };
@@ -236,7 +321,7 @@ const calcularStatsStreams = (
   return { totalStreams, totalPartidos, porcentaje };
 };
 
-const getPosicionStyle = (pos, div, total) => {
+const getPosicionStyle = (pos, div, total, totalDivisiones) => {
   const baseStyle = {
     // CAMBIOS AQUÍ:
     display: 'inline-flex',
@@ -256,22 +341,32 @@ const getPosicionStyle = (pos, div, total) => {
     if (pos === 1) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Campeón
     if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // 9 y 10 (Rojo)
     if (pos === total - 2) return { ...baseStyle, background: '#f37312', color: 'white' }; // 8 (Naranja-Rojo)
-    if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
+    if (total > 7) {
+      if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
+    }
   }
 
-  if (div === 2) {
+  if (div > 1 && div < totalDivisiones) {
     if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' }; // Ascenso
-    if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
-    if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+    if (total > 5) {
+      if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
+      if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // Penúltimo Naranja-Rojo
+    }
+    if (total > 7) {
+      if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+      if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
+    }
     if (pos >= total - 1) return { ...baseStyle, background: '#e74c3c', color: 'white' }; // Últimos dos
-    if (pos === total - 2) return { ...baseStyle, background: '#f39c12', color: 'white' }; // Penúltimo Naranja-Rojo
-    if (pos === total - 3) return { ...baseStyle, background: '#f39c12', color: 'white' }; // 7 (Naranja)
   }
 
-  if (div === 3) {
+  if (div == totalDivisiones) {
     if (pos === 1 || pos === 2) return { ...baseStyle, background: '#2ecc71', color: 'white' };
-    if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
-    if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+    if (total > 5) {
+      if (pos === 3) return { ...baseStyle, background: '#bee31b', color: 'white' }; // Playoff
+    }
+    if (total > 7) {
+      if (pos === 4) return { ...baseStyle, background: '#e3e31b', color: 'white' }; // Playoff
+    }
   }
 
   return { ...baseStyle, color: '#94a3b8', background: '#f1f5f9' }; // Resto
@@ -290,6 +385,12 @@ export default function Clasificacion({ config }) {
   const [currentUserId, setCurrentUserId] = useState(null);
 
   const esPlayoff = typeof vD === 'string';
+
+  const [totalDivisiones, setTotalDivisiones] = useState(() => {
+    const cached = localStorage.getItem('total_divisiones');
+    return cached ? parseInt(cached, 10) : 0;
+  });
+
 
   // Lógica de detección de división con CACHÉ
   useEffect(() => {
@@ -334,7 +435,23 @@ export default function Clasificacion({ config }) {
 
   useEffect(() => {
     async function fetch() {
+      if (!vS) return;
+
       if (!esPlayoff) {
+        const { data: allDivs } = await supabase
+          .from('clasificacion')
+          .select('division')
+          .eq('season', vS);
+        if (allDivs && allDivs.length > 0) {
+          const maxFound = Math.max(...allDivs.map(d => d.division || 0));
+
+          // Solo actualizamos el estado y el caché si el valor ha cambiado
+          if (maxFound !== totalDivisiones) {
+            setTotalDivisiones(maxFound);
+            localStorage.setItem('total_divisiones', maxFound.toString());
+          }
+        }
+
         const { data: playoffsSeason } = await supabase
           .from('playoffs')
           .select('id')
@@ -625,7 +742,7 @@ export default function Clasificacion({ config }) {
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-       <CategorySelector season={vS} current={vD} onChange={handleDivisionChange} />
+        <CategorySelector season={vS} current={vD} onChange={handleDivisionChange} />
         <SeasonSelector current={vS} onChange={setVS} />
       </div>
 
@@ -676,7 +793,7 @@ export default function Clasificacion({ config }) {
                     <tr key={j.user_id || i} style={{ borderBottom: '1px solid #f1f1f1', textAlign: 'center', background: esMiFila ? 'rgba(46, 204, 113, 0.08)' : 'transparent', borderLeft: esMiFila ? '4px solid #2ecc71' : '4px solid transparent', transition: 'background 0.3s ease' }}>
                       {/* ESTA ES LA CELDA QUE CAMBIA */}
                       <td style={{ padding: '10px 5px', width: '35px' }}>
-                        <span style={getPosicionStyle(pos, vD, total)}>
+                        <span style={getPosicionStyle(pos, vD, total, totalDivisiones)}>
                           {pos}
                         </span>
                       </td>

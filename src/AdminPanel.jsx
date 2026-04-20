@@ -135,7 +135,9 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
   const [availableUsers, setAvailableUsers] = useState([]);
   const [showUserSelector, setShowUserSelector] = useState(false);
   const [numDivisions, setNumDivisions] = useState(1);
-  const [assignments, setAssignments] = useState({ 1: [], 2: [], 3: [] });
+  const [assignments, setAssignments] = useState(
+    Object.fromEntries([...Array(10)].map((_, i) => [i + 1, []]))
+  );
   const [seasonToDelete, setSeasonToDelete] = useState("");
 
   const [editSeason, setEditSeason] = useState(config?.current_season || 1);
@@ -807,6 +809,9 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
                 <h3>Reparto de Divisiones</h3>
                 <select value={numDivisions} onChange={e => setNumDivisions(parseInt(e.target.value))}>
                   <option value={1}>1 División</option><option value={2}>2 Divisiones</option><option value={3}>3 Divisiones</option>
+                  <option value={4}>4 Divisiones</option><option value={5}>5 Divisiones</option><option value={6}>6 Divisiones</option>
+                  <option value={7}>7 Divisiones</option><option value={8}>8 Divisiones</option><option value={9}>9 Divisiones</option>
+                  <option value={10}>10 Divisiónes</option>
                 </select>
 
                 {/* CHECKBOXES DE MODALIDAD */}
@@ -828,7 +833,8 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
                 {/* CONTENEDOR GRID DE REPARTO */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${numDivisions + 1}, 1fr)`,
+                  // Esto asegura que cada columna tenga al menos 150px y se ajusten solas
+                  gridTemplateColumns: `repeat(auto-fill, minmax(150px, 1fr))`,
                   gap: '15px',
                   marginTop: '20px',
                   alignItems: 'start'
@@ -874,10 +880,27 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
                             <span style={{ fontWeight: assignments[1].includes(u.id) || assignments[2].includes(u.id) || assignments[3].includes(u.id) ? 'bold' : 'normal' }}>
                               {u.nick || 'Sin Nick'}
                             </span>
-                            <div style={{ display: 'flex', gap: '2px' }}>
-                              <button onClick={() => handleAssign(u.id, 1)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[1].includes(u.id) ? '#2ecc71' : '#eee', color: assignments[1].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D1</button>
-                              {numDivisions >= 2 && <button onClick={() => handleAssign(u.id, 2)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[2].includes(u.id) ? '#3498db' : '#eee', color: assignments[2].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D2</button>}
-                              {numDivisions >= 3 && <button onClick={() => handleAssign(u.id, 3)} style={{ fontSize: '0.6rem', padding: '2px 4px', cursor: 'pointer', background: assignments[3].includes(u.id) ? '#9b59b6' : '#eee', color: assignments[3].includes(u.id) ? 'white' : 'black', border: '1px solid #ddd' }}>D3</button>}
+                            <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+                              {[...Array(numDivisions)].map((_, idx) => {
+                                const dNum = idx + 1;
+                                const isSelected = assignments[dNum].includes(u.id);
+                                return (
+                                  <button
+                                    key={dNum}
+                                    onClick={() => handleAssign(u.id, dNum)}
+                                    style={{
+                                      fontSize: '0.6rem',
+                                      padding: '2px 4px',
+                                      cursor: 'pointer',
+                                      background: isSelected ? '#2ecc71' : '#eee',
+                                      color: isSelected ? 'white' : 'black',
+                                      border: '1px solid #ddd'
+                                    }}
+                                  >
+                                    D{dNum}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         ))
@@ -1030,8 +1053,20 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
           {/* Selector de División */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>DIV:</label>
-            <select style={{ padding: '5px' }} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))} disabled={!isAdminReal && userDivision !== null}>
-              {isAdminReal ? [1, 2, 3].map(d => <option key={d} value={d}>D{d}</option>) : <option value={userDivision}>D{userDivision}</option>}
+            <select
+              style={{ padding: '5px' }}
+              value={editDiv}
+              onChange={e => setEditDiv(parseInt(e.target.value))}
+              disabled={!isAdminReal && userDivision !== null}
+            >
+              {isAdminReal
+                ? [...Array(10)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    D{i + 1}
+                  </option>
+                ))
+                : <option value={userDivision}>D{userDivision}</option>
+              }
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

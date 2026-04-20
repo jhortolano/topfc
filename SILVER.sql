@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict EknvScHU0KaiKJuVcQ7coGNDJyhnivvg0OGfg3ZRQIIgDLxatSvzVk8fikeZ3DF
+\restrict I4NG1a9Dpwk8uekcyn9vck8IGyQyWhZZUhILfo7whzis6fSu6KYOF4rgm3EbTMQ
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -4451,7 +4451,8 @@ COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, 
 00000000-0000-0000-0000-000000000000	1417	tpjquudrpmap	c06aa55d-9cd6-4f14-8d85-6c5739913994	f	2026-04-20 13:15:39.087655+00	2026-04-20 13:15:39.087655+00	2f66entvvfiv	108fc94e-175d-45b9-9af1-a5d2962badb1
 00000000-0000-0000-0000-000000000000	1416	pwn43fhz3wl7	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-04-20 12:20:43.788221+00	2026-04-20 13:19:21.621845+00	\N	0aed81e2-eb24-4578-a0f6-c256014308e8
 00000000-0000-0000-0000-000000000000	1418	3pwbcglr3laa	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-04-20 13:19:21.631085+00	2026-04-20 14:21:11.210789+00	pwn43fhz3wl7	0aed81e2-eb24-4578-a0f6-c256014308e8
-00000000-0000-0000-0000-000000000000	1419	7cwmejicit5a	c06aa55d-9cd6-4f14-8d85-6c5739913994	f	2026-04-20 14:21:11.222427+00	2026-04-20 14:21:11.222427+00	3pwbcglr3laa	0aed81e2-eb24-4578-a0f6-c256014308e8
+00000000-0000-0000-0000-000000000000	1419	7cwmejicit5a	c06aa55d-9cd6-4f14-8d85-6c5739913994	t	2026-04-20 14:21:11.222427+00	2026-04-20 15:20:35.710327+00	3pwbcglr3laa	0aed81e2-eb24-4578-a0f6-c256014308e8
+00000000-0000-0000-0000-000000000000	1420	p6xyfzjdna57	c06aa55d-9cd6-4f14-8d85-6c5739913994	f	2026-04-20 15:20:35.729458+00	2026-04-20 15:20:35.729458+00	7cwmejicit5a	0aed81e2-eb24-4578-a0f6-c256014308e8
 \.
 
 
@@ -4561,7 +4562,7 @@ COPY auth.schema_migrations (version) FROM stdin;
 
 COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after, refreshed_at, user_agent, ip, tag, oauth_client_id, refresh_token_hmac_key, refresh_token_counter, scopes) FROM stdin;
 108fc94e-175d-45b9-9af1-a5d2962badb1	c06aa55d-9cd6-4f14-8d85-6c5739913994	2026-04-20 10:51:32.709674+00	2026-04-20 13:15:39.122347+00	\N	aal1	\N	2026-04-20 13:15:39.122236	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	77.243.86.169	\N	\N	\N	\N	\N
-0aed81e2-eb24-4578-a0f6-c256014308e8	c06aa55d-9cd6-4f14-8d85-6c5739913994	2026-04-20 12:20:43.786103+00	2026-04-20 14:21:11.243273+00	\N	aal1	\N	2026-04-20 14:21:11.243159	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	77.243.86.169	\N	\N	\N	\N	\N
+0aed81e2-eb24-4578-a0f6-c256014308e8	c06aa55d-9cd6-4f14-8d85-6c5739913994	2026-04-20 12:20:43.786103+00	2026-04-20 15:20:35.747508+00	\N	aal1	\N	2026-04-20 15:20:35.747404	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	77.243.86.169	\N	\N	\N	\N	\N
 \.
 
 
@@ -4616,7 +4617,7 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 00000000-0000-0000-0000-000000000000	851af95a-c82e-4b32-8ffe-a3db35cce8fd	authenticated	authenticated	victorhdez1408@gmail.com	$2a$10$pda9qyf.s.TBD1I3EC1f6eP7vv14Pp5rEwagYWSBQfs5Iz7KfrEOC	2026-03-31 09:07:43.047968+00	\N		2026-03-31 09:07:27.924373+00		\N			\N	2026-03-31 09:07:43.054227+00	{"provider": "email", "providers": ["email"]}	{"sub": "851af95a-c82e-4b32-8ffe-a3db35cce8fd", "nick": "VityCanario", "email": "victorhdez1408@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-31 09:07:27.841387+00	2026-04-03 15:59:45.731934+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	f1932726-f713-4b61-8650-bf04f45d5b09	authenticated	authenticated	mendyvillacity@gmail.com	$2a$10$ZB8Ob9qlN9oYwq2TnokoKOd3QTWz4kCUsMdFyTKe7S8zCAzF/ljQm	2026-04-06 10:07:38.423341+00	\N		2026-04-06 10:05:58.546621+00		\N			\N	2026-04-06 10:07:38.430685+00	{"provider": "email", "providers": ["email"]}	{"sub": "f1932726-f713-4b61-8650-bf04f45d5b09", "nick": "payomalo89", "email": "mendyvillacity@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-04-06 10:05:58.480947+00	2026-04-08 19:24:42.906942+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	4ab9556d-f3d7-41c7-b2e1-dd9c2e630dbd	authenticated	authenticated	ocarvallo23@gmail.com	$2a$10$sqlemlt2mUMPzJAf6srJdOL70EIXZ9Mw9EipoxBs2Tyu5V3CCVozS	2026-03-21 13:32:47.836852+00	\N		2026-03-21 13:28:47.227904+00		\N			\N	2026-03-21 13:32:47.872663+00	{"provider": "email", "providers": ["email"]}	{"sub": "4ab9556d-f3d7-41c7-b2e1-dd9c2e630dbd", "nick": "Ocarvallo15", "email": "ocarvallo23@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-03-21 13:28:47.101665+00	2026-04-08 20:33:50.116461+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	c06aa55d-9cd6-4f14-8d85-6c5739913994	authenticated	authenticated	jhortolano@gmail.com	$2a$10$421fUnsaWu7hdBcR9.kKKO7HwLxElpwerwrZu/obwKtOx6K4WExcm	2026-02-16 14:42:03.862989+00	\N		\N		2026-03-08 20:04:20.645762+00			\N	2026-04-20 12:20:43.786012+00	{"provider": "email", "providers": ["email"]}	{"sub": "c06aa55d-9cd6-4f14-8d85-6c5739913994", "nick": "Mr.Macson", "email": "jhortolano@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-16 14:41:52.428558+00	2026-04-20 14:21:11.227988+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	c06aa55d-9cd6-4f14-8d85-6c5739913994	authenticated	authenticated	jhortolano@gmail.com	$2a$10$421fUnsaWu7hdBcR9.kKKO7HwLxElpwerwrZu/obwKtOx6K4WExcm	2026-02-16 14:42:03.862989+00	\N		\N		2026-03-08 20:04:20.645762+00			\N	2026-04-20 12:20:43.786012+00	{"provider": "email", "providers": ["email"]}	{"sub": "c06aa55d-9cd6-4f14-8d85-6c5739913994", "nick": "Mr.Macson", "email": "jhortolano@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-02-16 14:41:52.428558+00	2026-04-20 15:20:35.742329+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	a223a81d-165b-4c68-8661-022fa4789194	authenticated	authenticated	test@gmail.com	$2a$10$mChLnWf6fNQjzQYL6jDhDOQtDzNva1.NqbmV72CbWB3TRyBx3KSvO	2026-04-20 10:14:29.522741+00	\N		\N		\N			\N	2026-04-20 10:47:35.690015+00	{"provider": "email", "providers": ["email"]}	{"sub": "a223a81d-165b-4c68-8661-022fa4789194", "nick": "test", "email": "test@gmail.com", "email_verified": true, "phone_verified": false}	\N	2026-04-20 10:14:29.495807+00	2026-04-20 12:15:13.593202+00	\N	\N			\N		0	\N		\N	f	\N	f
 \.
 
@@ -5146,7 +5147,7 @@ e92aa512-c44f-48c8-b983-7c7705e36a6f	Excobar1208	escobarelkin@coruniamericana.ed
 f1932726-f713-4b61-8650-bf04f45d5b09	payomalo89	mendyvillacity@gmail.com	\N	f	2026-04-06 10:05:58.478595+00	\N	+34655391764	f	2026-04-08 19:47:20.806+00	f	\N
 2f58705a-25ad-42c9-b953-5137532b3584	Selu 	Jluisdiazmaroto@gmail.com	\N	f	2026-03-01 19:03:49.128611+00	\N	+34655391764	f	2026-04-08 19:50:49.265+00	f	\N
 ff1dccb8-00bc-4042-a869-3a55773f3701	errejota	rjgcolino@gmail.com	\N	f	2026-02-16 15:24:06.155978+00	@rrjjggcc	+34655391764	f	2026-04-01 07:26:19.018+00	f	errejota_20
-c06aa55d-9cd6-4f14-8d85-6c5739913994	Mr.Macson	jhortolano@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c06aa55d-9cd6-4f14-8d85-6c5739913994.webp?t=1771253637914	f	2026-02-16 14:41:52.426307+00	@jl_hvv	+34655391764	t	2026-04-20 15:03:08.772+00	f	Mrmacson2
+c06aa55d-9cd6-4f14-8d85-6c5739913994	Mr.Macson	jhortolano@gmail.com	https://nkecyqwcrsicsyladdhw.supabase.co/storage/v1/object/public/avatars/avatars/c06aa55d-9cd6-4f14-8d85-6c5739913994.webp?t=1771253637914	f	2026-02-16 14:41:52.426307+00	@jl_hvv	+34655391764	t	2026-04-20 15:57:46.001+00	f	Mrmacson2
 \.
 
 
@@ -5155,10 +5156,14 @@ c06aa55d-9cd6-4f14-8d85-6c5739913994	Mr.Macson	jhortolano@gmail.com	https://nkec
 --
 
 COPY public.promo_matches (id, player1_id, player2_id, score1, score2, is_played, season, division, idavuelta, label_info, stream_url, created_at, updated_at) FROM stdin;
-ba89d699-608b-4ed1-8677-10ee17a88e99	4408336b-259c-437a-9f78-c4a664506756	2f58705a-25ad-42c9-b953-5137532b3584	0	0	f	2	1	ida	Promoción Div 1 vs Div 2	\N	2026-04-20 15:02:45.515126+00	2026-04-20 15:02:45.515126+00
-b1bba7d8-e3ed-4005-a63c-219a31640088	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	0	0	f	2	2	ida	Promoción Div 2 vs Div 3	\N	2026-04-20 15:02:45.515126+00	2026-04-20 15:02:45.515126+00
-d57e9afb-0da3-4979-9111-631013bd3030	39b4f188-96fa-4fc8-8d91-4d954f67c5d3	449ee91c-f52f-4661-abd4-ebfd556c37c3	0	0	f	2	3	ida	Promoción Div 3 vs Div 4	\N	2026-04-20 15:02:45.515126+00	2026-04-20 15:02:45.515126+00
-e1c6aa11-55cb-42ab-aa79-9321494f28c6	a223a81d-165b-4c68-8661-022fa4789194	e92aa512-c44f-48c8-b983-7c7705e36a6f	0	0	f	2	4	ida	Promoción Div 4 vs Div 5	\N	2026-04-20 15:02:45.515126+00	2026-04-20 15:02:45.515126+00
+77547ea8-a195-4505-b346-fd3383486e9a	f1932726-f713-4b61-8650-bf04f45d5b09	8c1c7bba-636d-42f2-820a-ac1131897e84	0	0	f	2	1	ida	Promoción a Div 1	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+5c7cb1fd-5b05-4c73-8dc5-4c24005462b0	4408336b-259c-437a-9f78-c4a664506756	2f58705a-25ad-42c9-b953-5137532b3584	0	0	f	2	1	ida	Promoción a Div 1	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+21ed6e24-5bcf-48d0-97a0-db5e201df52a	b5d23981-469b-4353-a615-9e4d6c8d8daf	74d1cfe5-421b-4be6-a055-0b7693ff2f1c	0	0	f	2	2	ida	Promoción a Div 2	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+d01cd22b-583d-417d-b904-69148714dc4d	af7dbfd6-3f00-4823-90f0-e9ee4e7f5d76	05fcf0a8-e2f1-46b3-bad4-8d3b267fd003	0	0	f	2	2	ida	Promoción a Div 2	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+c42592f7-7aec-430e-95c1-cfd0a0abc70d	943a493d-044c-4c88-babc-e64804553bb4	9d852873-3b29-4018-adde-c6244679e312	0	0	f	2	3	ida	Promoción a Div 3	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+cf91cf91-fcb4-4f32-9efc-5f33fa433ea3	39b4f188-96fa-4fc8-8d91-4d954f67c5d3	449ee91c-f52f-4661-abd4-ebfd556c37c3	0	0	f	2	3	ida	Promoción a Div 3	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+b53419b1-7c71-4e36-8082-0fc4a98762f9	c06aa55d-9cd6-4f14-8d85-6c5739913994	38f98f64-f2db-47bf-a5ea-dcd1804ce00a	0	0	f	2	4	ida	Promoción a Div 4	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
+c31d02a0-fc49-4e7d-a4bc-34b9c4581fa6	a223a81d-165b-4c68-8661-022fa4789194	e92aa512-c44f-48c8-b983-7c7705e36a6f	0	0	f	2	4	ida	Promoción a Div 4	\N	2026-04-20 15:20:52.204245+00	2026-04-20 15:20:52.204245+00
 \.
 
 
@@ -5185,7 +5190,7 @@ COPY public.votos_encuesta (id, encuesta_id, usuario_id, opcion_index, created_a
 --
 
 COPY public.weeks_promo (id, season, start_at, end_at, idavuelta, created_at) FROM stdin;
-118552ca-3665-4d54-87fb-e3a5b11e9aa8	2	2026-04-18 15:02:00+00	2026-04-25 15:02:00+00	ida	2026-04-20 15:02:45.382743+00
+c7159aad-8bd2-4e9f-b1a4-f5c0f5061a12	2	2026-04-18 15:20:00+00	2026-04-25 15:20:00+00	ida	2026-04-20 15:20:52.110445+00
 \.
 
 
@@ -5432,7 +5437,7 @@ COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, up
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: supabase_auth_admin
 --
 
-SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 1419, true);
+SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 1420, true);
 
 
 --
@@ -9710,5 +9715,5 @@ ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict EknvScHU0KaiKJuVcQ7coGNDJyhnivvg0OGfg3ZRQIIgDLxatSvzVk8fikeZ3DF
+\unrestrict I4NG1a9Dpwk8uekcyn9vck8IGyQyWhZZUhILfo7whzis6fSu6KYOF4rgm3EbTMQ
 

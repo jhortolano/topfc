@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import CalendarioExtraPlayoff from './extraplayoff/CalendarioExtraPlayoff'
+import CalendarioPromocion from './utils/CalendarioPromocion'
 
 // --- COMPONENTE PARA EL ZOOM ---
 const AvatarConZoom = ({ url }) => {
@@ -59,19 +60,30 @@ function CategorySelector({ current, onChange, season }) {
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState('div');
   const [lastSelected, setLastSelected] = useState({ div: null, po: null });
+  const [hasPromo, setHasPromo] = useState(false);
 
   useEffect(() => {
     async function load() {
       if (!season) return;
 
+      // 1. Cargar Divisiones de Liga
       const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
       const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
 
+      // 2. Cargar Playoffs Normales
       const { data: pData } = await supabase.from('playoffs').select('*').eq('season', season);
       const formattedPlayoffs = pData ? pData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
 
+      // 3. Cargar Playoffs Extra
       const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
       const formattedExtras = extraData ? extraData.map(e => ({ id: e.id, label: e.nombre.toUpperCase(), type: 'extra' })) : [];
+
+      // 4. Verificar si existen Promociones
+      const { count } = await supabase
+        .from('promo_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', season);
+      setHasPromo(count > 0);
 
       const all = [
         ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
@@ -80,15 +92,18 @@ function CategorySelector({ current, onChange, season }) {
       ];
       setCategories(all);
 
+      // Gestionar pestaña activa según la categoría actual
       const currentCat = all.find(c => c.id === current);
       if (currentCat) {
         const type = currentCat.type === 'div' ? 'div' : 'po';
         setActiveTab(type);
         setLastSelected(prev => ({ ...prev, [type]: currentCat.id }));
+      } else if (current === 'promo') {
+        setActiveTab('promo');
       }
     }
     load();
-  }, [season]);
+  }, [season, current]);
 
   const filteredCategories = categories.filter(cat =>
     activeTab === 'div' ? cat.type === 'div' : (cat.type === 'po' || cat.type === 'extra')
@@ -99,10 +114,12 @@ function CategorySelector({ current, onChange, season }) {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (lastSelected[tab]) {
+    if (tab === 'promo') {
+      onChange('promo');
+    } else if (lastSelected[tab]) {
       onChange(lastSelected[tab]);
     } else {
-      const first = categories.find(c => tab === 'div' ? c.type === 'div' : (c.type === 'po' || cat.type === 'extra'));
+      const first = categories.find(c => tab === 'div' ? c.type === 'div' : (c.type === 'po' || c.type === 'extra'));
       if (first) onChange(first.id);
     }
   };
@@ -115,7 +132,7 @@ function CategorySelector({ current, onChange, season }) {
 
   return (
     <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '8px', flexWrap: 'wrap' }}>
         {hasLigas && (
           <button onClick={() => handleTabChange('div')} style={{
             padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
@@ -128,16 +145,25 @@ function CategorySelector({ current, onChange, season }) {
             background: activeTab === 'po' ? '#34495e' : 'transparent', color: activeTab === 'po' ? 'white' : '#64748b'
           }}> 🏆 PLAYOFFS </button>
         )}
+        {hasPromo && (
+          <button onClick={() => handleTabChange('promo')} style={{
+            padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
+            background: activeTab === 'promo' ? '#e17055' : 'transparent', color: activeTab === 'promo' ? 'white' : '#64748b'
+          }}> 🔥 PROMOCIÓN </button>
+        )}
       </div>
-      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-        {filteredCategories.map(cat => (
-          <button key={cat.id} onClick={() => handleCategoryClick(cat)} style={{
-            padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
-            background: current === cat.id ? (cat.type === 'div' ? '#2ecc71' : '#34495e') : '#ecf0f1',
-            color: current === cat.id ? 'white' : '#7f8c8d'
-          }}> {cat.label} </button>
-        ))}
-      </div>
+
+      {activeTab !== 'promo' && (
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {filteredCategories.map(cat => (
+            <button key={cat.id} onClick={() => handleCategoryClick(cat)} style={{
+              padding: '5px 12px', borderRadius: '15px', border: 'none', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
+              background: current === cat.id ? (cat.type === 'div' ? '#2ecc71' : '#34495e') : '#ecf0f1',
+              color: current === cat.id ? 'white' : '#7f8c8d'
+            }}> {cat.label} </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -226,6 +252,9 @@ export default function CalendarioCompleto({ config }) {
   useEffect(() => {
     async function fetch() {
       if (!vS) return;
+
+      if (vD === 'promo') return;
+
       const isPlayoff = typeof vD === 'string';
 
       if (!isPlayoff) {
@@ -346,6 +375,9 @@ export default function CalendarioCompleto({ config }) {
       {currentExtraPlayoff ? (
         /* SI ES EXTRA PLAYOFF: Mostramos su componente */
         <CalendarioExtraPlayoff season={vS} config={config} extraId={currentExtraPlayoff.id} />
+      ) : vD === 'promo' ? (
+        /* NUEVO: SI ES PROMOCIÓN */
+        <CalendarioPromocion season={vS} />
       ) : (
         /* SI NO ES EXTRA (Liga o Playoff normal): Mostramos el código original */
         grupos.length === 0 ? (

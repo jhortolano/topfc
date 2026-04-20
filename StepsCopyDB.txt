@@ -54,3 +54,8 @@ TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtd
 
 --CARGAR TABLAS:
 TESTING: psql -h aws-1-eu-west-1.pooler.supabase.com -p 6543 -U postgres.vudsxtdmqweefydivflf -d postgres -f bkDB/backup_produccion_completo_20260306.sql
+
+
+----TODO MI TELEFONO-----
+UPDATE profiles 
+SET phone = '+34655391764'

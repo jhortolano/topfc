@@ -1,3 +1,5 @@
+import os
+import sys
 from datetime import datetime, timedelta, timezone
 # Asegúrate de importar el cliente supabase desde tu archivo de gestión
 from gestorPartidos import partidosPendientes, supabase
@@ -5,46 +7,69 @@ import DATABASECONNECTION
 import subprocess
 import time
 
-
-# Constante para la limpieza de logs
+# Constante para la limpieza de logs en DB
 DIAS_LIMPIEZA_LOGS = 7
 DIAS_PARA_EXPIRAR = 3
 
 
-def limpiar_notificaciones_antiguas():
-    """
-    Borra los registros de la tabla notificaciones_enviadas que tengan 
-    una antigüedad superior a DIAS_LIMPIEZA_LOGS.
-    """
-    print(
-        f"Iniciando limpieza de notificaciones antiguas (más de {DIAS_LIMPIEZA_LOGS} días)...")
+# --- CONFIGURACIÓN DE LOGS DINÁMICOS ---
+def obtener_ruta_log():
+    nombre_log = os.path.splitext(os.path.basename(__file__))[0] + ".log"
+    directorio_preferido = "/app/python_logic"
+    
+    # Si el directorio existe, usamos esa ruta; si no, el directorio actual
+    if os.path.exists(directorio_preferido):
+        return os.path.join(directorio_preferido, nombre_log)
+    else:
+        return os.path.join(os.getcwd(), nombre_log)
 
-    # Calculamos la fecha límite (UTC)
+RUTA_ARCHIVO_LOG = obtener_ruta_log()
+
+def log_print(mensaje):
+    """Imprime en consola y escribe en el archivo log con timestamp."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    texto_final = f"[{timestamp}] {mensaje}"
+    
+    # Imprimir en consola
+    print(mensaje)
+    
+    # Escribir en el archivo (modo append 'a')
+    try:
+        with open(RUTA_ARCHIVO_LOG, "a", encoding="utf-8") as f:
+            f.write(texto_final + "\n")
+    except Exception as e:
+        print(f"Error al escribir en el log: {e}")
+
+# Inicialización: Borrar log previo si existe en la ruta calculada
+if os.path.exists(RUTA_ARCHIVO_LOG):
+    os.remove(RUTA_ARCHIVO_LOG)
+
+# --- RESTO DEL CÓDIGO ---
+
+def limpiar_notificaciones_antiguas():
+    log_print(f"Iniciando limpieza de notificaciones antiguas (más de {DIAS_LIMPIEZA_LOGS} días)...")
+
     fecha_corte = (datetime.now(timezone.utc) -
                    timedelta(days=DIAS_LIMPIEZA_LOGS)).isoformat()
 
     try:
-        # Borramos registros donde created_at sea menor o igual a la fecha de corte
         res = supabase.table("notificaciones_enviadas")\
             .delete()\
             .lte("created_at", fecha_corte)\
             .execute()
 
-        # res.data suele contener los registros borrados
-        print(f"Limpieza completada. Registros eliminados: {len(res.data)}")
+        log_print(f"Limpieza completada. Registros eliminados: {len(res.data)}")
     except Exception as e:
-        print(f"Error durante la limpieza de la tabla: {e}")
+        log_print(f"Error durante la limpieza de la tabla: {e}")
 
 
 def enviarNotificacion(fila):
     nick = fila[0]
-    # Aseguramos que el teléfono sea un string y quitamos espacios o símbolos raros
     telefono = str(fila[1]).replace(" ", "").replace("+", "")
     rival = fila[3]
     fase = fila[6]
     fecha_limite_raw = fila[5]
 
-    # --- LÓGICA DE FORMATEO DE FECHA ---
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
              "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     dias_semana = ["Lunes", "Martes", "Miércoles",
@@ -59,18 +84,18 @@ def enviarNotificacion(fila):
     except:
         fecha_formateada = fecha_limite_raw
 
-    # --- CONSTRUCCIÓN DEL MENSAJE ---
     mensaje = (
         f"Hola {nick}, tienes un partido pendiente en *{fase}* contra {rival}. "
         f"La fecha límite es el *{fecha_formateada}*. ¡No olvides jugarlo!"
+        f"\n\n"
+        f"_*Esto es un recordatorio automático, por favor no respondas a este mensaje.*_"
     )
 
-    print(f"--- EJECUTANDO MUDSLIDE ---")
-    print(f"Destinatario: {nick} ({telefono})")
+    log_print(f"--- EJECUTANDO MUDSLIDE ---")
+    log_print(f"Destinatario: {nick} ({telefono})")
 
     try:
-        # Ejecutamos el comando de mudslide: npx mudslide send <numero> <mensaje>
-        # Nota: Mudslide gestiona internamente la conexión si ya hiciste 'npx mudslide login'
+        log_print(f"DEBUG: Ejecutando comando npx mudslide send {telefono} {mensaje}")
         resultado = subprocess.run(
             ["npx", "mudslide", "send", telefono, mensaje],
             capture_output=True,
@@ -78,37 +103,33 @@ def enviarNotificacion(fila):
             check=True
         )
         
-        print(f"Respuesta de Mudslide: {resultado.stdout.strip()}")
-        print(f"WhatsApp enviado correctamente a {nick}")
+        log_print(f"Respuesta de Mudslide: {resultado.stdout.strip()}")
+        log_print(f"WhatsApp enviado correctamente a {nick}")
         
-        # Un pequeño delay para no saturar el proceso de la Raspberry si hay varios envíos
         time.sleep(1)
 
     except subprocess.CalledProcessError as e:
-        print(f"Error al ejecutar Mudslide para {nick}: {e.stderr}")
+        log_print(f"Error al ejecutar Mudslide para {nick}: {e.stderr}")
     except Exception as e:
-        print(f"Error inesperado: {e}")
+        log_print(f"Error inesperado: {e}")
 
 
 def guardarDBNotificacionEnviada(id_base):
-    # ... (tu código se mantiene igual)
     try:
         data = {"id": id_base}
         supabase.table("notificaciones_enviadas").insert(data).execute()
-        print(f"ID {id_base} guardado en la base de datos.")
+        log_print(f"ID {id_base} guardado en la base de datos.")
     except Exception as e:
-        print(f"Error al guardar en DB: {e}")
+        log_print(f"Error al guardar en DB: {e}")
 
 
 def verificar_notificacion_existente(id_base):
-    # ... (tu código se mantiene igual)
     res = supabase.table("notificaciones_enviadas").select(
         "id").eq("id", id_base).execute()
     return len(res.data) > 0
 
 
 def filtrar_partidos_por_expiracion(lista_partidos, dias_limite=3):
-    # ... (tu código se mantiene igual)
     lista_partidos_expiran_pronto = []
     ahora = datetime.now(timezone.utc)
 
@@ -137,29 +158,29 @@ def filtrar_partidos_por_expiracion(lista_partidos, dias_limite=3):
 
 
 def ejecutar_reporte():
-    # 0. LO PRIMERO: Limpiar registros viejos
     limpiar_notificaciones_antiguas()
 
-    print("\nConsultando partidos pendientes...")
+    log_print(f"Log activo en: {RUTA_ARCHIVO_LOG}")
+    log_print("Consultando partidos pendientes...")
     lista_total = partidosPendientes()
 
     lista_proximos = filtrar_partidos_por_expiracion(
         lista_total, DIAS_PARA_EXPIRAR)
 
     if not lista_proximos:
-        print("No hay partidos próximos a expirar.")
+        log_print("No hay partidos próximos a expirar.")
     else:
         for fila in lista_proximos:
             id_base = fila[7]
 
-            if verificar_notificacion_existente(id_base):
-                print(
-                    f"Saltando: La notificación para {fila[0]} vs {fila[3]} ya fue enviada.")
-            else:
+            if not verificar_notificacion_existente(id_base):
+                log_print(f"Enviando notificación para {fila[0]} vs {fila[3]}...")
                 enviarNotificacion(fila)
                 guardarDBNotificacionEnviada(id_base)
+            else:
+                log_print(f"Notificación ya enviada anteriormente para el ID: {id_base}. Saltando...")
 
-            print("-" * 30)
+            log_print("-" * 30)
 
 
 if __name__ == "__main__":

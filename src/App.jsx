@@ -374,11 +374,10 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
   // Añadir ADMIN solo si es administrador
   if (isAdmin || isColaborador) {
     tabs.push({ id: 'admin', label: 'ADMIN' });
-    tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
-
   }
 
   if (isAdmin) {
+    tabs.push({ id: 'admin_playoffs', label: 'ADMIN PLAYOFFS' });
     tabs.push({ id: 'avisos_admin', label: 'AVISOS' });
   }
 

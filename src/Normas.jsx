@@ -56,7 +56,18 @@ function Normas() {
           <div style={{ marginTop: '8px' }}>Jugamos un partido a la semana.</div>
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
             <li style={{ marginBottom: '8px' }}><strong>¿No puedes jugar?:</strong> Si te surge algo, intenta <strong>adelantar</strong> el partido. Siempre es mejor jugar antes que dejarlo para después.</li>
-            <li style={{ marginBottom: '8px' }}><strong>Fecha límite:</strong> No se puede reprogramar partidos pendientes más allá del final de la temporada.</li>
+            <li style={{ marginBottom: '8px' }}><strong>Fecha límite:</strong> 
+              <ul>
+                <li>No se puede reprogramar partidos pendientes más allá del final de la temporada.</li>
+                <li><strong>Partidos de Playoff</strong> NO se pueden reprogramar.</li>
+                <li>Se pueden adelantar partidos hasta dos jornadas en adelante si hay una justificación válida. (ej: jugar la Jornada 3-4 en la Jornada 2).</li>
+                <li>Como norma general, cualquier partido con 2 o más jornadas de antigüedad será marcado como no jugado o con el marcador que corresponda dependiendo de los casos descritos abajo.
+                  <ul>
+                    <li>Ejemplo: Comienza la Jornada 4, los partidos no jugados de la Jornada 3 se pueden reprogramar. Todos los partidos no jugados de la Jornada 2 ya no se pueden jugar.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
             <li style={{ marginBottom: '8px' }}><strong>Avisa a los admins:</strong> Si necesitas reprogramarlo, <strong>una vez habiendolo organizado con tu oponente y no antes,</strong> dinos qué semana lo vas a jugar. Si llega la siguiente jornada, el partido no se juega y nadie ha avisado, se queda en <strong>0-0</strong> y se pierde la oportunidad de jugarlo.</li>
             <li style={{ marginBottom: '8px' }}><strong>Si uno no aparece:</strong> Si el partido se queda sin jugar porque solo uno de los dos no ha podido (o no ha querido), el que sí estaba disponible gana <strong>3-0</strong> en liga o <strong>5-0</strong> en playoff.</li>
             <li style={{ marginBottom: '8px' }}><strong>Empate técnico:</strong> Si ninguno de los dos puede jugar ni ponerse de acuerdo, se marca un <strong>0-0</strong>. Eso sí, si hay una diferencia clara en la disponibilidad de un jugador sobre el otro, se le dará la victoria al que más disponibilidad tenía ganando este con <strong>3-0</strong> en liga o <strong>5-0</strong> en playoff.</li>
@@ -70,6 +81,17 @@ function Normas() {
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
             <li style={{ marginBottom: '5px' }}>Puede postear el resultado cualquier jugador, aunque la responsabilidad de postear es del ganador del partido</li>
             <li>Si un resultado se introduce de forma incorrecta, contactar con la administración.</li>
+            <li><strong>Partidos de Playoff:</strong>
+                <ul>
+                  <li>En eliminatorias (no liguilla) no puede haber empates. Si hay ida y vuelta, en ida puede haber empate, pero en la vuelta, cuando se suman los goles, no puede haber empate.</li>
+                  <li>Si hubiera empate:
+                    <ul>
+                      <li>Se juega un nuevo partido, quien gane el partido, gana esa fase de la eliminatoria</li>
+                      <li>Si el nuevo partido vuelve a quedar empate, se vuelve a jugar otro nuevo partido, quien marque primero en ese nuevo partido gana esa fase de la eliminatoria.</li>
+                    </ul>
+                  </li>
+                </ul>
+            </li>
           </ul>
         </div>
 

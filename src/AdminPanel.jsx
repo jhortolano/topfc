@@ -169,6 +169,7 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
 
   // Lista de usuarios que ya son colaboradores
   const colaboradores = availableUsers.filter(u => u.is_colaborador);
+  const [userDivision, setUserDivision] = useState(null);
 
   // --- LÓGICA DE DETECCIÓN DE ENTORNO ---
   const supabaseUrl = supabase.supabaseUrl || '';
@@ -227,6 +228,26 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
     fetchPartidosParaEditar();
     if (editSeason) loadSeasonRules(editSeason);
   }, [editSeason, editWeek, editDiv]);
+
+  useEffect(() => {
+    const getMyDivision = async () => {
+      if (!profile || isAdminReal) return; // Si es Admin total, no restringimos
+
+      const { data } = await supabase
+        .from('matches')
+        .select('division')
+        .eq('season', config?.current_season)
+        .or(`home_team.eq.${profile.id},away_team.eq.${profile.id}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setUserDivision(data.division);
+        setEditDiv(data.division); // Forzamos a que el editor empiece en su división
+      }
+    };
+    getMyDivision();
+  }, [profile, config?.current_season, isAdminReal]);
 
   useEffect(() => {
     const fetchSeasonRules = async () => {
@@ -998,16 +1019,19 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h4 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #2ecc71', paddingBottom: '10px' }}>Marcadores Rápidos</h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+          {/* Selector de Temporada */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>TEMP:</label>
-            <select style={{ padding: '5px' }} value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))}>
-              {availableSeasons.map(s => <option key={s} value={s}>T{s}</option>)}
+            <select style={{ padding: '5px' }} value={editSeason} onChange={e => setEditSeason(parseInt(e.target.value))} disabled={!isAdminReal}>
+              {isAdminReal ? availableSeasons.map(s => <option key={s} value={s}>T{s}</option>) : <option value={config?.current_season}>T{config?.current_season}</option>}
             </select>
           </div>
+
+          {/* Selector de División */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>DIV:</label>
-            <select style={{ padding: '5px' }} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))}>
-              <option value={1}>D1</option><option value={2}>D2</option><option value={3}>D3</option>
+            <select style={{ padding: '5px' }} value={editDiv} onChange={e => setEditDiv(parseInt(e.target.value))} disabled={!isAdminReal && userDivision !== null}>
+              {isAdminReal ? [1, 2, 3].map(d => <option key={d} value={d}>D{d}</option>) : <option value={userDivision}>D{userDivision}</option>}
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1318,35 +1342,34 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       )}
 
       {/* 5. RESCHEDULER  */}
-      {isAdminReal && (
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => setShowReschedule(!showReschedule)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: '#16a085', // Un color verde azulado diferente
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <span>📅 Gestionar adelantos y retrasos</span>
-            <span>{showReschedule ? '▲' : '▼'}</span>
-          </button>
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={() => setShowReschedule(!showReschedule)}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: '#16a085', // Un color verde azulado diferente
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <span>📅 Gestionar adelantos y retrasos</span>
+          <span>{showReschedule ? '▲' : '▼'}</span>
+        </button>
 
-          {showReschedule && (
-            <MatchesRescheduled
-              currentSeason={config?.current_season}
-            />
-          )}
-        </div>
-      )}
+        {showReschedule && (
+          <MatchesRescheduled
+            currentSeason={config?.current_season}
+            isAdmin={isAdminReal}
+          />
+        )}
+      </div>
 
       {isAdminReal && (
         <>

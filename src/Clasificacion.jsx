@@ -151,7 +151,6 @@ function SeasonSelector({ current, onChange }) {
 
 const calcularBonusPorStream = (porcentaje, rules) => {
   // Según el dump: bonus_min_percentage y bonus_points
-  console.log(rules);
   const enabled = rules?.bonus_enabled ?? false;
   const umbral = rules?.bonus_min_percentage ?? 80;
   const umbralb = rules?.bonus_min_porcentageb ?? umbral;

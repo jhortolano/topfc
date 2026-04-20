@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-export default function MatchesRescheduled({ currentSeason }) {
+export default function MatchesRescheduled({ currentSeason, isAdmin }) {
   const [loading, setLoading] = useState(false);
   const [seasons, setSeasons] = useState([]);
   const [weeks, setWeeks] = useState([]);
@@ -17,22 +17,66 @@ export default function MatchesRescheduled({ currentSeason }) {
   const [editingId, setEditingId] = useState(null);
   const [tempDates, setTempDates] = useState({ inicio: '', fin: '' });
 
+  const [userId, setUserId] = useState(null);
+  const [userDivision, setUserDivision] = useState(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        // Si no es admin, buscamos su división automáticamente
+        if (!isAdmin) {
+          fetchUserDivision(user.id);
+        }
+      }
+    };
+    getUser();
+  }, [isAdmin]);
+
+  const fetchUserDivision = async (uid) => {
+    const { data } = await supabase
+      .from('matches')
+      .select('division')
+      .eq('season', currentSeason)
+      .or(`home_team.eq.${uid},away_team.eq.${uid}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setUserDivision(data.division);
+      setSelDiv(data.division); // Forzamos el filtro a su división
+    } else {
+      // Si no juega, marcamos como 0 o error para que el useEffect sepa que ya terminó de buscar
+      setUserDivision(0);
+    }
+  };
+
   useEffect(() => {
     fetchSeasons();
   }, []);
 
   useEffect(() => {
-    if (selSeason) {
-      fetchWeeks();
-      fetchPartidos();
-      fetchAllRescheduled();
-    }
-  }, [selSeason, selDiv, selWeek]);
+    // 1. Si no hay temporada seleccionada, no hacemos nada
+    if (!selSeason) return;
+
+    // 2. Si es colaborador y aún no sabemos su división, paramos aquí
+    // Esto evita que cargue la División 1 por defecto por error
+    if (!isAdmin && userDivision === null) return;
+
+    fetchWeeks();
+    fetchPartidos();
+    fetchAllRescheduled();
+  }, [selSeason, selDiv, selWeek, userDivision, isAdmin]);
 
   const fetchSeasons = async () => {
     const { data } = await supabase.from('matches').select('season');
     if (data) {
-      const unique = [...new Set(data.map(item => item.season))].sort((a, b) => b - a);
+      let unique = [...new Set(data.map(item => item.season))].sort((a, b) => b - a);
+      // SI NO ES ADMIN: Filtramos para que solo exista la temporada actual
+      if (!isAdmin) {
+        unique = unique.filter(s => s === currentSeason);
+      }
       setSeasons(unique);
     }
   };
@@ -139,7 +183,14 @@ export default function MatchesRescheduled({ currentSeason }) {
     else fetchAllRescheduled();
   };
 
-  const groupedRescheduled = allRescheduled.reduce((acc, item) => {
+  const groupedRescheduled = allRescheduled
+  .filter(item => {
+      // Si es Admin, pasan todos.
+      if (isAdmin) return true;
+      // Si no es Admin, el partido debe ser de su división
+      return item.partido?.division === userDivision;
+    })
+  .reduce((acc, item) => {
     const week = item.partido?.week || 'S/N';
     if (!acc[week]) acc[week] = [];
     acc[week].push(item);
@@ -159,6 +210,13 @@ export default function MatchesRescheduled({ currentSeason }) {
     });
   };
 
+
+  if (!isAdmin) {
+    // Si aún está cargando el userId o la división, podemos mostrar un loading o nada
+    if (userDivision === null) return null;
+    // Si buscó y el resultado fue 0 (no está en ninguna división), no mostramos nada
+    if (userDivision === 0) return null;
+  }
   return (
     <div style={{ background: '#f0f4f8', padding: '15px', borderRadius: '8px', marginTop: '10px', border: '1px solid #d1d9e6' }}>
       <h3 style={{ margin: '0 0 15px 0', fontSize: '1rem', color: '#2c3e50' }}>⚙️ Panel de Reprogramación</h3>
@@ -172,10 +230,26 @@ export default function MatchesRescheduled({ currentSeason }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#666' }}>DIVISIÓN</label>
-          <select value={selDiv} onChange={e => setSelDiv(parseInt(e.target.value))}>
-            <option value={1}>Primera División</option>
-            <option value={2}>Segunda División</option>
-            <option value={3}>Tercera División</option>
+          <select value={selDiv} onChange={e => setSelDiv(parseInt(e.target.value))} disabled={!isAdmin} // Bloqueado si es colaborador
+            style={{ opacity: isAdmin ? 1 : 0.7, cursor: isAdmin ? 'pointer' : 'not-allowed' }}
+          >
+            {isAdmin ? (
+              // Si es Admin, ve todas
+              <>
+                <option value={1}>Primera División</option>
+                <option value={2}>Segunda División</option>
+                <option value={3}>Tercera División</option>
+              </>
+            ) : (
+              // Si es colaborador, solo ve la suya
+              userDivision ? (
+                <option value={userDivision}>
+                  {userDivision === 1 ? 'Primera División' : userDivision === 2 ? 'Segunda División' : 'Tercera División'}
+                </option>
+              ) : (
+                <option value="">Cargando...</option>
+              )
+            )}
           </select>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>

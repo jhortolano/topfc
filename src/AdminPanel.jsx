@@ -151,6 +151,10 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [minPercentage, setMinPercentage] = useState(80);
   const [extraPoints, setExtraPoints] = useState(1);
+  const [minPercentageB, setMinPercentageB] = useState(0);
+  const [extraPointsB, setExtraPointsB] = useState(0);
+  const [minPercentageC, setMinPercentageC] = useState(0);
+  const [extraPointsC, setExtraPointsC] = useState(0);
   const [limitGaEnabled, setLimitGaEnabled] = useState(true); // Checkbox de activo
   const [maxGaLeague, setMaxGaLeague] = useState(3);          // Diferencia máxima
   const [showSwitch, setShowSwitch] = useState(false);
@@ -329,12 +333,18 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       setBonusEnabled(data.bonus_enabled);
       setMinPercentage(data.bonus_min_percentage);
       setExtraPoints(data.bonus_points);
+      setMinPercentageB(data.bonus_min_porcentageb ?? 0);
+      setExtraPointsB(data.bonus_pointsb ?? 0);
+      setMinPercentageC(data.bonus_min_porcentagec ?? 0);
+      setExtraPointsC(data.bonus_pointsc ?? 0);
       setLimitGaEnabled(data.limit_ga_enabled ?? true);
       setMaxGaLeague(data.max_ga_league ?? 3);
     } else {
       setBonusEnabled(false);
       setMinPercentage(80);
       setExtraPoints(1);
+      setMinPercentageB(0); setExtraPointsB(0);
+      setMinPercentageC(0); setExtraPointsC(0);
       setLimitGaEnabled(true);
       setMaxGaLeague(3);
     }
@@ -363,6 +373,10 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       bonus_enabled: bonusEnabled,
       bonus_min_percentage: minPercentage,
       bonus_points: extraPoints,
+      bonus_min_porcentageb: minPercentageB,
+      bonus_pointsb: extraPointsB,
+      bonus_min_porcentagec: minPercentageC,
+      bonus_pointsc: extraPointsC,
       limit_ga_enabled: limitGaEnabled,
       max_ga_league: maxGaLeague
     });
@@ -899,19 +913,50 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
             <h4 style={{ marginTop: 0, color: '#92400e' }}>⚙️ Configuración de Competición (T{editSeason})</h4>
 
             {/* FILA 1: BONUS POR DIRECTOS */}
+            {/* FILA 1: BONUS POR DIRECTOS CON NIVELES A, B y C */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '15px', borderBottom: '1px solid #fde68a', paddingBottom: '15px' }}>
+
+              {/* NIVEL A (Original) */}
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-                <span style={{ fontWeight: 'bold' }}>¿Activar Bonus Directos?</span>
+                <span style={{ fontWeight: 'bold' }}>¿Activar Bonus?</span>
                 <input type="checkbox" checked={bonusEnabled} onChange={e => setBonusEnabled(e.target.checked)} style={{ width: '20px', height: '20px' }} />
               </label>
+
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-                <span style={{ fontWeight: 'bold' }}>% Mínimo</span>
-                <input type="number" value={minPercentage} onChange={e => setMinPercentage(e.target.value)} style={{ width: '80px', padding: '5px' }} />
+                <span style={{ fontWeight: 'bold' }}>% Min A</span>
+                <input type="number" value={minPercentage} onChange={e => setMinPercentage(e.target.value)} style={{ width: '70px', padding: '5px' }} />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
-                <span style={{ fontWeight: 'bold' }}>Puntos Extra</span>
-                <input type="number" value={extraPoints} onChange={e => setExtraPoints(e.target.value)} style={{ width: '60px', padding: '5px' }} />
+                <span style={{ fontWeight: 'bold' }}>Pts A</span>
+                <input type="number" value={extraPoints} onChange={e => setExtraPoints(e.target.value)} style={{ width: '50px', padding: '5px' }} />
               </label>
+
+              {/* BARRA SEPARADORA */}
+              <div style={{ width: '2px', height: '40px', background: '#fde68a', margin: '0 5px' }}></div>
+
+              {/* NIVEL B */}
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>% Min B</span>
+                <input type="number" value={minPercentageB} onChange={e => setMinPercentageB(e.target.value)} style={{ width: '70px', padding: '5px' }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>Pts B</span>
+                <input type="number" value={extraPointsB} onChange={e => setExtraPointsB(e.target.value)} style={{ width: '50px', padding: '5px' }} />
+              </label>
+
+              {/* BARRA SEPARADORA */}
+              <div style={{ width: '2px', height: '40px', background: '#fde68a', margin: '0 5px' }}></div>
+
+              {/* NIVEL C */}
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>% Min C</span>
+                <input type="number" value={minPercentageC} onChange={e => setMinPercentageC(e.target.value)} style={{ width: '70px', padding: '5px' }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '5px' }}>
+                <span style={{ fontWeight: 'bold' }}>Pts C</span>
+                <input type="number" value={extraPointsC} onChange={e => setExtraPointsC(e.target.value)} style={{ width: '50px', padding: '5px' }} />
+              </label>
+
             </div>
 
             {/* FILA 2: FAIR PLAY (DIFERENCIA DE GOLES) */}

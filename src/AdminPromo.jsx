@@ -65,12 +65,28 @@ const AdminPromo = ({ config, profile }) => {
       .from('weeks_promo')
       .update({ [field]: value })
       .eq('id', id);
-    
+
     if (error) {
       alert("Error al actualizar la fecha");
     } else {
       // Actualizamos estado local para no recargar todo si no quieres
       setPromoWeeks(prev => prev.map(w => w.id === id ? { ...w, [field]: value } : w));
+    }
+  };
+
+  const handleUpdateMatchPlayer = async (matchId, field, userId, index) => {
+    const { error } = await supabase
+      .from('promo_matches')
+      .update({ [field]: userId })
+      .eq('id', matchId);
+
+    if (error) {
+      alert("Error al actualizar el jugador en la base de datos");
+    } else {
+      // Actualizamos el estado local para que la UI refleje el cambio
+      const updated = [...existingMatches];
+      updated[index][field] = userId;
+      setExistingMatches(updated);
     }
   };
 
@@ -197,6 +213,34 @@ const AdminPromo = ({ config, profile }) => {
     else alert("Partido actualizado.");
   };
 
+  const handleReset = async (m, index) => {
+    const confirmar = window.confirm("¿Estás seguro de que quieres resetear este partido? Se borrará el resultado y el stream.");
+    if (!confirmar) return;
+
+    const { error } = await supabase.from('promo_matches')
+      .update({
+        score1: null,
+        score2: null,
+        stream_url: null,
+        is_played: false,
+        updated_at: new Date()
+      })
+      .eq('id', m.id);
+
+    if (error) {
+      alert("Error al resetear.");
+    } else {
+      // Actualizamos el estado local para que los inputs se vacíen visualmente
+      const updated = [...existingMatches];
+      updated[index].score1 = null;
+      updated[index].score2 = null;
+      updated[index].stream_url = null;
+      updated[index].is_played = false;
+      setExistingMatches(updated);
+      alert("Partido reseteado.");
+    }
+  };
+
   const borrarPromociones = async () => {
     const confirmar = window.confirm(`¿Estás seguro de que quieres borrar TODOS los partidos y semanas de promoción de la Temporada ${selectedSeason}?`);
     if (!confirmar) return;
@@ -284,19 +328,19 @@ const AdminPromo = ({ config, profile }) => {
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '0.65rem' }}>Inicio</label>
-                    <input 
-                      type="datetime-local" 
-                      style={{ width: '100%', fontSize: '0.8rem' }} 
-                      value={formatToInput(week.start_at)} 
+                    <input
+                      type="datetime-local"
+                      style={{ width: '100%', fontSize: '0.8rem' }}
+                      value={formatToInput(week.start_at)}
                       onChange={e => handleUpdateWeek(week.id, 'start_at', e.target.value)}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '0.65rem' }}>Fin</label>
-                    <input 
-                      type="datetime-local" 
-                      style={{ width: '100%', fontSize: '0.8rem' }} 
-                      value={formatToInput(week.end_at)} 
+                    <input
+                      type="datetime-local"
+                      style={{ width: '100%', fontSize: '0.8rem' }}
+                      value={formatToInput(week.end_at)}
                       onChange={e => handleUpdateWeek(week.id, 'end_at', e.target.value)}
                     />
                   </div>
@@ -317,9 +361,7 @@ const AdminPromo = ({ config, profile }) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <select style={{ flex: 1, fontSize: '0.85rem' }} value={m.player1_id} onChange={e => {
-                const updated = [...existingMatches]; updated[i].player1_id = e.target.value; setExistingMatches(updated);
-              }}>
+              <select  style={{ flex: 1, fontSize: '0.85rem' }} value={m.player1_id} onChange={e => handleUpdateMatchPlayer(m.id, 'player1_id', e.target.value, i)}>
                 {allPlayers.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
               </select>
               <input type="number" style={{ width: '45px', textAlign: 'center' }} value={m.score1 || ''} onChange={e => {
@@ -329,9 +371,7 @@ const AdminPromo = ({ config, profile }) => {
               <input type="number" style={{ width: '45px', textAlign: 'center' }} value={m.score2 || ''} onChange={e => {
                 const updated = [...existingMatches]; updated[i].score2 = e.target.value; setExistingMatches(updated);
               }} />
-              <select style={{ flex: 1, fontSize: '0.85rem' }} value={m.player2_id} onChange={e => {
-                const updated = [...existingMatches]; updated[i].player2_id = e.target.value; setExistingMatches(updated);
-              }}>
+              <select style={{ flex: 1, fontSize: '0.85rem' }} value={m.player2_id} onChange={e => handleUpdateMatchPlayer(m.id, 'player2_id', e.target.value, i)}>
                 {allPlayers.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
               </select>
             </div>
@@ -348,12 +388,24 @@ const AdminPromo = ({ config, profile }) => {
               />
             </div>
 
-            <button
-              onClick={() => handleSave(m)}
-              style={{ width: '100%', marginTop: '8px', padding: '6px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85rem' }}
-            >
-              Guardar Resultado y Stream
-            </button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                onClick={() => handleSave(m)}
+                style={{ flex: 3, padding: '6px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Guardar Resultado y Stream
+              </button>
+
+              {/* Botón de Reset (solo se muestra si el partido tiene datos o está marcado como jugado) */}
+              {(m.is_played || m.score1 !== null || m.stream_url) && (
+                <button
+                  onClick={() => handleReset(m, i)}
+                  style={{ flex: 1, padding: '6px', background: '#95a5a6', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  Resetear
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

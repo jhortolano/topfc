@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import ReactMarkdown from 'react-markdown'
 import PartidoExtraPlayoff from './extraplayoff/PartidoExtraPlayoff';
+import PartidoPromo from './utils/PartidoPromo';
 
 // Variable global para persistir datos entre montajes de componentes
 let cacheProximoPartido = {
@@ -54,10 +55,12 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
   const isPlayoff = !!partido.playoff_id;
   const isExtraLiguilla = !!partido.is_extra_liguilla;
   const isExtraPlayoff = !!partido.is_extra_playoff;
+  const isPromo = !!partido.is_promo;
   let tabla = 'matches';
   if (isPlayoff) tabla = 'playoff_matches';
   if (isExtraLiguilla) tabla = 'extra_matches';
   if (isExtraPlayoff) tabla = 'extra_playoffs_matches';
+  if (isPromo) tabla = 'promo_matches';
   const yaJugado = partido.played === true || partido.is_played === true;
   const [jugadoLocal, setJugadoLocal] = useState(yaJugado);
 
@@ -119,7 +122,7 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
 
 
       // 1. Preparamos los datos del resultado
-      const datosAEnviar = (isExtraLiguilla || isExtraPlayoff)
+      const datosAEnviar = (isExtraLiguilla || isExtraPlayoff || isPromo)
         ? {
           score1: scoreL,
           score2: scoreV,
@@ -240,19 +243,31 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
       border: isPlayoff ? '1px solid #9b59b6' : 'none'
     }}>
       {/* ETIQUETA SUPERIOR DINÁMICA */}
-      <div style={{ position: 'absolute', top: '5px', left: '10px', fontSize: '0.6rem', color: isPlayoff ? '#d6a2e8' : '#2ecc71', fontWeight: 'bold', textTransform: 'uppercase' }}>
-        {partido.is_extra_liguilla ?
-          /* Caso específico: Jornada de Liguilla Extra */
-          `JORNADA ${partido.numero_jornada} - ${partido.playoff_name}` :
-          (partido.is_extra_playoff ?
-            /* Caso específico: Semis/Final de Torneo Extra */
-            `${partido.round} - ${partido.playoff_name}` :
-            (isPlayoff ?
-              /* Caso: Playoff Liga Regular */
-              `${partido.playoff_name || 'Playoff'} - ${partido.round}` :
-              /* Caso: Jornada Liga Regular */
-              partido.is_rescheduled ? `REPROGRAMADO - JORNADA ${partido.week}` :
-                `JORNADA ${partido.week || partido.numero_jornada}`)
+      <div style={{
+        position: 'absolute',
+        top: '5px',
+        left: '10px',
+        fontSize: '0.6rem',
+        color: isPromo ? '#FFD700' : (isPlayoff ? '#d6a2e8' : '#2ecc71'), // Dorado para promo o el color que prefieras
+        fontWeight: 'bold',
+        textTransform: 'uppercase'
+      }}>
+        {isPromo ?
+          /* Caso específico: Partidos de Promoción */
+          partido.label_info :
+          (partido.is_extra_liguilla ?
+            /* Caso específico: Jornada de Liguilla Extra */
+            `JORNADA ${partido.numero_jornada} - ${partido.playoff_name}` :
+            (partido.is_extra_playoff ?
+              /* Caso específico: Semis/Final de Torneo Extra */
+              `${partido.round} - ${partido.playoff_name}` :
+              (isPlayoff ?
+                /* Caso: Playoff Liga Regular */
+                `${partido.playoff_name || 'Playoff'} - ${partido.round}` :
+                /* Caso: Jornada Liga Regular */
+                partido.is_rescheduled ? `REPROGRAMADO - JORNADA ${partido.week}` :
+                  `JORNADA ${partido.week || partido.numero_jornada}`)
+            )
           )
         }
       </div>
@@ -767,6 +782,21 @@ function ProximoPartido({ profile, config, onUpdated }) {
             partido={p}
             onUpdated={() => { cargar(true); refresh(); }}
             limitGaEnabled={false} // Ajustar si los extra tienen límites
+          />
+        )}
+      />
+
+      {/* PARTIDOS DE PROMOCIÓN */}
+      <PartidoPromo
+        profile={profile}
+        config={config}
+        renderTarjeta={(p) => (
+          <TarjetaResultado
+            key={`promo-${p.id}`}
+            userId={profile.id}
+            partido={p}
+            onUpdated={() => cargar(true)}
+            limitGaEnabled={false} // Normalmente las promos no tienen límite, o puedes pasar reglas.limit_ga_enabled
           />
         )}
       />

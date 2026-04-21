@@ -10,13 +10,13 @@ const AvatarConZoom = ({ url }) => {
       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(2.8)'; e.currentTarget.style.zIndex = '100'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.zIndex = '1'; }}
       style={{
-        width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', background: '#eee', 
+        width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', background: '#eee',
         border: '1px solid #ddd', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s ease-in-out',
         position: 'relative', zIndex: isTouched ? 100 : 1, transform: isTouched ? 'scale(2.8)' : 'scale(1)'
       }}
     >
-      {url ? <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" /> : 
-             <div style={{ fontSize: '0.6rem', color: '#bdc3c7', textAlign: 'center', lineHeight: '24px' }}>👤</div>}
+      {url ? <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" /> :
+        <div style={{ fontSize: '0.6rem', color: '#bdc3c7', textAlign: 'center', lineHeight: '24px' }}>👤</div>}
     </div>
   );
 };
@@ -36,7 +36,7 @@ export default function CalendarioPromocion({ season }) {
         .from('weeks_promo')
         .select('*')
         .eq('season', season);
-      
+
       const fMap = {};
       weeksData?.forEach(w => {
         const faseKey = (w.idavuelta || "").toLowerCase().trim();
@@ -86,7 +86,17 @@ export default function CalendarioPromocion({ season }) {
     <div style={{ marginTop: '20px' }}>
       {divisionesUnicas.map(div => {
         const partidosDeEstaDiv = partidos.filter(p => p.division === div);
-        const fasesEnDiv = [...new Set(partidosDeEstaDiv.map(p => p.idavuelta))];
+        const fasesEnDiv = [...new Set(partidosDeEstaDiv.map(p => p.idavuelta))].sort((a, b) => {
+          const valA = (a || "").toLowerCase();
+          const valB = (b || "").toLowerCase();
+
+          // Si uno es ida y el otro vuelta, forzamos que ida (a) vaya primero (-1)
+          if (valA.includes('ida') && valB.includes('vuelta')) return -1;
+          if (valA.includes('vuelta') && valB.includes('ida')) return 1;
+
+          // Si no son ida/vuelta, mantenemos orden alfabético normal
+          return valA.localeCompare(valB);
+        });
         const tieneVueltaGlobal = fasesEnDiv.some(f => f?.toLowerCase().includes('vuelta'));
 
         return (
@@ -99,28 +109,28 @@ export default function CalendarioPromocion({ season }) {
               const partidosFase = partidosDeEstaDiv.filter(p => p.idavuelta === fase);
               const faseKey = (fase || "").toLowerCase().trim();
               const infoFecha = fechasMap[faseKey];
-              
+
               // Lógica de Highlight: ¿es hoy la fecha de esta fase?
               const esFechaActual = infoFecha && ahora >= infoFecha.objInicio && ahora <= infoFecha.objFin;
-              
+
               const nombreFaseVisual = fase || (tieneVueltaGlobal ? "Ida" : "Eliminatoria");
 
               return (
-                <div key={`${div}-${fase}`} style={{ 
-                  marginBottom: '15px', 
-                  borderRadius: '8px', 
-                  overflow: 'hidden', 
+                <div key={`${div}-${fase}`} style={{
+                  marginBottom: '15px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
                   boxShadow: esFechaActual ? '0 4px 12px rgba(225, 112, 85, 0.2)' : '0 2px 4px rgba(0,0,0,0.03)',
                   border: esFechaActual ? '2px solid #e17055' : '1px solid #eee',
                   transition: 'all 0.3s ease'
                 }}>
-                  <div style={{ 
-                    background: esFechaActual ? '#e17055' : '#fdf2f0', 
-                    padding: '8px 12px', 
-                    borderBottom: '1px solid #eee', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center' 
+                  <div style={{
+                    background: esFechaActual ? '#e17055' : '#fdf2f0',
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #eee',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
                   }}>
                     <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: esFechaActual ? 'white' : '#d35400', textTransform: 'uppercase' }}>
                       {nombreFaseVisual} {esFechaActual && " (ACTUAL)"}
@@ -135,9 +145,9 @@ export default function CalendarioPromocion({ season }) {
                   {partidosFase.map(p => {
                     const esMiPartido = userNick && (p.local?.nick === userNick || p.visitante?.nick === userNick);
                     return (
-                      <div key={`match-${p.id}`} style={{ 
+                      <div key={`match-${p.id}`} style={{
                         display: 'flex', alignItems: 'center', padding: '10px', fontSize: '0.75rem', gap: '10px',
-                        borderBottom: '1px solid #f9f9f9', 
+                        borderBottom: '1px solid #f9f9f9',
                         background: esMiPartido ? 'rgba(225, 112, 85, 0.08)' : 'white',
                         borderLeft: esMiPartido ? '4px solid #e17055' : '4px solid transparent'
                       }}>
@@ -147,7 +157,7 @@ export default function CalendarioPromocion({ season }) {
                         </div>
 
                         <div style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', background: '#f8f9fa', borderRadius: '4px', padding: '2px 0' }}>
-                          {p.is_played ? `${p.home_score}-${p.away_score}` : 'vs'}
+                          {p.is_played ? `${p.score1}-${p.score2}` : 'vs'}
                         </div>
 
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>

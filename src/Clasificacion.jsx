@@ -3,19 +3,39 @@ import { supabase } from './supabaseClient'
 import ClasificacionExtraPlayoff from './extraplayoff/ClasificacionExtraPlayoff'
 import ClasificacionPromo from './utils/ClasificacionPromo';
 
-const fetchDatosExtraParaStats = async (temporadaId) => {
-  // Cargamos todo en paralelo para máxima velocidad
-  const [extras, liguilla, elims] = await Promise.all([
-    supabase.from('playoffs_extra').select('id, stream_puntos').eq('season_id', temporadaId),
-    supabase.from('extra_matches').select('extra_id, player1_id, player2_id, stream_url'),
-    supabase.from('extra_playoffs_matches').select('playoff_extra_id, player1_id, player2_id, stream_url')
-  ]);
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita. Perfecto para datos que cambian raramente.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
 
-  return {
-    extras: extras.data || [],
-    liguilla: liguilla.data || [],
-    elims: elims.data || []
-  };
+const fetchDatosExtraParaStats = async (temporadaId) => {
+  return getOrFetch(`extra_${temporadaId}`, async () => {
+    // Cargamos todo en paralelo para máxima velocidad
+    const [extras, liguilla, elims] = await Promise.all([
+      supabase.from('playoffs_extra').select('id, stream_puntos').eq('season_id', temporadaId),
+      supabase.from('extra_matches').select('extra_id, player1_id, player2_id, stream_url'),
+      supabase.from('extra_playoffs_matches').select('playoff_extra_id, player1_id, player2_id, stream_url')
+    ]);
+
+    return {
+      extras: extras.data || [],
+      liguilla: liguilla.data || [],
+      elims: elims.data || []
+    };
+  });
 };
 
 // --- COMPONENTE AVATAR REUTILIZADO CON ZOOM ---
@@ -107,35 +127,40 @@ function CategorySelector({ current, onChange, season }) {
     async function load() {
       if (!season) return;
 
-      const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
-      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
+      const all = await getOrFetch(`cats_${season}`, async () => {
+        const [divRes, poRes, extraRes, promoRes] = await Promise.all([
+          supabase.from('matches').select('division').eq('season', season),
+          supabase.from('playoffs').select('id, name').eq('season', season),
+          supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season),
+          supabase.from('promo_matches').select('id').eq('season', season).limit(1)
+        ]);
 
-      const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season);
-      const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
+        const uniqueDivs = divRes.data
+          ? [...new Set(divRes.data.map(d => d.division))].sort((a, b) => a - b)
+          : [];
+        const formattedPlayoffs = poRes.data
+          ? poRes.data.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' }))
+          : [];
+        const formattedExtras = extraRes.data
+          ? extraRes.data.map(e => ({ id: `extra-${e.id}`, label: e.nombre.toUpperCase(), type: 'extra' }))
+          : [];
+        const hasPromo = promoRes.data && promoRes.data.length > 0;
 
-      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
-      const formattedExtras = extraData ? extraData.map(e => ({
-        id: `extra-${e.id}`,
-        label: e.nombre.toUpperCase(),
-        type: 'extra'
-      })) : [];
+        return [
+          ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+          ...formattedPlayoffs,
+          ...formattedExtras,
+          ...(hasPromo ? [{ id: 'promo', label: 'PROMOCION', type: 'promo' }] : [])
+        ];
+      });
 
-      const { data: promoData } = await supabase.from('promo_matches').select('id').eq('season', season).limit(1);
-      const hasPromo = promoData && promoData.length > 0;
-
-      const all = [
-        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
-        ...formattedPlayoffs,
-        ...formattedExtras,
-        ...(hasPromo ? [{ id: 'promo', label: 'PROMOCIÓN', type: 'promo' }] : [])
-      ];
       setCategories(all);
 
       const currentCat = all.find(c => c.id === current);
       if (currentCat) {
         const type = currentCat.type === 'div' ? 'div' : 'po';
         setActiveTab(type);
-        // Guardamos la selección inicial en la memoria
+        // Guardamos la seleccion inicial en la memoria
         setLastSelected(prev => ({ ...prev, [type]: currentCat.id }));
       } else if (all.length > 0) {
         const initialCat = all[0];
@@ -238,8 +263,16 @@ function SeasonSelector({ current, onChange }) {
   const [seasons, setSeasons] = useState([])
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('matches').select('season')
-      if (data) setSeasons([...new Set(data.map(d => d.season))].sort((a, b) => b - a))
+      // Cacheamos la lista de temporadas en sessionStorage.
+      // Usamos .order() y solo la columna season para no descargar toda la tabla.
+      const data = await getOrFetch('seasons_list', async () => {
+        const { data: rows } = await supabase
+          .from('matches')
+          .select('season')
+          .order('season', { ascending: false });
+        return rows ? [...new Set(rows.map(d => d.season))] : [];
+      });
+      setSeasons(data);
     }
     load()
   }, [])
@@ -455,47 +488,99 @@ export default function Clasificacion({ config }) {
       if (!vS) return;
 
       if (!esPlayoff) {
-        const { data: allDivs } = await supabase
-          .from('clasificacion')
-          .select('division')
-          .eq('season', vS);
-        if (allDivs && allDivs.length > 0) {
-          const maxFound = Math.max(...allDivs.map(d => d.division || 0));
-
-          // Solo actualizamos el estado y el caché si el valor ha cambiado
+        // --- totalDivisiones: cacheado en localStorage (ya existia, lo mantenemos) ---
+        const allDivsData = await getOrFetch(`divs_${vS}`, async () => {
+          const { data } = await supabase
+            .from('clasificacion')
+            .select('division')
+            .eq('season', vS);
+          return data || [];
+        });
+        if (allDivsData.length > 0) {
+          const maxFound = Math.max(...allDivsData.map(d => d.division || 0));
           if (maxFound !== totalDivisiones) {
             setTotalDivisiones(maxFound);
             localStorage.setItem('total_divisiones', maxFound.toString());
           }
         }
 
-        const { data: playoffsSeason } = await supabase
-          .from('playoffs')
-          .select('id')
-          .eq('season', vS);
+        // --- Datos compartidos por temporada (independientes de la division) ---
+        // Se cachean con clave de temporada para reutilizarlos al cambiar de division
+        const [playoffIds, matchesData, poMatchesData, streamsData, poStreamsData, rules, extrasData] =
+          await Promise.all([
+            getOrFetch(`playoff_ids_${vS}`, async () => {
+              const { data } = await supabase.from('playoffs').select('id').eq('season', vS);
+              return data?.map(p => p.id) || [];
+            }),
+            getOrFetch(`matches_${vS}`, async () => {
+              const { data } = await supabase.from('matches').select('id, home_team, away_team').eq('season', vS);
+              return data || [];
+            }),
+            getOrFetch(`po_matches_${vS}`, async () => {
+              // Necesitamos los playoff_ids antes; los obtenemos de sessionStorage si existen
+              let ids = [];
+              try { ids = JSON.parse(sessionStorage.getItem(`playoff_ids_${vS}`) || '[]'); } catch (_) {}
+              if (!ids.length) return [];
+              const { data } = await supabase
+                .from('playoff_matches_detallados')
+                .select('id, local_id, visitante_id, playoff_id')
+                .in('playoff_id', ids);
+              return data || [];
+            }),
+            getOrFetch(`streams_${vS}`, async () => {
+              const { data } = await supabase.from('match_streams').select('match_id, stream_url');
+              return data || [];
+            }),
+            getOrFetch(`po_streams_${vS}`, async () => {
+              const { data } = await supabase.from('match_playoff_streams').select('playoff_match_id, stream_url');
+              return data || [];
+            }),
+            getOrFetch(`rules_${vS}`, async () => {
+              const { data } = await supabase.from('season_rules').select('*').eq('season', vS).maybeSingle();
+              return data || null;
+            }),
+            fetchDatosExtraParaStats(vS)
+          ]);
 
-        const playoffIds = playoffsSeason?.map(p => p.id) || [];
+        // --- Clasificacion de la division: cacheada por temporada+division ---
+        const clasiData = await getOrFetch(`clasi_${vS}_${vD}`, async () => {
+          const { data } = await supabase
+            .from('clasificacion')
+            .select('*')
+            .eq('season', vS)
+            .eq('division', vD)
+            .order('pts', { ascending: false });
+          return data || [];
+        });
 
-        // Añadimos la consulta a season_rules
-        const [clasi, matches, poMatches, streams, poStreams, rulesRes, extrasData] = await Promise.all([
-          supabase.from('clasificacion').select('*').eq('season', vS).eq('division', vD).order('pts', { ascending: false }),
-          supabase.from('matches').select('id, home_team, away_team').eq('season', vS),
-          supabase.from('playoff_matches_detallados').select('id, local_id, visitante_id, playoff_id').in('playoff_id', playoffIds),
-          supabase.from('match_streams').select('match_id, stream_url'),
-          supabase.from('match_playoff_streams').select('playoff_match_id, stream_url'),
-          supabase.from('season_rules').select('*').eq('season', vS).maybeSingle(),
-          fetchDatosExtraParaStats(vS)
-        ]);
+        // Si po_matches se cargo antes de que playoff_ids estuviera en cache,
+        // lo recargamos ahora que si tenemos los ids
+        let finalPoMatches = poMatchesData;
+        if (!finalPoMatches.length && playoffIds.length) {
+          finalPoMatches = await getOrFetch(`po_matches_${vS}`, async () => {
+            const { data } = await supabase
+              .from('playoff_matches_detallados')
+              .select('id, local_id, visitante_id, playoff_id')
+              .in('playoff_id', playoffIds);
+            return data || [];
+          });
+        }
 
-        const rules = rulesRes.data;
         setDatosExtra(extrasData);
 
-        const listaEnriquecida = (clasi.data || []).map(jugador => {
-          const stats = calcularStatsStreams(jugador.user_id, matches.data || [], poMatches.data || [], streams.data || [], poStreams.data || [],
-            extrasData.extras, extrasData.liguilla, extrasData.elims
+        const listaEnriquecida = clasiData.map(jugador => {
+          const stats = calcularStatsStreams(
+            jugador.user_id,
+            matchesData,
+            finalPoMatches,
+            streamsData,
+            poStreamsData,
+            extrasData.extras,
+            extrasData.liguilla,
+            extrasData.elims
           );
 
-          // Aplicamos la lógica del bonus
+          // Aplicamos la logica del bonus
           const bonus = calcularBonusPorStream(stats.porcentaje, rules);
 
           return {
@@ -510,30 +595,31 @@ export default function Clasificacion({ config }) {
         const listaOrdenada = listaEnriquecida.sort((a, b) => b.total_pts - a.total_pts);
         setLista(listaOrdenada);
       } else {
-        // Si el ID es un extra, no ejecutamos esta lógica porque ya la hace el hijo
+        // Si el ID es un extra, no ejecutamos esta logica porque ya la hace el hijo
         if (vD.toString().startsWith('extra-')) return;
-        // Aquí mantén tu lógica de carga de playoffs normal...
-        const { data: matches } = await supabase
-          .from('playoff_matches_detallados')
-          .select('*')
-          .eq('playoff_id', vD)
-          .order('match_order', { ascending: true });
+        // Playoffs normales: cacheamos por playoff_id
+        const matchesWithStreams = await getOrFetch(`po_bracket_${vD}`, async () => {
+          const { data: matches } = await supabase
+            .from('playoff_matches_detallados')
+            .select('*')
+            .eq('playoff_id', vD)
+            .order('match_order', { ascending: true });
 
-        if (matches && matches.length > 0) {
+          if (!matches || matches.length === 0) return [];
+
           const matchIds = matches.map(m => m.id);
           const { data: streams } = await supabase
             .from('match_playoff_streams')
             .select('playoff_match_id, stream_url')
             .in('playoff_match_id', matchIds);
 
-          const matchesWithStreams = matches.map(m => ({
+          return matches.map(m => ({
             ...m,
             stream_url: streams?.find(s => s.playoff_match_id === m.id)?.stream_url || null
           }));
-          setPlayoffMatches(matchesWithStreams);
-        } else {
-          setPlayoffMatches([]);
-        }
+        });
+
+        setPlayoffMatches(matchesWithStreams);
       }
     }
     if (vS) fetch();
@@ -756,11 +842,28 @@ export default function Clasificacion({ config }) {
     );
   };
 
+  const handleRefresh = () => {
+    sessionStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <CategorySelector season={vS} current={vD} onChange={handleDivisionChange} />
-        <SeasonSelector current={vS} onChange={setVS} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SeasonSelector current={vS} onChange={setVS} />
+          <button
+            onClick={handleRefresh}
+            title="Forzar actualizacion de datos"
+            style={{
+              background: 'transparent', border: '1px solid #ddd', borderRadius: '4px',
+              padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b'
+            }}
+          >
+            Actualizar
+          </button>
+        </div>
       </div>
 
 

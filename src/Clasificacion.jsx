@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import ClasificacionExtraPlayoff from './extraplayoff/ClasificacionExtraPlayoff'
-
+import ClasificacionPromo from './utils/ClasificacionPromo';
 
 const fetchDatosExtraParaStats = async (temporadaId) => {
   // Cargamos todo en paralelo para máxima velocidad
@@ -120,10 +120,14 @@ function CategorySelector({ current, onChange, season }) {
         type: 'extra'
       })) : [];
 
+      const { data: promoData } = await supabase.from('promo_matches').select('id').eq('season', season).limit(1);
+      const hasPromo = promoData && promoData.length > 0;
+
       const all = [
         ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
         ...formattedPlayoffs,
-        ...formattedExtras
+        ...formattedExtras,
+        ...(hasPromo ? [{ id: 'promo', label: 'PROMOCIÓN', type: 'promo' }] : [])
       ];
       setCategories(all);
 
@@ -157,7 +161,9 @@ function CategorySelector({ current, onChange, season }) {
     setActiveTab(tab);
 
     // Si tenemos algo guardado en la memoria para esa pestaña, volvemos a ello
-    if (lastSelected[tab]) {
+    if (tab === 'promo') {
+      onChange('promo'); 
+    } else if (lastSelected[tab]) {
       onChange(lastSelected[tab]);
     } else {
       // Si no hay memoria (primera vez), buscamos el primero de ese grupo
@@ -199,6 +205,17 @@ function CategorySelector({ current, onChange, season }) {
               fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem'
             }}
           > 🏆 PLAYOFFS </button>
+        )}
+        {categories.some(c => c.type === 'promo') && (
+          <button
+            onClick={() => handleTabChange('promo')}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: activeTab === 'promo' ? '#e67e22' : 'transparent', // Color naranja para distinguir
+              color: activeTab === 'promo' ? 'white' : '#64748b',
+              fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem'
+            }}
+          > ⚔️ PROMOCIÓN </button>
         )}
       </div>
 
@@ -748,14 +765,19 @@ export default function Clasificacion({ config }) {
 
 
       {(() => {
-        // CASO 1: Es un Extra Playoff (ID con prefijo "extra-")
+        // CASO 1: Es Promocion
+        if (vD === 'promo') {
+          return <ClasificacionPromo season={vS} />;
+        }
+
+        // CASO 2: Es un Extra Playoff (ID con prefijo "extra-")
         if (typeof vD === 'string' && vD.startsWith('extra-')) {
           // Quitamos el prefijo para pasarle solo el ID numérico al componente
           const extraId = vD.replace('extra-', '');
           return <ClasificacionExtraPlayoff season={vS} id={extraId} />;
         }
 
-        // CASO 2: Es un Playoff normal (Brackets)
+        // CASO 3: Es un Playoff normal (Brackets)
         if (esPlayoff) {
           return (
             <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
@@ -764,7 +786,7 @@ export default function Clasificacion({ config }) {
           );
         }
 
-        // CASO 3: Es Liga normal (Tabla de clasificación)
+        // CASO 4: Es Liga normal (Tabla de clasificación)
         return (
           <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>

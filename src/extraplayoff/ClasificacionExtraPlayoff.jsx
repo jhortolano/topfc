@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
+
 const Avatar = ({ url, size = '24px' }) => {
   const [isTouched, setIsTouched] = useState(false);
 
@@ -119,11 +137,10 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                   letterSpacing: '1px',
                   cursor: 'pointer',
                   padding: '10px 5px',
-                  background: isCollapsed ? '#cbd5e1' : 'transparent', // Un gris azulado más visible
-                  border: isCollapsed ? '1px solid #94a3b8' : 'none',  // Borde más oscuro
-                  color: isCollapsed ? '#475569' : '#2ecc71',          // Texto gris oscuro si está cerrado
+                  background: isCollapsed ? '#cbd5e1' : 'transparent',
+                  border: isCollapsed ? '1px solid #94a3b8' : 'none',
+                  color: isCollapsed ? '#475569' : '#2ecc71',
                   borderRadius: '8px',
-                  // Si está colapsado, ponemos el texto en vertical
                   writingMode: isCollapsed ? 'vertical-lr' : 'horizontal-tb',
                   transform: isCollapsed ? 'rotate(180deg)' : 'none',
                   display: 'flex',
@@ -198,24 +215,32 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
       const cleanId = id.toString().replace('extra-', '');
 
       try {
-        const { data: extraInfo } = await supabase
-          .from('playoffs_extra')
-          .select('nombre')
-          .eq('id', cleanId)
-          .single();
+        // --- QUERY 1: Nombre del playoff (cacheado por ID) ---
+        const extraInfo = await getOrFetch(`extra_info_${cleanId}`, async () => {
+          const { data } = await supabase
+            .from('playoffs_extra')
+            .select('nombre')
+            .eq('id', cleanId)
+            .single();
+          return data || null;
+        });
         if (extraInfo) setNombrePlayoff(extraInfo.nombre);
 
-        const { data: clasiData } = await supabase
-          .from('extra_playoffs_clasificacion')
-          .select('*')
-          .eq('playoff_extra_id', cleanId);
+        // --- QUERY 2: Clasificación de liguilla (cacheada por ID) ---
+        const clasiData = await getOrFetch(`extra_clasi_${cleanId}`, async () => {
+          const { data } = await supabase
+            .from('extra_playoffs_clasificacion')
+            .select('*')
+            .eq('playoff_extra_id', cleanId);
+          return data || [];
+        });
 
-        const grouped = clasiData?.reduce((acc, curr) => {
+        const grouped = clasiData.reduce((acc, curr) => {
           const groupName = curr.nombre_grupo_texto || curr.nombre_grupo || 'General';
           if (!acc[groupName]) acc[groupName] = [];
           acc[groupName].push(curr);
           return acc;
-        }, {}) || {};
+        }, {});
 
         Object.keys(grouped).forEach(groupName => {
           grouped[groupName].sort((a, b) => {
@@ -227,13 +252,16 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
 
         setGrupos(grouped);
 
-        const { data: poMatches } = await supabase
-          .from('v_extra_playoffs_bracket_dinamico')
-          .select('*')
-          .eq('playoff_extra_id', cleanId)
-          .order('id', { ascending: true });
+        // --- QUERY 3: Partidos del bracket (cacheados por ID) ---
+        const matches = await getOrFetch(`extra_bracket_${cleanId}`, async () => {
+          const { data } = await supabase
+            .from('v_extra_playoffs_bracket_dinamico')
+            .select('*')
+            .eq('playoff_extra_id', cleanId)
+            .order('id', { ascending: true });
+          return data || [];
+        });
 
-        const matches = poMatches || [];
         setPlayoffMatches(matches);
 
         // --- LÓGICA DE AUTO-COLAPSADO ---
@@ -344,7 +372,6 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                       const esMiFila = currentUserId && j.user_id === currentUserId;
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center', background: esMiFila ? 'rgba(46, 204, 113, 0.08)' : 'transparent', borderLeft: esMiFila ? '4px solid #2ecc71' : '4px solid transparent', transition: 'background 0.3s ease' }}>
-                          {/* Columna de posición */}
                           <td style={{ padding: '10px 5px', color: '#95a5a6', fontSize: '0.65rem', fontWeight: 'bold', width: '20px' }}>
                             {i + 1}
                           </td>
@@ -364,8 +391,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                           <td style={{ fontWeight: 'bold' }}>{j.dg}</td>
                         </tr>
                       );
-                    }
-                    )}
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
+
 export default function ClasificacionPromo({ season }) {
   const [matches, setMatches] = useState([]);
   const [profiles, setProfiles] = useState({});
@@ -10,23 +28,31 @@ export default function ClasificacionPromo({ season }) {
   useEffect(() => {
     async function loadPromoData() {
       setLoading(true);
-      // 1. Obtener partidos de promoción
-      const { data: matchData } = await supabase
-        .from('promo_matches')
-        .select('*')
-        .eq('season', season);
 
-      if (!matchData) return setLoading(false);
+      // 1. Obtener partidos de promoción (cacheados por temporada)
+      const matchData = await getOrFetch(`promo_matches_${season}`, async () => {
+        const { data } = await supabase
+          .from('promo_matches')
+          .select('*')
+          .eq('season', season);
+        return data || [];
+      });
 
-      // 2. Obtener perfiles de los jugadores involucrados
+      if (!matchData.length) return setLoading(false);
+
+      // 2. Obtener perfiles de los jugadores involucrados (cacheados por temporada)
       const playerIds = [...new Set(matchData.flatMap(m => [m.player1_id, m.player2_id]))].filter(Boolean);
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, nick, avatar_url')
-        .in('id', playerIds);
+
+      const profileData = await getOrFetch(`promo_profiles_${season}`, async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, nick, avatar_url')
+          .in('id', playerIds);
+        return data || [];
+      });
 
       const profileMap = {};
-      profileData?.forEach(p => profileMap[p.id] = p);
+      profileData.forEach(p => profileMap[p.id] = p);
 
       setProfiles(profileMap);
       setMatches(matchData);

@@ -853,6 +853,7 @@ export default function Clasificacion({ config }) {
         <CategorySelector season={vS} current={vD} onChange={handleDivisionChange} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <SeasonSelector current={vS} onChange={setVS} />
+          {/*
           <button
             onClick={handleRefresh}
             title="Forzar actualizacion de datos"
@@ -863,6 +864,7 @@ export default function Clasificacion({ config }) {
           >
             Actualizar
           </button>
+          */}
         </div>
       </div>
 

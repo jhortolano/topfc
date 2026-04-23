@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
+
 // --- COMPONENTE PARA EL ZOOM DEL AVATAR ---
 const AvatarConZoom = ({ url, nick }) => {
   const [isTouched, setIsTouched] = useState(false);
@@ -10,7 +28,7 @@ const AvatarConZoom = ({ url, nick }) => {
       onTouchStart={() => setIsTouched(true)}
       onTouchEnd={() => setIsTouched(false)}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'scale(3)'; // Un poco más de zoom aquí
+        e.currentTarget.style.transform = 'scale(3)';
         e.currentTarget.style.zIndex = '100';
         e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
       }}
@@ -46,37 +64,35 @@ function CategorySelector({ current, onChange, season }) {
     async function load() {
       if (!season) return;
 
-      // 1. Cargar Divisiones desde 'matches'
-      const { data: divData } = await supabase.from('matches').select('division').eq('season', season)
-      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : []
+      const allCategories = await getOrFetch(`jugadores_cats_${season}`, async () => {
+        const [divRes, poRes, poExtraRes] = await Promise.all([
+          supabase.from('matches').select('division').eq('season', season),
+          supabase.from('playoffs').select('id, name').eq('season', season),
+          supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season)
+        ]);
 
-      // 2. Cargar Playoffs desde 'playoffs'
-      const { data: poData } = await supabase.from('playoffs').select('id, name').eq('season', season)
-      const formattedPlayoffs = poData ? poData.map(p => ({ id: p.id, name: p.name.toUpperCase() })) : []
+        const uniqueDivs = divRes.data
+          ? [...new Set(divRes.data.map(d => d.division))].sort((a, b) => a - b)
+          : [];
+        const formattedPlayoffs = poRes.data
+          ? poRes.data.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' }))
+          : [];
+        const formattedExtra = poExtraRes.data
+          ? poExtraRes.data.map(p => ({ id: p.id, label: (p.nombre || 'PLAYOFF').toUpperCase(), type: 'extra' }))
+          : [];
 
-      // 3. Cargar Playoffs Extra (NUEVO)
-      const { data: poExtraData } = await supabase
-        .from('playoffs_extra')
-        .select('id, nombre')
-        .eq('season_id', season)
+        return [
+          ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+          ...formattedPlayoffs,
+          ...formattedExtra
+        ];
+      });
 
-      const formattedExtra = poExtraData ? poExtraData.map(p => ({
-        id: p.id,
-        label: (p.nombre || 'PLAYOFF').toUpperCase(),
-        type: 'extra' // Nuevo tipo para diferenciar
-      })) : []
-
-      const allCategories = [
-        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
-        ...formattedPlayoffs.map(p => ({ id: p.id, label: p.name, type: 'po' })),
-        ...formattedExtra
-      ]
-
-      setCategories(allCategories)
+      setCategories(allCategories);
 
       // Si el actual no existe en la lista, poner el primero por defecto
       if (allCategories.length > 0 && !allCategories.find(c => c.id === current)) {
-        onChange(allCategories[0].id)
+        onChange(allCategories[0].id);
       }
     }
     load()
@@ -100,7 +116,7 @@ function CategorySelector({ current, onChange, season }) {
 export default function Jugadores({ config }) {
   const [usuarios, setUsuarios] = useState([])
   const [filtro, setFiltro] = useState('')
-  const [catActiva, setCatActiva] = useState(1) // Puede ser número (DIV) o string (UUID de Playoff)
+  const [catActiva, setCatActiva] = useState(1)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -110,44 +126,56 @@ export default function Jugadores({ config }) {
 
       if (typeof catActiva === 'number') {
         // Lógica para Divisiones
-        const { data: matches } = await supabase
-          .from('matches')
-          .select('home_team, away_team')
-          .eq('season', config.current_season)
-          .eq('division', catActiva)
-        if (matches) ids = matches.flatMap(m => [m.home_team, m.away_team])
+        const matches = await getOrFetch(`jugadores_matches_${config.current_season}_${catActiva}`, async () => {
+          const { data } = await supabase
+            .from('matches')
+            .select('home_team, away_team')
+            .eq('season', config.current_season)
+            .eq('division', catActiva);
+          return data || [];
+        });
+        ids = matches.flatMap(m => [m.home_team, m.away_team]);
       } else {
-        // Lógica para Playoffs
-        const { data: poMatches } = await supabase
-          .from('playoff_matches')
-          .select('home_team, away_team')
-          .eq('playoff_id', catActiva)
-        if (poMatches && poMatches.length > 0) {
-          ids = poMatches.flatMap(m => [m.home_team, m.away_team])
-        } else {
-          // CASO 3: PLAYOFFS EXTRA (Si no hubo resultados en el anterior)
-          const { data: extraMatches } = await supabase
-            .from('extra_matches')
-            .select('player1_id, player2_id')
-            .eq('extra_id', catActiva)
+        // Lógica para Playoffs normales
+        const poMatches = await getOrFetch(`jugadores_po_${catActiva}`, async () => {
+          const { data } = await supabase
+            .from('playoff_matches')
+            .select('home_team, away_team')
+            .eq('playoff_id', catActiva);
+          return data || [];
+        });
 
-          if (extraMatches) ids = extraMatches.flatMap(m => [m.player1_id, m.player2_id])
+        if (poMatches.length > 0) {
+          ids = poMatches.flatMap(m => [m.home_team, m.away_team]);
+        } else {
+          // CASO 3: PLAYOFFS EXTRA
+          const extraMatches = await getOrFetch(`jugadores_extra_${catActiva}`, async () => {
+            const { data } = await supabase
+              .from('extra_matches')
+              .select('player1_id, player2_id')
+              .eq('extra_id', catActiva);
+            return data || [];
+          });
+          ids = extraMatches.flatMap(m => [m.player1_id, m.player2_id]);
         }
       }
 
-
       // Limpiar IDs (quitar nulos/TBD/duplicados)
-      const cleanIds = [...new Set(ids)].filter(id => id !== null)
+      const cleanIds = [...new Set(ids)].filter(id => id !== null);
 
       if (cleanIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('nick, telegram_user, phone, avatar_url, eafc_user')
-          .in('id', cleanIds)
-          .order('nick', { ascending: true })
-        setUsuarios(profiles || [])
+        // Cacheamos los perfiles por la lista de IDs (usando la categoría como clave)
+        const profiles = await getOrFetch(`jugadores_profiles_${catActiva}`, async () => {
+          const { data } = await supabase
+            .from('profiles')
+            .select('nick, telegram_user, phone, avatar_url, eafc_user')
+            .in('id', cleanIds)
+            .order('nick', { ascending: true });
+          return data || [];
+        });
+        setUsuarios(profiles);
       } else {
-        setUsuarios([])
+        setUsuarios([]);
       }
       setLoading(false)
     }
@@ -155,12 +183,8 @@ export default function Jugadores({ config }) {
   }, [config, catActiva])
 
   const usuariosFiltrados = usuarios.filter(u => {
-    // 1. Filtro por el texto del buscador
     const coincideTexto = u.nick?.toLowerCase().includes(filtro.toLowerCase());
-
-    // 2. Filtro de usuarios retirados (NO mostrar si el nick empieza por "Retirado")
     const esRetirado = u.nick?.toLowerCase().startsWith("retirado");
-
     return coincideTexto && !esRetirado;
   });
 
@@ -170,7 +194,6 @@ export default function Jugadores({ config }) {
   };
 
   const abrirWhatsApp = (u) => {
-    // Elimina cualquier carácter que no sea un número para la URL de WhatsApp
     const cleanPhone = u.phone.replace(/\D/g, '');
     window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
@@ -209,20 +232,13 @@ export default function Jugadores({ config }) {
                 <AvatarConZoom url={u.avatar_url} nick={u.nick} />
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{
-                    fontWeight: 'bold',
-                    color: '#2c3e50',
-                    fontSize: '0.9rem',
-                    lineHeight: '1.1' // Ajustamos para que no haya demasiado espacio entre ellos
+                    fontWeight: 'bold', color: '#2c3e50', fontSize: '0.9rem', lineHeight: '1.1'
                   }}>
                     {u.nick}
                   </span>
-
                   {u.eafc_user && (
                     <span style={{
-                      fontSize: '0.65rem',
-                      color: '#7f8c8d',
-                      fontWeight: 'normal',
-                      marginTop: '2px'
+                      fontSize: '0.65rem', color: '#7f8c8d', fontWeight: 'normal', marginTop: '2px'
                     }}>
                       ID: {u.eafc_user}
                     </span>
@@ -243,7 +259,6 @@ export default function Jugadores({ config }) {
                     <span>✈</span> Telegram
                   </button>
                 )}
-
                 {u.phone && (
                   <button
                     onClick={() => abrirWhatsApp(u)}

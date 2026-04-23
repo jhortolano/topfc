@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
+
 const AvatarConZoom = ({ url }) => {
   const [isTouched, setIsTouched] = useState(false);
   return (
@@ -32,13 +50,17 @@ export default function CalendarioPromocion({ season }) {
       if (!season) return;
       setLoading(true);
 
-      const { data: weeksData } = await supabase
-        .from('weeks_promo')
-        .select('*')
-        .eq('season', season);
+      // --- QUERY 1: Fechas de semanas de promoción (cacheadas por temporada) ---
+      const weeksData = await getOrFetch(`cal_promo_weeks_${season}`, async () => {
+        const { data } = await supabase
+          .from('weeks_promo')
+          .select('*')
+          .eq('season', season);
+        return data || [];
+      });
 
       const fMap = {};
-      weeksData?.forEach(w => {
+      weeksData.forEach(w => {
         const faseKey = (w.idavuelta || "").toLowerCase().trim();
         fMap[faseKey] = {
           objInicio: new Date(w.start_at),
@@ -49,17 +71,21 @@ export default function CalendarioPromocion({ season }) {
       });
       setFechasMap(fMap);
 
-      const { data: matchesData, error } = await supabase
-        .from('promo_matches')
-        .select(`
-          *,
-          local:player1_id(nick, avatar_url),
-          visitante:player2_id(nick, avatar_url)
-        `)
-        .eq('season', season)
-        .order('division', { ascending: true });
+      // --- QUERY 2: Partidos de promoción con perfiles (cacheados por temporada) ---
+      const matchesData = await getOrFetch(`cal_promo_matches_${season}`, async () => {
+        const { data, error } = await supabase
+          .from('promo_matches')
+          .select(`
+            *,
+            local:player1_id(nick, avatar_url),
+            visitante:player2_id(nick, avatar_url)
+          `)
+          .eq('season', season)
+          .order('division', { ascending: true });
+        return error ? [] : (data || []);
+      });
 
-      if (!error) setPartidos(matchesData || []);
+      setPartidos(matchesData);
       setLoading(false);
     }
     loadData();
@@ -89,12 +115,8 @@ export default function CalendarioPromocion({ season }) {
         const fasesEnDiv = [...new Set(partidosDeEstaDiv.map(p => p.idavuelta))].sort((a, b) => {
           const valA = (a || "").toLowerCase();
           const valB = (b || "").toLowerCase();
-
-          // Si uno es ida y el otro vuelta, forzamos que ida (a) vaya primero (-1)
           if (valA.includes('ida') && valB.includes('vuelta')) return -1;
           if (valA.includes('vuelta') && valB.includes('ida')) return 1;
-
-          // Si no son ida/vuelta, mantenemos orden alfabético normal
           return valA.localeCompare(valB);
         });
         const tieneVueltaGlobal = fasesEnDiv.some(f => f?.toLowerCase().includes('vuelta'));
@@ -110,9 +132,7 @@ export default function CalendarioPromocion({ season }) {
               const faseKey = (fase || "").toLowerCase().trim();
               const infoFecha = fechasMap[faseKey];
 
-              // Lógica de Highlight: ¿es hoy la fecha de esta fase?
               const esFechaActual = infoFecha && ahora >= infoFecha.objInicio && ahora <= infoFecha.objFin;
-
               const nombreFaseVisual = fase || (tieneVueltaGlobal ? "Ida" : "Eliminatoria");
 
               return (

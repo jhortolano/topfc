@@ -3,6 +3,24 @@ import { supabase } from './supabaseClient'
 import CalendarioExtraPlayoff from './extraplayoff/CalendarioExtraPlayoff'
 import CalendarioPromocion from './utils/CalendarioPromocion'
 
+// --- HELPER DE CACHÉ ---
+// Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
+// sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
+// siempre se refrescan en la siguiente visita.
+const getOrFetch = async (key, fetchFn) => {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {
+    // Si sessionStorage falla (modo privado, cuota llena) simplemente ignoramos el caché
+  }
+  const data = await fetchFn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (_) {}
+  return data;
+};
+
 // --- COMPONENTE PARA EL ZOOM ---
 const AvatarConZoom = ({ url }) => {
   const [isTouched, setIsTouched] = useState(false);
@@ -42,8 +60,11 @@ function SeasonSelector({ current, onChange }) {
   const [seasons, setSeasons] = useState([])
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('matches').select('season')
-      if (data) setSeasons([...new Set(data.map(d => d.season))].sort((a, b) => b - a))
+      const data = await getOrFetch('seasons_list_cal', async () => {
+        const { data: rows } = await supabase.from('matches').select('season');
+        return rows ? [...new Set(rows.map(d => d.season))].sort((a, b) => b - a) : [];
+      });
+      setSeasons(data);
     }
     load()
   }, [])
@@ -66,34 +87,40 @@ function CategorySelector({ current, onChange, season }) {
     async function load() {
       if (!season) return;
 
-      // 1. Cargar Divisiones de Liga
-      const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
-      const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
+      const all = await getOrFetch(`cal_cats_${season}`, async () => {
+        // 1. Cargar Divisiones de Liga
+        const { data: divData } = await supabase.from('matches').select('division').eq('season', season);
+        const uniqueDivs = divData ? [...new Set(divData.map(d => d.division))].sort((a, b) => a - b) : [];
 
-      // 2. Cargar Playoffs Normales
-      const { data: pData } = await supabase.from('playoffs').select('*').eq('season', season);
-      const formattedPlayoffs = pData ? pData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
+        // 2. Cargar Playoffs Normales
+        const { data: pData } = await supabase.from('playoffs').select('*').eq('season', season);
+        const formattedPlayoffs = pData ? pData.map(p => ({ id: p.id, label: p.name.toUpperCase(), type: 'po' })) : [];
 
-      // 3. Cargar Playoffs Extra
-      const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
-      const formattedExtras = extraData ? extraData.map(e => ({ id: e.id, label: e.nombre.toUpperCase(), type: 'extra' })) : [];
+        // 3. Cargar Playoffs Extra
+        const { data: extraData } = await supabase.from('playoffs_extra').select('id, nombre').eq('season_id', season);
+        const formattedExtras = extraData ? extraData.map(e => ({ id: e.id, label: e.nombre.toUpperCase(), type: 'extra' })) : [];
 
-      // 4. Verificar si existen Promociones
-      const { count } = await supabase
-        .from('promo_matches')
-        .select('*', { count: 'exact', head: true })
-        .eq('season', season);
-      setHasPromo(count > 0);
+        // 4. Verificar si existen Promociones
+        const { count } = await supabase
+          .from('promo_matches')
+          .select('*', { count: 'exact', head: true })
+          .eq('season', season);
 
-      const all = [
-        ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
-        ...formattedPlayoffs,
-        ...formattedExtras
-      ];
-      setCategories(all);
+        return {
+          cats: [
+            ...uniqueDivs.map(d => ({ id: d, label: `DIV ${d}`, type: 'div' })),
+            ...formattedPlayoffs,
+            ...formattedExtras
+          ],
+          hasPromo: count > 0
+        };
+      });
+
+      setCategories(all.cats);
+      setHasPromo(all.hasPromo);
 
       // Gestionar pestaña activa según la categoría actual
-      const currentCat = all.find(c => c.id === current);
+      const currentCat = all.cats.find(c => c.id === current);
       if (currentCat) {
         const type = currentCat.type === 'div' ? 'div' : 'po';
         setActiveTab(type);
@@ -184,7 +211,7 @@ export default function CalendarioCompleto({ config }) {
   const [jornadasActivas, setJornadasActivas] = useState([]);
   const [fechasJornadas, setFechasJornadas] = useState({});
   const isExtraTab = vD === 'extra';
-  const [extraPlayoffs, setExtraPlayoffs] = useState([]); // Nuevo estado
+  const [extraPlayoffs, setExtraPlayoffs] = useState([]);
   const currentExtraPlayoff = extraPlayoffs.find(ep => ep.id === vD);
   const [reprogramaciones, setReprogramaciones] = useState([]);
 
@@ -222,7 +249,7 @@ export default function CalendarioCompleto({ config }) {
     if (vS) checkUserContext();
   }, [vS]);
 
-  // 3. Función para cambiar de pestaña y actualizar caché
+  // Función para cambiar de pestaña y actualizar caché
   const handleTabChange = (newVD) => {
     setVD(newVD);
     localStorage.setItem(`pref_cal_div_${vS}`, newVD);
@@ -231,20 +258,23 @@ export default function CalendarioCompleto({ config }) {
   useEffect(() => {
     async function loadSelectors() {
       if (!vS) return;
-      const { data: divData } = await supabase.from('matches').select('division').eq('season', vS);
-      if (divData) {
-        const uniqueDivs = [...new Set(divData.map(d => d.division))].sort((a, b) => a - b);
-        setDivisions(uniqueDivs);
-      }
-      const { data: pData } = await supabase.from('playoffs').select('*').eq('season', vS);
-      setPlayoffs(pData || []);
 
-      const { data: extraData } = await supabase
-        .from('playoffs_extra')
-        .select('id, nombre')
-        .eq('season_id', vS);
-      setExtraPlayoffs(extraData || []);
+      const selectorData = await getOrFetch(`cal_selectors_${vS}`, async () => {
+        const [divRes, pRes, extraRes] = await Promise.all([
+          supabase.from('matches').select('division').eq('season', vS),
+          supabase.from('playoffs').select('*').eq('season', vS),
+          supabase.from('playoffs_extra').select('id, nombre').eq('season_id', vS)
+        ]);
+        return {
+          divs: divRes.data ? [...new Set(divRes.data.map(d => d.division))].sort((a, b) => a - b) : [],
+          playoffs: pRes.data || [],
+          extras: extraRes.data || []
+        };
+      });
 
+      setDivisions(selectorData.divs);
+      setPlayoffs(selectorData.playoffs);
+      setExtraPlayoffs(selectorData.extras);
     }
     loadSelectors();
   }, [vS]);
@@ -259,16 +289,22 @@ export default function CalendarioCompleto({ config }) {
 
       if (!isPlayoff) {
         // --- LÓGICA LIGA ---
-        const { data: dataPartidos } = await supabase
-          .from('partidos_detallados')
-          .select('*')
-          .eq('season', vS)
-          .eq('division', vD)
-          .order('week', { ascending: true });
-        setPartidos(dataPartidos || []);
+        const dataPartidos = await getOrFetch(`cal_partidos_${vS}_${vD}`, async () => {
+          const { data } = await supabase
+            .from('partidos_detallados')
+            .select('*')
+            .eq('season', vS)
+            .eq('division', vD)
+            .order('week', { ascending: true });
+          return data || [];
+        });
+        setPartidos(dataPartidos);
 
-        const { data: dataFechas } = await supabase.from('weeks_schedule').select('*').eq('season', vS);
-        if (dataFechas) {
+        const dataFechas = await getOrFetch(`cal_fechas_${vS}`, async () => {
+          const { data } = await supabase.from('weeks_schedule').select('*').eq('season', vS);
+          return data || [];
+        });
+        if (dataFechas.length > 0) {
           const mapa = {};
           dataFechas.forEach(f => {
             mapa[f.week] = {
@@ -280,48 +316,59 @@ export default function CalendarioCompleto({ config }) {
           setFechasJornadas(mapa);
         }
 
-        const { data: dataResched } = await supabase
-          .from('matches_rescheduled')
-          .select('*')
-          .eq('tipo_partido', 'liga');
-        setReprogramaciones(dataResched || []);
+        const dataResched = await getOrFetch(`cal_resched_${vS}`, async () => {
+          const { data } = await supabase
+            .from('matches_rescheduled')
+            .select('*')
+            .eq('tipo_partido', 'liga');
+          return data || [];
+        });
+        setReprogramaciones(dataResched);
 
         if (vS === config?.current_season && config.current_week > 0) {
-          const { data: curW } = await supabase.from('weeks_schedule').select('start_at, end_at').eq('season', vS).eq('week', config.current_week).single();
+          const curW = await getOrFetch(`cal_curweek_${vS}_${config.current_week}`, async () => {
+            const { data } = await supabase
+              .from('weeks_schedule')
+              .select('start_at, end_at')
+              .eq('season', vS)
+              .eq('week', config.current_week)
+              .single();
+            return data || null;
+          });
           if (curW) {
-            const { data: activeW } = await supabase.from('weeks_schedule').select('week').eq('season', vS).eq('start_at', curW.start_at).eq('end_at', curW.end_at);
+            const activeW = await getOrFetch(`cal_activeweeks_${vS}_${config.current_week}`, async () => {
+              const { data } = await supabase
+                .from('weeks_schedule')
+                .select('week')
+                .eq('season', vS)
+                .eq('start_at', curW.start_at)
+                .eq('end_at', curW.end_at);
+              return data || [];
+            });
             setJornadasActivas(activeW.map(w => w.week));
           }
-        } else { setJornadasActivas([]); }
+        } else {
+          setJornadasActivas([]);
+        }
 
       } else {
         // --- LÓGICA PLAYOFF CON STREAMS SEPARADOS ---
-        // 1. Traemos los partidos de la vista
-        const { data: dataPlayoff } = await supabase
-          .from('playoff_matches_detallados')
-          .select('*')
-          .eq('playoff_id', vD)
-          .order('start_date', { ascending: true });
-
-        // 2. Traemos todos los streams de la tabla de streams
-        const { data: dataStreams } = await supabase
-          .from('match_playoff_streams')
-          .select('*');
-
-        // 3. Cruzamos los datos manualmente (Match ID -> Stream URL)
-        const partidosConStream = dataPlayoff?.map(m => {
-          // Buscamos si este partido (m.id) tiene un stream en dataStreams
-          // NOTA: Asegúrate de que la columna en la tabla de streams se llame 'match_id'
-          const streamEncontrado = dataStreams?.find(s => s.playoff_match_id === m.id);
-          return {
+        const partidosConStream = await getOrFetch(`cal_po_${vD}`, async () => {
+          const [poRes, streamsRes] = await Promise.all([
+            supabase.from('playoff_matches_detallados').select('*').eq('playoff_id', vD).order('start_date', { ascending: true }),
+            supabase.from('match_playoff_streams').select('*')
+          ]);
+          const matches = poRes.data || [];
+          const streams = streamsRes.data || [];
+          return matches.map(m => ({
             ...m,
-            stream_url: streamEncontrado ? streamEncontrado.stream_url : null
-          };
-        }) || [];
+            stream_url: streams.find(s => s.playoff_match_id === m.id)?.stream_url || null
+          }));
+        });
 
         setPartidos(partidosConStream);
 
-        // --- LÓGICA DE JORNADAS ACTIVAS (IGUAL QUE ANTES) ---
+        // --- LÓGICA DE JORNADAS ACTIVAS ---
         const currentPO = playoffs.find(p => p.id === vD);
         if (currentPO && partidosConStream.length > 0) {
           const refMatch = partidosConStream.find(m => m.round === currentPO.current_round);
@@ -469,8 +516,8 @@ export default function CalendarioCompleto({ config }) {
                           <div style={{
                             width: '100%',
                             textAlign: 'center',
-                            paddingBottom: '8px', // Espacio abajo para que no pegue a la siguiente fila
-                            marginTop: '-4px',    // Para que no quede un hueco enorme
+                            paddingBottom: '8px',
+                            marginTop: '-4px',
                             pointerEvents: 'none'
                           }}>
                             <span style={{
@@ -499,7 +546,7 @@ export default function CalendarioCompleto({ config }) {
                         }}>
                           <span style={{
                             fontSize: '0.55rem',
-                            color: '#e74c3c', // Un rojo suave para indicar la inconsistencia
+                            color: '#e74c3c',
                             fontWeight: 'bold',
                             textTransform: 'uppercase',
                             letterSpacing: '0.5px',

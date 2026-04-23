@@ -3,10 +3,12 @@ import { supabase } from './supabaseClient'
 import CalendarioExtraPlayoff from './extraplayoff/CalendarioExtraPlayoff'
 import CalendarioPromocion from './utils/CalendarioPromocion'
 
+
 // --- HELPER DE CACHÉ ---
 // Busca en sessionStorage; si no existe, ejecuta fetchFn, guarda y devuelve el resultado.
 // sessionStorage se borra al cerrar/recargar la pestaña, por lo que los datos
 // siempre se refrescan en la siguiente visita.
+/*
 const getOrFetch = async (key, fetchFn) => {
   try {
     const cached = sessionStorage.getItem(key);
@@ -18,6 +20,24 @@ const getOrFetch = async (key, fetchFn) => {
   try {
     sessionStorage.setItem(key, JSON.stringify(data));
   } catch (_) {}
+  return data;
+};
+*/
+
+// --- HELPER DE CACHÉ EN MEMORIA ---
+// Al usar window.apiCache, los datos persisten mientras te mueves por la app,
+// pero desaparecen completamente al pulsar F5 o recargar.
+const getOrFetch = async (key, fetchFn) => {
+  if (!window.apiCache) {
+    window.apiCache = {};
+  }
+
+  if (window.apiCache[key]) {
+    return window.apiCache[key];
+  }
+
+  const data = await fetchFn();
+  window.apiCache[key] = data;
   return data;
 };
 

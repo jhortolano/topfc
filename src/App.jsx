@@ -11,7 +11,7 @@ import Normas from './Normas'
 import AdminPlayoffs from './AdminPlayoffs'
 import AvisosAdmin from './AvisosAdmin'
 import ResetPassword from './reset-password'
-import AdminPromo from './AdminPromo' //
+import AdminPromo from './AdminPromo'
 
 let playoffsActualizadosEnSesion = false; // Control de ejecución única
 

@@ -88,19 +88,23 @@ export default function ClasificacionPromo({ season }) {
   const procesarPromocion = () => {
     const terminadosPorDiv = {};
     const pendientesPorDiv = {};
+    const originalDivMap = {}; // Guardaremos aquí: { playerId: divisionOrigen }
 
     const enfrentamientos = {};
     matches.forEach(m => {
       const key = [m.player1_id, m.player2_id].sort().join('-') + `-div${m.division}`;
       if (!enfrentamientos[key]) enfrentamientos[key] = [];
       enfrentamientos[key].push(m);
+
+      // Guardamos de qué división venía cada uno (si no lo hemos guardado ya)
+      if (m.player1_id && !originalDivMap[m.player1_id]) originalDivMap[m.player1_id] = m.divplayer1;
+      if (m.player2_id && !originalDivMap[m.player2_id]) originalDivMap[m.player2_id] = m.divplayer2;
     });
 
     Object.values(enfrentamientos).forEach(m_list => {
       const allPlayed = m_list.every(m => m.is_played);
       const divBase = m_list[0].division;
 
-      // Fijamos a P1 y P2 según el PRIMER partido encontrado para tener una referencia estable
       const refP1 = m_list[0].player1_id;
       const refP2 = m_list[0].player2_id;
 
@@ -109,12 +113,10 @@ export default function ClasificacionPromo({ season }) {
         let totalP2 = 0;
 
         m_list.forEach(m => {
-          // Si en este registro los IDs coinciden con nuestra referencia
           if (m.player1_id === refP1) {
             totalP1 += (m.score1 || 0);
             totalP2 += (m.score2 || 0);
           } else {
-            // Si los IDs están invertidos en este registro, invertimos la suma de goles
             totalP1 += (m.score2 || 0);
             totalP2 += (m.score1 || 0);
           }
@@ -122,23 +124,46 @@ export default function ClasificacionPromo({ season }) {
 
         const ganador = totalP1 > totalP2 ? refP1 : refP2;
         const perdedor = totalP1 > totalP2 ? refP2 : refP1;
-
-        // Texto del resultado global para el +info
         const resText = `${profiles[refP1]?.nick || '?'} ${totalP1} - ${totalP2} ${profiles[refP2]?.nick || '?'}`;
 
         if (!terminadosPorDiv[divBase]) terminadosPorDiv[divBase] = [];
         if (!terminadosPorDiv[divBase + 1]) terminadosPorDiv[divBase + 1] = [];
 
-        terminadosPorDiv[divBase].push({ id: ganador, res: resText });
-        terminadosPorDiv[divBase + 1].push({ id: perdedor, res: resText });
+        // Guardamos el ID y su división de origen
+        terminadosPorDiv[divBase].push({
+          id: ganador,
+          res: resText,
+          fromDiv: originalDivMap[ganador]
+        });
+        terminadosPorDiv[divBase + 1].push({
+          id: perdedor,
+          res: resText,
+          fromDiv: originalDivMap[perdedor]
+        });
       } else {
         if (!pendientesPorDiv[divBase]) pendientesPorDiv[divBase] = [];
-        if (!pendientesPorDiv[divBase].includes(refP1)) pendientesPorDiv[divBase].push(refP1);
-        if (!pendientesPorDiv[divBase].includes(refP2)) pendientesPorDiv[divBase].push(refP2);
+        // Para pendientes, guardamos objetos con ID y origen
+        if (!pendientesPorDiv[divBase].some(p => p.id === refP1))
+          pendientesPorDiv[divBase].push({ id: refP1, fromDiv: originalDivMap[refP1] });
+        if (!pendientesPorDiv[divBase].some(p => p.id === refP2))
+          pendientesPorDiv[divBase].push({ id: refP2, fromDiv: originalDivMap[refP2] });
       }
     });
 
     return { terminadosPorDiv, pendientesPorDiv };
+  };
+
+  const renderStatusIcon = (fromDiv, toDiv) => {
+    // En divisiones, menor número significa categoría superior (Div 1 > Div 2)
+    if (!fromDiv) return <span style={{ color: '#94a3b8', marginRight: '5px' }}>•</span>;
+
+    if (fromDiv > toDiv) {
+      return <span style={{ color: '#2ecc71', marginRight: '5px', fontWeight: 'bold' }}>↑</span>; // Sube
+    } else if (fromDiv < toDiv) {
+      return <span style={{ color: '#e74c3c', marginRight: '5px', fontWeight: 'bold' }}>↓</span>; // Baja
+    } else {
+      return <span style={{ color: '#94a3b8', marginRight: '5px', fontWeight: 'bold' }}>-</span>; // Se mantiene
+    }
   };
 
   if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Cargando promoción...</div>;
@@ -162,7 +187,10 @@ export default function ClasificacionPromo({ season }) {
             <div style={{ padding: '10px' }}>
               {terminadosPorDiv[div].map((jug, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: idx !== terminadosPorDiv[div].length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                  <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>{profiles[jug.id]?.nick}</span>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {renderStatusIcon(jug.fromDiv, parseInt(div))}
+                    <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>{profiles[jug.id]?.nick}</span>
+                  </div>
                   <button
                     onClick={() => toggleInfo(`${div}-${jug.id}`)}
                     style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.6rem', cursor: 'pointer', textDecoration: 'underline' }}
@@ -188,9 +216,10 @@ export default function ClasificacionPromo({ season }) {
                 <div key={`pend-${div}`} style={{ background: '#f8fafc', borderRadius: '10px', padding: '12px', border: '1px solid #cbd5e1' }}>
                   <h4 style={{ margin: '0 0 10px 0', fontSize: '0.75rem', color: '#1e293b' }}>Promocionan a Div {div}</h4>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {pendientesPorDiv[div].map(pId => (
-                      <li key={pId} style={{ fontSize: '0.8rem', padding: '3px 0', color: '#475569', fontWeight: '500' }}>
-                        • {profiles[pId]?.nick}
+                    {pendientesPorDiv[div].map(p => (
+                      <li key={p.id} style={{ fontSize: '0.8rem', padding: '3px 0', color: '#475569', fontWeight: '500', display: 'flex', alignItems: 'center' }}>
+                        {renderStatusIcon(p.fromDiv, parseInt(div))}
+                        {profiles[p.id]?.nick}
                       </li>
                     ))}
                   </ul>

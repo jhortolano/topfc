@@ -53,6 +53,10 @@ def obtener_partidos_extra_playoff():
                 p2_data = supabase.table("profiles").select("nick, phone, telegram_user").eq("id", p2_id).single().execute().data
 
                 if p1_data and p2_data:
+                    # FILTRO: No añadir si alguno empieza por "Retirado"
+                    if p1_data['nick'].startswith("Retirado") or p2_data['nick'].startswith("Retirado"):
+                        return
+
                     tipo_jornada = f"{fase_label} {pe_nombre}"
                     # Línea Jugador 1
                     partidos_extra.append([
@@ -146,6 +150,10 @@ def obtener_partidos_playoffs_simples():
                 p_a = supabase.table("profiles").select("nick, phone, telegram_user").eq("id", a_id).single().execute().data
 
                 if p_h and p_a:
+                    # FILTRO: No añadir si alguno empieza por "Retirado"
+                    if p_h['nick'].startswith("Retirado") or p_a['nick'].startswith("Retirado"):
+                        continue
+
                     # Registro Local
                     partidos_playoff.append([
                         p_h['nick'], p_h['phone'], p_h['telegram_user'],
@@ -189,6 +197,10 @@ def obtener_partidos_pendientes():
                 p_a = supabase.table("profiles").select("nick, phone, telegram_user").eq("id", a_id).single().execute().data
 
                 if p_h and p_a:
+                    # FILTRO: No añadir si alguno empieza por "Retirado"
+                    if p_h['nick'].startswith("Retirado") or p_a['nick'].startswith("Retirado"):
+                        continue
+
                     partidos_finales.append([p_h['nick'], p_h['phone'], p_h['telegram_user'], p_a['nick'], start_date, end_date, div])
                     partidos_finales.append([p_a['nick'], p_a['phone'], p_a['telegram_user'], p_h['nick'], start_date, end_date, div])
 
@@ -199,12 +211,10 @@ def obtener_partidos_pendientes():
     agregar_partidos_a_lista(matches_res.data)
 
     # 4. Obtener partidos REPROGRAMADOS
-    # Primero sacamos los IDs de la tabla de reprogramados
     rescheduled_res = supabase.table("matches_rescheduled").select("match_id").execute()
     
     if rescheduled_res.data:
         match_ids = [r['match_id'] for r in rescheduled_res.data]
-        # Buscamos esos partidos en la tabla matches
         matches_resched_data = supabase.table("matches")\
             .select("home_team, away_team, division, is_played")\
             .in_("id", match_ids).execute()

@@ -164,6 +164,8 @@ const AdminPromo = ({ config, profile }) => {
           matchesToInsert.push({
             player1_id: pSup.user_id,
             player2_id: pInf.user_id,
+            divplayer1: dSuperior,
+            divplayer2: dInferior,
             season: selectedSeason,
             division: dSuperior,
             idavuelta: 'ida',
@@ -174,6 +176,8 @@ const AdminPromo = ({ config, profile }) => {
             matchesToInsert.push({
               player1_id: pInf.user_id,
               player2_id: pSup.user_id,
+              divplayer1: dInferior,
+              divplayer2: dSuperior,
               season: selectedSeason,
               division: dSuperior,
               idavuelta: 'vuelta',
@@ -361,7 +365,7 @@ const AdminPromo = ({ config, profile }) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <select  style={{ flex: 1, fontSize: '0.85rem' }} value={m.player1_id} onChange={e => handleUpdateMatchPlayer(m.id, 'player1_id', e.target.value, i)}>
+              <select style={{ flex: 1, fontSize: '0.85rem' }} value={m.player1_id} onChange={e => handleUpdateMatchPlayer(m.id, 'player1_id', e.target.value, i)}>
                 {allPlayers.map(p => <option key={p.id} value={p.id}>{p.nick}</option>)}
               </select>
               <input type="number" style={{ width: '45px', textAlign: 'center' }} value={m.score1 || ''} onChange={e => {

@@ -194,7 +194,8 @@ function CategorySelector({ current, onChange, season }) {
 
   const filteredCategories = categories.filter(cat => {
     if (activeTab === 'div') return cat.type === 'div';
-    return cat.type === 'po' || cat.type === 'extra';
+    if (activeTab === 'po') return cat.type === 'po' || cat.type === 'extra';
+    return false; // Para 'promo' no muestra ningún sub-botón
   });
 
   const hasLigas = categories.some(c => c.type === 'div');
@@ -206,7 +207,7 @@ function CategorySelector({ current, onChange, season }) {
 
     // Si tenemos algo guardado en la memoria para esa pestaña, volvemos a ello
     if (tab === 'promo') {
-      onChange('promo'); 
+      onChange('promo');
     } else if (lastSelected[tab]) {
       onChange(lastSelected[tab]);
     } else {
@@ -538,7 +539,7 @@ export default function Clasificacion({ config }) {
             getOrFetch(`po_matches_${vS}`, async () => {
               // Necesitamos los playoff_ids antes; los obtenemos de sessionStorage si existen
               let ids = [];
-              try { ids = JSON.parse(sessionStorage.getItem(`playoff_ids_${vS}`) || '[]'); } catch (_) {}
+              try { ids = JSON.parse(sessionStorage.getItem(`playoff_ids_${vS}`) || '[]'); } catch (_) { }
               if (!ids.length) return [];
               const { data } = await supabase
                 .from('playoff_matches_detallados')

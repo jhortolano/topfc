@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'
 import ReactMarkdown from 'react-markdown'
 import PartidoExtraPlayoff from './extraplayoff/PartidoExtraPlayoff';
 import PartidoPromo from './utils/PartidoPromo';
+import GestionNoPresentados from './utils/GestionNoPresentados';
 
 // Variable global para persistir datos entre montajes de componentes
 let cacheProximoPartido = {
@@ -67,7 +68,7 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
   // Esto asegura que si cambias de jornada, el estado se resetee
   useEffect(() => {
     // Detección universal para el reseteo
-    const yaJugado = partido.played === true || partido.is_played === true;
+    const yaJugado = partido.played === true || partido.is_played === true || (partido.home_score !== null && partido.away_score !== null);;
 
     setJugadoLocal(yaJugado);
     setGL(partido.home_score ?? '');
@@ -442,6 +443,8 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
       )}
+
+
     </div>
   )
 }

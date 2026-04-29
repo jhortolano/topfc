@@ -437,14 +437,20 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
       {!jugadoLocal && (
         <button onClick={guardar} disabled={enviando} style={{
           background: isPlayoff ? '#9b59b6' : '#2ecc71',
-          color: 'white', border: 'none', padding: '12px', borderRadius: '8px',
-          cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', fontSize: '0.85rem'
+          color: 'white', border: 'none', padding: '18px', borderRadius: '8px',
+          cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', fontSize: '1rem', letterSpacing: '1px',boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
         }}>
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
       )}
 
-
+      <div style={{ marginTop: '20px' }}>
+      <GestionNoPresentados
+        partido={partido}
+        userId={userId}
+        onUpdated={onUpdated}
+      />
+      </div>
     </div>
   )
 }

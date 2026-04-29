@@ -445,6 +445,7 @@ export default function AdminPanel({ config, onConfigChange, profile }) {
       const { error: errorMatch } = await supabase.from('matches').update({
         home_score: hScore === '' ? null : parseInt(hScore),
         away_score: aScore === '' ? null : parseInt(aScore),
+        issues: null,
         is_played: played
       }).eq('id', id);
 

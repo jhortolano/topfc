@@ -12,6 +12,8 @@ import AdminPlayoffs from './AdminPlayoffs'
 import AvisosAdmin from './AvisosAdmin'
 import ResetPassword from './reset-password'
 import AdminPromo from './AdminPromo'
+import { procesarCierreJornada, procesarCierreExtraPlayoff } from './utils/GestionNoPresentados';
+import NormasNoPresentados from './NormasNoPresentados'
 
 let playoffsActualizadosEnSesion = false; // Control de ejecución única
 
@@ -164,11 +166,13 @@ function App() {
           // 3. SOLO actualizamos si hay un cambio real
           if (jornadaQueToca !== configData.current_week) {
             console.log(`Actualizando jornada automática: ${configData.current_week} -> ${jornadaQueToca}`);
-
+            const semanaAcabada = configData.current_week;
             const { error } = await supabase
               .from('config')
               .update({ current_week: jornadaQueToca })
               .eq('id', 1);
+
+            await procesarCierreJornada(semanaAcabada);
 
             if (!error) {
               configData.current_week = jornadaQueToca;
@@ -195,6 +199,7 @@ function App() {
                 .from('playoffs_extra')
                 .update({ current_round: rondaQueToca })
                 .eq('id', po.id);
+              await procesarCierreExtraPlayoff(po);
             }
           }
         }
@@ -371,6 +376,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
 
   // Añadir NORMAS al final
   tabs.push({ id: 'normas', label: 'NORMAS' });
+  tabs.push({ id: 'normas_np', label: 'NO PRESENTADOS' });
 
   // Añadir ADMIN solo si es administrador
   if (isAdmin || isColaborador) {
@@ -498,6 +504,7 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
         {activeTab === 'perfil' && <UserInfo profile={profile} onUpdate={getProfile} />}
         {activeTab === 'jugadores' && <Jugadores config={config} />}
         {activeTab === 'normas' && <Normas />}
+        {activeTab === 'normas_np' && <NormasNoPresentados />}
       </main>
     </div>
   )

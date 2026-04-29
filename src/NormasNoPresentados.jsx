@@ -45,13 +45,14 @@ function NormasNoPresentados() {
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '0.95rem', color: '#555' }}>
             <li style={{ marginBottom: '8px' }}>
               Si existe contacto pero es imposible coincidir en el horario, podéis usar el botón <strong>"Reprogramar a la siguiente semana"</strong>.
-            <img src="/nopresentados6.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
+            <img src="/nopresentados5b.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
             </li>
             <li style={{ marginBottom: '8px' }}>
               Esto habilita 7 días extra. Si al finalizar la prórroga no se ha jugado, se registrará un <strong>0-0</strong> definitivo.
             </li>
             <li style={{ marginBottom: '8px' }}>
               <strong>Dar partido por perdido:</strong> Si un jugador sabe que no podrá jugar el partido reprogramado, puede pulsar el botón homónimo para ceder los puntos voluntariamente.
+            <img src="/nopresentados6.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
             <img src="/nopresentados7.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
             <img src="/nopresentados8.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
             </li>

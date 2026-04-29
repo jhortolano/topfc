@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 
+const streamNOTPLAYED = "https://www.twitch.tv/p/es-es/about/";
 // ─────────────────────────────────────────────────────────────
 // Mapa de configuración por tipo de partido
 // Centraliza las diferencias entre tablas para no repetir lógica
@@ -227,6 +228,10 @@ const GestionNoPresentados = ({ partido, userId, onUpdated }) => {
 
       if (errorUpdate) throw errorUpdate;
 
+      if (!cfg.esExtra) {
+        // Liga: insertamos stream para no perjudicar puntos por stream
+        await supabase.from('match_streams').insert({match_id: partido.id, stream_url: streamNOTPLAYED});
+      }
       alert(`Partido finalizado. Resultado: ${scoreHome} - ${scoreAway}`);
       if (onUpdated) onUpdated();
 
@@ -479,6 +484,9 @@ export const procesarCierreJornada = async (weekParaCerrar) => {
 
         if (updateData) {
           await supabase.from('matches').update(updateData).eq('id', m.id);
+          if (ultimo === 'p1_no_contacta_p2' || ultimo === 'p2_no_contacta_p1') {
+            await supabase.from('match_streams').insert({match_id: m.id, stream_url: streamNOTPLAYED});
+          }
         }
       }
     }
@@ -533,30 +541,38 @@ export const procesarCierreExtraPlayoff = async (po) => {
       .select('id, issues, player1_id, player2_id')
       .eq('extra_id', po.id)
       .eq('is_played', false)
-      .eq('fase',nombreRonda)
+      .eq('fase', nombreRonda)
 
     if (matchesLiguilla) {
       for (const m of matchesLiguilla) {
+        let streamUrl = null;
         const ultimo = getUltimoIssue(m.issues);
         let score1 = null, score2 = null;
-        console.log(ultimo);
         const golesVictoria = po.max_ga_playoff ?? 5;
 
         if (ultimo === 'p1_no_contacta_p2') {
           // p1 gana
           score2 = 0; score1 = golesVictoria;
+          streamUrl = streamNOTPLAYED;
         } else if (ultimo === 'p2_no_contacta_p1') {
           // p2 gana
           score2 = golesVictoria; score1 = 0;
+          streamUrl = streamNOTPLAYED;
         } else {
           // ninguno contactó o issues ambiguos → empate
           score1 = 0; score2 = 0;
         }
-
-        await supabase
-          .from('extra_matches')
-          .update({ score1, score2, is_played: true, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
-          .eq('id', m.id);
+        if (streamUrl == null) {
+          await supabase
+            .from('extra_matches')
+            .update({ score1, score2, is_played: true, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
+            .eq('id', m.id);
+        } else {
+          await supabase
+            .from('extra_matches')
+            .update({ score1, score2, is_played: true, stream_url: streamUrl, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
+            .eq('id', m.id);
+        }
       }
     }
 
@@ -568,9 +584,9 @@ export const procesarCierreExtraPlayoff = async (po) => {
       .eq('is_played', false)
       .eq('numero_jornada', nombreRonda.toUpperCase()); // numero_jornada guarda el nombre de la ronda
 
-      console.log(po);
     if (matchesElim) {
       for (const m of matchesElim) {
+        let streamUrl = null;
         const ultimo = getUltimoIssue(m.issues);
         let score1 = null, score2 = null;
 
@@ -578,16 +594,24 @@ export const procesarCierreExtraPlayoff = async (po) => {
 
         if (ultimo === 'p1_no_contacta_p2') {
           score2 = 0; score1 = golesVictoria;
+          streamUrl = streamNOTPLAYED;
         } else if (ultimo === 'p2_no_contacta_p1') {
           score2 = golesVictoria; score1 = 0;
+          streamUrl = streamNOTPLAYED;
         } else {
           score1 = 0; score2 = 0;
         }
-
-        await supabase
-          .from('extra_playoffs_matches')
-          .update({ score1, score2, is_played: true, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
-          .eq('id', m.id);
+        if (streamUrl == null) {
+          await supabase
+            .from('extra_playoffs_matches')
+            .update({ score1, score2, is_played: true, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
+            .eq('id', m.id);
+        } else {
+          await supabase
+            .from('extra_playoffs_matches')
+            .update({ score1, score2, is_played: true, stream_url: streamUrl, issues: m.issues ? `${m.issues}-finalizado` : 'finalizado' })
+            .eq('id', m.id);
+        }
       }
     }
   }

@@ -520,12 +520,14 @@ export default function CalendarioCompleto({ config }) {
 
                         {/* Icono TV (A la derecha del todo) */}
                         <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
-                          {p.stream_url && p.stream_url.includes('http') && (
-                            <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
-                              style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
-                              📺
-                            </a>
-                          )}
+                          {p.stream_url &&
+                            p.stream_url.includes('http') &&
+                            p.stream_url !== "https://www.twitch.tv/p/es-es/about/" && ( 
+                              <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
+                                style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
+                                📺
+                              </a>
+                            )}
                         </div>
                       </div>
 

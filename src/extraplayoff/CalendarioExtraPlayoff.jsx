@@ -268,11 +268,13 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                 const localEsBye = localEsTBD && !visitanteEsTBD && p.is_played;
                 const visitanteEsBye = visitanteEsTBD && !localEsTBD && p.is_played;
                 const esBye = localEsBye || visitanteEsBye;
+                const esNoJugado = p.stream_url === "https://www.twitch.tv/p/es-es/about/";
 
                 return (
                   <div key={p.id} style={{
                     display: 'flex',
                     alignItems: 'center',
+                    flexWrap: 'wrap', // Añadido para permitir que el aviso baje sin mover lo demás
                     padding: '10px',
                     fontSize: '0.75rem',
                     gap: '8px',
@@ -308,10 +310,20 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                     </div>
 
                     <div style={{ width: '20px', textAlign: 'center' }}>
-                      {p.stream_url && !esBye && (
+                      {/* Modificado para que no salga la tele si es No Jugado */}
+                      {p.stream_url && !esBye && !esNoJugado && (
                         <a href={p.stream_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>📺</a>
                       )}
                     </div>
+
+                    {/* Añadido el aviso ocupando el 100% para forzar la posición debajo */}
+                    {esNoJugado && (
+                      <div style={{ width: '100%', textAlign: 'center', paddingBottom: '0px', marginTop: '4px', pointerEvents: 'none' }}>
+                        <span style={{ fontSize: '0.55rem', color: '#e74c3c', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', background: 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fab1a0', display: 'inline-block' }}>
+                          ⚠️ No Jugado
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

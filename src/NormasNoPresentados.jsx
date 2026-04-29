@@ -70,7 +70,6 @@ function NormasNoPresentados() {
             <img src="/nopresentados9.jpg"  alt="NoPresentados" style={{ marginTop: '15px', borderRadius: '6px', width: '100%', maxWidth: '400px', display: 'block', border: '1px solid #ddd' }}/>
             <li style={{ marginBottom: '8px' }}>
               En caso de incompatibilidad horaria insalvable, los jugadores deben acordar quién avanza a la siguiente ronda e introducir el resultado manualmente.
-              <em> (Tip: Si soléis retransmitir, usad vuestro enlace habitual de Twitch para no perder los puntos de retransmisión).</em>
             </li>
           </ul>
         </div>

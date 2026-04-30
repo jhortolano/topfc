@@ -6,6 +6,31 @@ const streamNOTPLAYED = "https://www.twitch.tv/p/es-es/about/";
 // Mapa de configuración por tipo de partido
 // Centraliza las diferencias entre tablas para no repetir lógica
 // ─────────────────────────────────────────────────────────────
+
+/*
+Issues:
+    ninguno_contactado
+    p1_no_contacta_p2
+    p2_no_contacta_p1
+    p2_contestado
+    p1_contestado
+    reprogramado
+
+logica fin de jornada:
+
+null o vacío -> No jugado 0-0
+p1_no_contacta_p2  -> No jugado 3-0
+p2_no_contacta_p1  -> No jugado 0-3
+p2_contestado      -> No jugado 0-0
+p1_contestado      -> No jugado 0-0
+reprogramado   -> Logica reprogramar
+
+p1_por_perdido -> No jugado 0-3
+p2_por_perdido -> No jugado 3-0
+
+finalizado
+
+*/
 const getTipoConfig = (partido) => {
   if (partido.is_extra_liguilla) {
     return {

@@ -80,6 +80,22 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
     setEnviando(true);
 
     try {
+      let urlLimpia = urlStream.trim();
+
+      // 1. Buscamos el patrón: o empieza por http/https o empieza por www
+      // El regex busca: (https?:// o www\.) seguido de caracteres que no sean espacios
+      const match = urlLimpia.match(/(https?:\/\/[^\s]+|www\.[^\s]+)/i);
+
+      if (match) {
+        urlLimpia = match[0];
+        // 2. Normalización: Si capturó algo que empieza por www, le añadimos el https://
+        // Esto es vital para que al hacer clic en el enlace después, no intente abrir
+        // una ruta relativa de tu propia web.
+        if (urlLimpia.toLowerCase().startsWith('www.')) {
+          urlLimpia = `https://${urlLimpia}`;
+        }
+      }
+
       let scoreL = parseInt(gL);
       let scoreV = parseInt(gV);
       let huboAjuste = false;
@@ -128,7 +144,7 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
           score1: scoreL,
           score2: scoreV,
           is_played: true,
-          stream_url: urlStream  // <--- Solo aquí existe la columna
+          stream_url: urlLimpia  // <--- Solo aquí existe la columna
         }
         : (isPlayoff
           ? { home_score: scoreL, away_score: scoreV, played: true } // Quitamos stream_url de aquí
@@ -144,13 +160,13 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
       if (errorUpdate) throw errorUpdate;
 
       // 3. Si NO es extra, guardamos el stream en su tabla correspondiente
-      if (!isExtraLiguilla && !isExtraPlayoff && urlStream) {
+      if (!isExtraLiguilla && !isExtraPlayoff && urlLimpia) {
         const tablaStream = isPlayoff ? 'match_playoff_streams' : 'match_streams';
         const columnaId = isPlayoff ? 'playoff_match_id' : 'match_id';
 
         await supabase.from(tablaStream).upsert({
           [columnaId]: partido.id,
-          stream_url: urlStream,
+          stream_url: urlLimpia,
           updated_at: new Date().toISOString()
         });
       }
@@ -438,18 +454,18 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
         <button onClick={guardar} disabled={enviando} style={{
           background: isPlayoff ? '#9b59b6' : '#2ecc71',
           color: 'white', border: 'none', padding: '18px', borderRadius: '8px',
-          cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', fontSize: '1rem', letterSpacing: '1px',boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', fontSize: '1rem', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
         }}>
           {enviando ? 'GUARDANDO...' : 'POSTEAR RESULTADO'}
         </button>
       )}
 
       <div style={{ marginTop: '20px' }}>
-      <GestionNoPresentados
-        partido={partido}
-        userId={userId}
-        onUpdated={onUpdated}
-      />
+        <GestionNoPresentados
+          partido={partido}
+          userId={userId}
+          onUpdated={onUpdated}
+        />
       </div>
     </div>
   )

@@ -8,8 +8,8 @@ import subprocess
 import time
 
 # Constante para la limpieza de logs en DB
-DIAS_LIMPIEZA_LOGS = 7
-DIAS_PARA_EXPIRAR = 3
+DIAS_LIMPIEZA_LOGS = 10
+DIAS_PARA_EXPIRAR = 4
 
 
 # --- CONFIGURACIÓN DE LOGS DINÁMICOS ---

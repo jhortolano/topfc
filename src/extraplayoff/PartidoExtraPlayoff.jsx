@@ -140,6 +140,34 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
           }
         }
       }
+      if (acumulados.length > 0) {
+        // Obtenemos los IDs de torneo y los nicks involucrados
+        const idsTorneo = [...new Set(acumulados.map(m => m.extra_id || m.playoff_extra_id))];
+        const nicksInvolucrados = [...new Set(acumulados.flatMap(m => [m.local_nick, m.visitante_nick]))];
+
+        const { data: diccionario, error: errDict } = await supabase
+          .from('diccionario_equipos')
+          .select('id_playoff, nick, texto1')
+          .in('id_playoff', idsTorneo)
+          .in('nick', nicksInvolucrados);
+
+        if (!errDict && diccionario) {
+          // Inyectamos los nuevos campos en cada partido
+          acumulados = acumulados.map(partido => {
+            const idT = partido.extra_id || partido.playoff_extra_id;
+
+            const infoLocal = diccionario.find(d => d.id_playoff === idT && d.nick === partido.local_nick);
+            const infoVisitante = diccionario.find(d => d.id_playoff === idT && d.nick === partido.visitante_nick);
+            console.log(infoLocal.texto1);
+            return {
+              ...partido,
+              local_texto1: infoLocal ? infoLocal.texto1 : 'Sin equipo', // Valor por defecto si no existe
+              visitante_texto1: infoVisitante ? infoVisitante.texto1 : 'Sin equipo'
+            };
+          });
+        }
+      }
+      console.log(acumulados);
       setPartidosExtra(acumulados);
     } catch (err) {
       console.error("Error cargando partidos extra:", err);

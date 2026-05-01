@@ -5,7 +5,9 @@ from supabase import create_client, Client
 import DATABASECONNECTION
 
 # Inicialización del cliente Supabase
-supabase: Client = create_client(DATABASECONNECTION.SUPABASE_URL, DATABASECONNECTION.SUPABASE_KEY)
+supabase: Client = create_client(
+    DATABASECONNECTION.SUPABASE_URL, DATABASECONNECTION.SUPABASE_KEY)
+
 
 def obtener_partidos_liga_por_telefono(telefono_buscado):
     """
@@ -13,24 +15,25 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
     """
     # Limpiar el teléfono por si viene con espacios o símbolos
     telefono_limpio = str(telefono_buscado).replace(" ", "")
-    
+
     print(f"--- Buscando perfil para el teléfono: {telefono_limpio} ---")
-    
+
     # 1. Obtener el ID y Nick del jugador mediante el teléfono
     # Buscamos en la columna 'phone'
     perfil_res = supabase.table("profiles")\
         .select("id, nick")\
         .eq("phone", telefono_limpio)\
         .execute()
-    
+
     if not perfil_res.data:
-        print(f"No se encontró ningún jugador registrado con el teléfono: {telefono_limpio}")
+        print(
+            f"No se encontró ningún jugador registrado con el teléfono: {telefono_limpio}")
         return
 
     usuario = perfil_res.data[0]
     p_id = usuario['id']
     nick_jugador = usuario['nick']
-    
+
     print(f"Jugador identificado: {nick_jugador}")
     print(f"--- Consultando partidos de Liga para: {nick_jugador} ---")
 
@@ -41,6 +44,8 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
     matches_res = supabase.table("matches")\
         .select("id, home_team, away_team, division, week, season, is_played")\
         .eq("is_played", False)\
+        .is_("home_score", "null")\
+        .is_("away_score", "null")\
         .or_(f"home_team.eq.{p_id},away_team.eq.{p_id}")\
         .execute()
 
@@ -52,7 +57,7 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
             .select("fecha_inicio, fecha_fin")\
             .eq("match_id", m['id'])\
             .execute()
-        
+
         reprogramado = False
         if resched_res.data:
             start_at = resched_res.data[0]['fecha_inicio']
@@ -64,7 +69,7 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
                 .eq("season", m['season'])\
                 .eq("week", m['week'])\
                 .execute()
-            
+
             if schedule_res.data:
                 start_at = schedule_res.data[0]['start_at']
                 end_at = schedule_res.data[0]['end_at']
@@ -73,13 +78,15 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
 
         # 4. Validar rango de fechas (+/- 3 semanas)
         try:
-            fecha_inicio = datetime.fromisoformat(start_at.replace('Z', '+00:00'))
+            fecha_inicio = datetime.fromisoformat(
+                start_at.replace('Z', '+00:00'))
             fecha_fin = datetime.fromisoformat(end_at.replace('Z', '+00:00'))
-            
+
             if (ahora - margen) <= fecha_fin <= (ahora + margen):
                 # Identificar rival
                 rival_id = m['away_team'] if m['home_team'] == p_id else m['home_team']
-                rival_res = supabase.table("profiles").select("nick").eq("id", rival_id).single().execute()
+                rival_res = supabase.table("profiles").select(
+                    "nick").eq("id", rival_id).single().execute()
                 rival_nick = rival_res.data['nick'] if rival_res.data else "Desconocido"
 
                 encontrados.append({
@@ -95,7 +102,8 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
 
     # 5. Imprimir resultados para OpenClaw
     if not encontrados:
-        print(f"No hay partidos de liga para {nick_jugador} en el rango de 3 semanas.")
+        print(
+            f"No hay partidos de liga para {nick_jugador} en el rango de 3 semanas.")
     else:
         for p in encontrados:
             status = " (REPROGRAMADO)" if p['resched'] else ""
@@ -104,6 +112,7 @@ def obtener_partidos_liga_por_telefono(telefono_buscado):
             print(f"   Fecha Inicio: {p['inicio']}")
             print(f"   Fecha Límite: {p['fin']}")
             print("-" * 30)
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

@@ -77,6 +77,8 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
   const [fechasConfig, setFechasConfig] = useState({});
   const [rondasActivas, setRondasActivas] = useState([]);
   const [userNick, setUserNick] = useState(null);
+  // Mapa nick (lowercase) → texto1 para el diccionario de equipos
+  const [diccionario, setDiccionario] = useState({});
 
   useEffect(() => {
     async function fetchAllExtraData() {
@@ -180,6 +182,25 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
         const actual = todos.find(p => !p.is_played)?.jornada || todos[todos.length - 1]?.jornada;
         setPartidos(todos);
         setJornadaActual(actual);
+
+        // --- QUERY: Diccionario de equipos (cacheado por extraId) ---
+        const diccionarioData = await getOrFetch(`cal_extra_diccionario_${extraId}`, async () => {
+          const { data } = await supabase
+            .from('diccionario_equipos')
+            .select('nick, texto1')
+            .eq('id_playoff', extraId);
+          return data || [];
+        });
+
+        // Construimos un mapa nick (lowercase) → texto1 para búsqueda rápida
+        const diccionarioMap = {};
+        diccionarioData.forEach(entry => {
+          if (entry.nick) {
+            diccionarioMap[entry.nick.toLowerCase()] = entry.texto1 || '';
+          }
+        });
+        setDiccionario(diccionarioMap);
+
       } catch (err) {
         console.error("Error general:", err);
       } finally {
@@ -270,6 +291,9 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                 const esBye = localEsBye || visitanteEsBye;
                 const esNoJugado = p.stream_url === "https://www.twitch.tv/p/es-es/about/";
 
+                const textoEquipoLocal = p.local_nick ? (diccionario[p.local_nick.toLowerCase()] || '') : '';
+                const textoEquipoVisitante = p.visitante_nick ? (diccionario[p.visitante_nick.toLowerCase()] || '') : '';
+
                 return (
                   <div key={p.id} style={{
                     display: 'flex',
@@ -285,8 +309,13 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                   }}>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
                       <span style={{ fontSize: '0.55rem', color: '#999' }}>({p.grupo_nombre})</span>
-                      <span style={{ color: localEsBye ? '#94a3b8' : 'inherit', fontStyle: localEsBye ? 'italic' : 'normal' }}>
-                        {localEsBye ? 'Pase Directo' : p.local_nick}
+                      <span style={{ color: localEsBye ? '#94a3b8' : 'inherit', fontStyle: localEsBye ? 'italic' : 'normal', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
+                        <span>{localEsBye ? 'Pase Directo' : p.local_nick}</span>
+                        {!localEsBye && textoEquipoLocal && (
+                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                            {textoEquipoLocal}
+                          </span>
+                        )}
                       </span>
                       <AvatarConZoom url={p.local_avatar} />
                     </div>
@@ -304,8 +333,13 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
 
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
                       <AvatarConZoom url={p.visitante_avatar} />
-                      <span style={{ color: visitanteEsBye ? '#94a3b8' : 'inherit', fontStyle: visitanteEsBye ? 'italic' : 'normal' }}>
-                        {visitanteEsBye ? 'Pase Directo' : p.visitante_nick}
+                      <span style={{ color: visitanteEsBye ? '#94a3b8' : 'inherit', fontStyle: visitanteEsBye ? 'italic' : 'normal', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
+                        <span>{visitanteEsBye ? 'Pase Directo' : p.visitante_nick}</span>
+                        {!visitanteEsBye && textoEquipoVisitante && (
+                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                            {textoEquipoVisitante}
+                          </span>
+                        )}
                       </span>
                     </div>
 

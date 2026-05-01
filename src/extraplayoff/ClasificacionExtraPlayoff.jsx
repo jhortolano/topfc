@@ -78,6 +78,8 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
   const [nombrePlayoff, setNombrePlayoff] = useState('');
   const [collapsedRounds, setCollapsedRounds] = useState({});
   const [currentUserId, setCurrentUserId] = useState(null);
+  // Mapa nick (lowercase) → texto1 para el diccionario de equipos
+  const [diccionario, setDiccionario] = useState({});
 
   const renderExtraBrackets = () => {
     const rondasOrden = ["DIECISEISAVOS", "OCTAVOS", "CUARTOS", "SEMIFINALES", "FINAL"];
@@ -158,7 +160,6 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                   padding: '10px 5px',
                   background: isCollapsed ? '#cbd5e1' : 'transparent',
                   border: isCollapsed ? '1px solid #94a3b8' : 'none',
-                  color: isCollapsed ? '#475569' : '#2ecc71',
                   borderRadius: '8px',
                   writingMode: isCollapsed ? 'vertical-lr' : 'horizontal-tb',
                   transform: isCollapsed ? 'rotate(180deg)' : 'none',
@@ -194,12 +195,26 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                           <Avatar url={m1.p1_avatar} size="20px" />
-                          <span style={{ fontSize: '0.7rem', fontWeight: g1 > g2 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>{m1.p1_nick}</span>
+                          <span style={{ display: 'flex', flexDirection: 'column', gap: '1px', fontSize: '0.7rem', fontWeight: g1 > g2 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
+                            <span>{m1.p1_nick}</span>
+                            {m1.p1_nick && diccionario[m1.p1_nick.toLowerCase()] && (
+                              <span style={{ fontSize: '0.5rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                                {diccionario[m1.p1_nick.toLowerCase()]}
+                              </span>
+                            )}
+                          </span>
                           <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>{finalizado ? g1 : '-'}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Avatar url={m1.p2_avatar} size="20px" />
-                          <span style={{ fontSize: '0.7rem', fontWeight: g2 > g1 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>{m1.p2_nick}</span>
+                          <span style={{ display: 'flex', flexDirection: 'column', gap: '1px', fontSize: '0.7rem', fontWeight: g2 > g1 && finalizado ? 'bold' : '500', color: '#2c3e50' }}>
+                            <span>{m1.p2_nick}</span>
+                            {m1.p2_nick && diccionario[m1.p2_nick.toLowerCase()] && (
+                              <span style={{ fontSize: '0.5rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                                {diccionario[m1.p2_nick.toLowerCase()]}
+                              </span>
+                            )}
+                          </span>
                           <span style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold' }}>{finalizado ? g2 : '-'}</span>
                         </div>
                         {m2 && (
@@ -282,6 +297,24 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
         });
 
         setPlayoffMatches(matches);
+
+        // --- QUERY 4: Diccionario de equipos (cacheado por ID) ---
+        const diccionarioData = await getOrFetch(`extra_diccionario_${cleanId}`, async () => {
+          const { data } = await supabase
+            .from('diccionario_equipos')
+            .select('nick, texto1')
+            .eq('id_playoff', cleanId);
+          return data || [];
+        });
+
+        // Construimos un mapa nick (lowercase) → texto1 para búsqueda rápida
+        const diccionarioMap = {};
+        diccionarioData.forEach(entry => {
+          if (entry.nick) {
+            diccionarioMap[entry.nick.toLowerCase()] = entry.texto1 || '';
+          }
+        });
+        setDiccionario(diccionarioMap);
 
         // --- LÓGICA DE AUTO-COLAPSADO ---
         if (matches.length > 0) {
@@ -389,6 +422,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                   <tbody>
                     {grupos[groupName].map((j, i) => {
                       const esMiFila = currentUserId && j.user_id === currentUserId;
+                      const textoEquipo = j.nick ? (diccionario[j.nick.toLowerCase()] || '') : '';
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #eee', textAlign: 'center', background: esMiFila ? 'rgba(46, 204, 113, 0.08)' : 'transparent', borderLeft: esMiFila ? '4px solid #2ecc71' : '4px solid transparent', transition: 'background 0.3s ease' }}>
                           <td style={{ padding: '10px 5px', color: '#95a5a6', fontSize: '0.65rem', fontWeight: 'bold', width: '20px' }}>
@@ -396,8 +430,15 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                           </td>
                           <td style={{ padding: '10px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: esMiFila ? '900' : '600' }}>
                             <Avatar url={j.avatar_url} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {j.nick} {esMiFila && <span style={{ fontSize: '0.55rem', color: '#2ecc71', marginLeft: '4px' }}></span>}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                              <span>
+                                {j.nick} {esMiFila && <span style={{ fontSize: '0.55rem', color: '#2ecc71', marginLeft: '4px' }}></span>}
+                              </span>
+                              {textoEquipo && (
+                                <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                                  {textoEquipo}
+                                </span>
+                              )}
                             </span>
                           </td>
                           <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>

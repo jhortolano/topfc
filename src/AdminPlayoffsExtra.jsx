@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import AdminPlayoffsMatches from './extraplayoff/AdminPlayoffsMatches';
 import SwitchPlayersExtraPlayoff from './extraplayoff/SwitchPlayersExtraPlayoff';
+import EspecificarEquiposExtraPlayoff from './extraplayoff/EspecificarEquiposExtraPlayoff';
 
 export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccionada }) {
   const [showConfig, setShowConfig] = useState(false);
@@ -30,6 +31,8 @@ export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccio
   const [showSustituirId, setShowSustituirId] = useState(null);
 
   const [ocultarRetirados, setOcultarRetirados] = useState(true);
+
+  const [showEspecificarId, setShowEspecificarId] = useState(null);
 
   // --- ESTADOS PARA INTERCAMBIO ---
   const [swapP1, setSwapP1] = useState('');
@@ -643,6 +646,23 @@ export default function AdminPlayoffsExtras({ config, profile, temporadaSeleccio
                     onFinished={() => { setShowSustituirId(null); fetchTorneosExtra(); }}
                   />
                 )}
+
+                <button
+                  onClick={() => setShowEspecificarId(showEspecificarId === t.id ? null : t.id)}
+                  style={{ marginTop: '10px', background: '#f8f9fa', border: '1px solid #ccc', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'block' }}
+                >
+                  {showEspecificarId === t.id ? '✕ Cerrar Equipos' : '📋 Especificar Equipos'}
+                </button>
+
+                {showEspecificarId === t.id && (
+                  <EspecificarEquiposExtraPlayoff
+                    extraPlayoffId={t.id}
+                    season={t.season_id}
+                  />
+                )}
+
+
+
               </div>
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button onClick={() => verEsquema(t)} style={{ background: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Esquema</button>

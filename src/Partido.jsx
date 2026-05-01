@@ -299,6 +299,9 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
           <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {partido.local_nick}
           </div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 'normal', fontStyle: 'italic', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {partido.local_texto1}
+          </div>
           {/* CONTACTO SI EL RIVAL ES EL LOCAL */}
           {!esLocal && rival && showRivalContact && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '3px' }}>
@@ -351,6 +354,9 @@ function TarjetaResultado({ partido, onUpdated, limitGaEnabled, maxGaLeague, use
           <Avatar url={partido.visitante_avatar} />
           <div style={{ fontSize: '0.8rem', fontWeight: 'bold', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {partido.visitante_nick}
+          </div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 'normal', fontStyle: 'italic', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {partido.visitante_texto1}
           </div>
           {/* CONTACTO SI EL RIVAL ES EL VISITANTE */}
           {esLocal && rival && showRivalContact && (

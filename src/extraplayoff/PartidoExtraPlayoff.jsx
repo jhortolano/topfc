@@ -49,8 +49,6 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
           .filter(([_, rango]) => rango.start_at === desdeActual && rango.end_at === hastaActual)
           .map(([nombreRonda]) => nombreRonda);
 
-        //console.log(configActual);
-        //console.log(rondasActivas);
 
         const jornadasLiguilla = rondasActivas
           .filter(r => r.startsWith('j'))
@@ -158,16 +156,14 @@ export default function PartidoExtraPlayoff({ profile, config, renderTarjeta }) 
 
             const infoLocal = diccionario.find(d => d.id_playoff === idT && d.nick === partido.local_nick);
             const infoVisitante = diccionario.find(d => d.id_playoff === idT && d.nick === partido.visitante_nick);
-            console.log(infoLocal.texto1);
             return {
               ...partido,
-              local_texto1: infoLocal ? infoLocal.texto1 : 'Sin equipo', // Valor por defecto si no existe
-              visitante_texto1: infoVisitante ? infoVisitante.texto1 : 'Sin equipo'
+              local_texto1: infoLocal ? infoLocal.texto1 : '', // Valor por defecto si no existe
+              visitante_texto1: infoVisitante ? infoVisitante.texto1 : ''
             };
           });
         }
       }
-      console.log(acumulados);
       setPartidosExtra(acumulados);
     } catch (err) {
       console.error("Error cargando partidos extra:", err);

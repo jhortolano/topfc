@@ -411,6 +411,7 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                       <th style={{ padding: '12px 10px', textAlign: 'left' }}>JUGADOR</th>
                       <th style={{ padding: '10px' }}>PTS</th>
                       <th style={{ padding: '10px' }}>PJ</th>
+                      <th style={{ padding: '10px', color: '#e74c3c' }}>PNJ</th>
                       <th style={{ padding: '10px' }}>PG</th>
                       <th style={{ padding: '10px' }}>PE</th>
                       <th style={{ padding: '10px' }}>PP</th>
@@ -441,8 +442,9 @@ export default function ClasificacionExtraPlayoff({ season, id }) {
                               )}
                             </span>
                           </td>
-                          <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>
+                          <td style={{ fontWeight: 'bold', color: (j.pts ?? 0) < 0 ? '#e74c3c' : '#2ecc71', fontSize: '0.8rem' }}>{j.pts}</td>
                           <td>{j.pj}</td>
+                          <td style={{ color: (j.pnj ?? 0) > 0 ? '#e74c3c' : '#94a3b8', fontWeight: (j.pnj ?? 0) > 0 ? '700' : 'normal' }}>{j.pnj ?? 0}</td>
                           <td style={{ color: '#27ae60' }}>{j.pg}</td>
                           <td style={{ color: '#f39c12' }}>{j.pe}</td>
                           <td style={{ color: '#e74c3c' }}>{j.pp}</td>

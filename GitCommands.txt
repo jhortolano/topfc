@@ -7,7 +7,7 @@ git push -u origin topfc-0.9
 
 --Upload to Silver and Merge in Main --
 git add .
-git commit -m "Cambios en nombres equipo"
+git commit -m "Cambios en PNJ para la clasificacion"
 git push origin silver
 
 git checkout main

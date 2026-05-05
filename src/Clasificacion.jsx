@@ -921,6 +921,7 @@ export default function Clasificacion({ config }) {
                   <th style={{ padding: '12px', textAlign: 'left' }}>JUGADOR</th>
                   <th style={{ padding: '10px' }}>PTS</th>
                   <th style={{ padding: '10px' }}>PJ</th>
+                  <th style={{ padding: '10px', color: '#e74c3c' }}>PNJ</th>
                   <th style={{ padding: '10px' }}>PG</th>
                   <th style={{ padding: '10px' }}>PE</th>
                   <th style={{ padding: '10px' }}>GF</th>
@@ -949,9 +950,10 @@ export default function Clasificacion({ config }) {
                       <td style={{ padding: '10px', textAlign: 'left', fontWeight: esMiFila ? '900' : 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Avatar url={j.avatar_url} size="24px" />
                         {j.nick} {esMiFila && <span style={{ fontSize: '0.6rem', color: '#2ecc71', marginLeft: '4px' }}></span>}
-                      </td>
-                      <td style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: esMiFila ? '0.85rem' : '0.75rem' }}>{j.total_pts ?? 0}</td>
+                      </td> 
+                     <td style={{ fontWeight: 'bold', color: (j.total_pts ?? 0) < 0 ? '#e74c3c' : '#2ecc71', fontSize: esMiFila ? '0.85rem' : '0.75rem' }}>{j.total_pts ?? 0}</td>
                       <td>{j.pj ?? 0}</td>
+                      <td style={{ color: (j.pnj ?? 0) > 0 ? '#e74c3c' : '#94a3b8', fontWeight: (j.pnj ?? 0) > 0 ? '700' : 'normal' }}>{j.pnj ?? 0}</td>
                       <td>{j.pg ?? 0}</td>
                       <td>{j.pe ?? 0}</td>
                       <td>{j.gf ?? 0}</td>

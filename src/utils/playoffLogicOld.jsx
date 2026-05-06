@@ -61,89 +61,72 @@ export const analizarEstructuraPlayoffs = (ranking) => {
 
   const n = ranking.length;
 
-  // 1. Determinar fase base (potencia de 2)
+  // 1. Determinar fase base (potencia de 2: 2, 4, 8, 16, 32)
   let fasePotencia = 2;
   let nombreFase = "Final";
 
-  if (n > 16) { fasePotencia = 32; nombreFase = "Dieciseisavos"; }
-  else if (n > 8) { fasePotencia = 16; nombreFase = "Octavos"; }
-  else if (n > 4) { fasePotencia = 8;  nombreFase = "Cuartos"; }
-  else if (n > 2) { fasePotencia = 4;  nombreFase = "Semifinales"; }
-  else            { fasePotencia = 2;  nombreFase = "Final"; }
+  if (n > 16) { fasePotencia = 32; nombreFase = "Dieciseisavos"; } // 16 partidos
+  else if (n > 8) { fasePotencia = 16; nombreFase = "Octavos"; }   // 8 partidos
+  else if (n > 4) { fasePotencia = 8; nombreFase = "Cuartos"; }    // 4 partidos
+  else if (n > 2) { fasePotencia = 4; nombreFase = "Semifinales"; }// 2 partidos
+  else { fasePotencia = 2; nombreFase = "Final"; }
 
-  const numSlotsCuadro   = fasePotencia / 2;
+  const numSlotsCuadro = fasePotencia / 2;
   const numPartidosReales = n - numSlotsCuadro;
-  const numByes           = numSlotsCuadro - numPartidosReales;
+  const numByes = numSlotsCuadro - numPartidosReales;
 
-  // 2. Separar mejores (BYE) y peores (juegan entre sí)
+  // 2. Preparar los enfrentamientos por "Nivel de fuerza"
   const mejoresPasanDirecto = ranking.slice(0, numByes);
-  const candidatosPlayIn    = ranking.slice(numByes);
+  const candidatosPlayIn = ranking.slice(numByes);
 
-  // Emparejamiento: el menos bueno de los candidatos vs el peor de todos, etc.
-  const partidos = [];
+  const enfrentamientosOrdenados = [];
+  // Primero los BYEs (los más fuertes)
+  mejoresPasanDirecto.forEach(p => enfrentamientosOrdenados.push({ tipo: 'BYE', p1: p, p2: null }));
+  // Luego los partidos (los más "debiles")
   for (let i = 0; i < numPartidosReales; i++) {
-    partidos.push({
+    enfrentamientosOrdenados.push({
       tipo: 'REAL',
       p1: candidatosPlayIn[i],
       p2: candidatosPlayIn[candidatosPlayIn.length - 1 - i]
     });
   }
 
-  // 3. SEEDING: seed 0 (mejor) en slot 0, seed 1 (segundo) en slot final.
-  //    Los partidos reales (rivales más asequibles) quedan adyacentes
-  //    a los dos mejores (slots 1 y numSlots-2) para que lleguen lo más
-  //    frescos posible a la final.
-  //    El resto de BYEs rellena el centro alternando entre mitades.
-  const buildBracket = (numSlots, elementos) => {
-    const cuadro = new Array(numSlots).fill(null);
+  // 3. DISTRIBUCIÓN ESTILO "SNAKE" / SEMBRADO PROFESIONAL
+  // Esta lógica asegura: 1º en el Slot 1, 2º en el Último, 
+  // 3º en el penúltimo, 4º en el segundo... (o viceversa para equilibrar)
+  let resultadoFinal = new Array(numSlotsCuadro);
+  let inicio = 0;
+  let fin = numSlotsCuadro - 1;
 
-    // Seed 0 y seed 1 en extremos opuestos
-    cuadro[0]           = elementos[0]; // mejor
-    cuadro[numSlots - 1] = elementos[1]; // segundo mejor
-
-    const byesIntermedios = elementos.slice(2).filter(e => e.tipo === 'BYE');
-    const reales          = elementos.slice(2).filter(e => e.tipo === 'REAL');
-
-    // Partidos reales: slots 1, numSlots-2, 2, numSlots-3 ... (hacia adentro desde los extremos)
-    let l = 1, r = numSlots - 2;
-    reales.forEach(p => {
-      if (l <= r) { cuadro[l] = p; l++; }
-      else        { cuadro[r] = p; r--; }
-    });
-
-    // BYEs intermedios: huecos restantes, alternando mitad superior (desde centro) e inferior
-    const huecos = [];
-    for (let i = 0; i < numSlots; i++) { if (cuadro[i] === null) huecos.push(i); }
-    const mid = numSlots / 2;
-    const sup = huecos.filter(h => h < mid).sort((a, b) => b - a);  // desc: más cerca del centro
-    const inf = huecos.filter(h => h >= mid).sort((a, b) => a - b); // asc: más cerca del centro
-    const huecosOrdenados = [];
-    const maxLen = Math.max(sup.length, inf.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < sup.length) huecosOrdenados.push(sup[i]);
-      if (i < inf.length) huecosOrdenados.push(inf[i]);
+  enfrentamientosOrdenados.forEach((enfrentamiento, index) => {
+    if (index === 0) {
+      // El mejor de todos: Arriba del todo
+      resultadoFinal[0] = enfrentamiento;
+    } else if (index === 1) {
+      // El segundo mejor: Abajo del todo
+      resultadoFinal[numSlotsCuadro - 1] = enfrentamiento;
+    } else if (index % 2 === 0) {
+      // Los siguientes pares (3º mejor, 5º...): Van desde abajo hacia el centro
+      // Esto hace que el 3º mejor esté cerca del 2º pero en otro partido
+      resultadoFinal[fin - 1] = enfrentamiento;
+      fin--;
+    } else {
+      // Los siguientes impares (4º mejor, 6º...): Van desde arriba hacia el centro
+      resultadoFinal[inicio + 1] = enfrentamiento;
+      inicio++;
     }
-    byesIntermedios.forEach((bye, i) => { cuadro[huecosOrdenados[i]] = bye; });
+  });
 
-    return cuadro;
-  };
+  // Limpiar posibles huecos vacíos por si la lógica fallara en algún n extraño
+  const cuadroLimpio = resultadoFinal.filter(slot => slot !== undefined);
 
-  const elementosCuadro = [
-    ...mejoresPasanDirecto.map(p => ({ tipo: 'BYE', p1: p, p2: null })),
-    ...partidos
-  ];
-
-  const cuadroFinal = buildBracket(numSlotsCuadro, elementosCuadro);
-  const cuadroLimpio = cuadroFinal.filter(slot => slot !== null && slot !== undefined);
-
-  // 4. Log de verificación
-  console.log(`📌 ESTRUCTURA: ${nombreFase} (${cuadroLimpio.length} slots)`);
-  console.log(`   BYEs: ${numByes} | Partidos reales: ${numPartidosReales}`);
+  // 4. Consola
+  console.log(`📌 ESTRUCTURA: ${nombreFase} (${cuadroLimpio.length} partidos)`);
   cuadroLimpio.forEach((slot, i) => {
     const label = slot.tipo === 'BYE'
-      ? `⭐ BYE → ${slot.p1.nick}`
-      : `⚔️  ${slot.p1.nick} vs ${slot.p2.nick}`;
-    console.log(`  Slot ${i + 1}: ${label}`);
+      ? `⭐ (BYE) ${slot.p1.nick}`
+      : `⚔️ ${slot.p1.nick} VS ${slot.p2.nick}`;
+    console.log(`Slot ${i + 1}: ${label}`);
   });
 
   return { nombreFase, cuadroFinal: cuadroLimpio };

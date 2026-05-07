@@ -298,66 +298,69 @@ export default function CalendarioExtraPlayoff({ season, extraId }) {
                   <div key={p.id} style={{
                     display: 'flex',
                     alignItems: 'center',
-                    flexWrap: 'wrap', // Añadido para permitir que el aviso baje sin mover lo demás
-                    padding: '10px',
+                    padding: '8px 10px',
                     fontSize: '0.75rem',
-                    gap: '8px',
+                    gap: '6px',
                     borderBottom: '1px solid #fffaf5',
                     background: esBye ? '#f9f9f9' : (esMiPartido ? 'rgba(204, 128, 46, 0.03)' : 'transparent'),
                     borderLeft: esMiPartido ? '4px solid #d35400' : '4px solid transparent',
                     transition: 'all 0.3s ease'
                   }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
-                      <span style={{ fontSize: '0.55rem', color: '#999' }}>({p.grupo_nombre})</span>
-                      <span style={{ color: localEsBye ? '#94a3b8' : 'inherit', fontStyle: localEsBye ? 'italic' : 'normal', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
-                        <span>{localEsBye ? 'Pase Directo' : p.local_nick}</span>
+
+                    {/* LOCAL */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', minWidth: 0, fontWeight: esMiPartido ? 'bold' : 'normal' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: localEsBye ? '#94a3b8' : 'inherit', fontStyle: localEsBye ? 'italic' : 'normal' }}>
+                          {localEsBye ? 'Pase Directo' : p.local_nick}
+                        </span>
                         {!localEsBye && textoEquipoLocal && (
-                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
+                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                             {textoEquipoLocal}
                           </span>
                         )}
-                      </span>
+                      </div>
                       <AvatarConZoom url={p.local_avatar} />
                     </div>
 
-                    <div style={{
-                      width: '40px',
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                      color: esBye ? '#cbd5e1' : '#e67e22',
-                      background: esBye ? '#f1f5f9' : '#fff4e6',
-                      borderRadius: '4px'
-                    }}>
-                      {p.is_played && !esBye ? `${p.home_score}-${p.away_score}` : (esBye ? '-' : 'vs')}
-                    </div>
-
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
-                      <AvatarConZoom url={p.visitante_avatar} />
-                      <span style={{ color: visitanteEsBye ? '#94a3b8' : 'inherit', fontStyle: visitanteEsBye ? 'italic' : 'normal', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
-                        <span>{visitanteEsBye ? 'Pase Directo' : p.visitante_nick}</span>
-                        {!visitanteEsBye && textoEquipoVisitante && (
-                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400' }}>
-                            {textoEquipoVisitante}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-
-                    <div style={{ width: '20px', textAlign: 'center' }}>
-                      {/* Modificado para que no salga la tele si es No Jugado */}
+                    {/* CENTRO: grupo + marcador + TV */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.5rem', color: '#aaa', whiteSpace: 'nowrap' }}>({p.grupo_nombre})</span>
+                      <div style={{
+                        width: '44px',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        color: esBye ? '#cbd5e1' : '#e67e22',
+                        background: esBye ? '#f1f5f9' : '#fff4e6',
+                        borderRadius: '4px',
+                        padding: '2px 0'
+                      }}>
+                        {p.is_played && !esBye ? `${p.home_score}-${p.away_score}` : (esBye ? '-' : 'vs')}
+                      </div>
                       {p.stream_url && !esBye && !esNoJugado && (
-                        <a href={p.stream_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>📺</a>
+                        <a href={p.stream_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: '0.7rem', lineHeight: 1 }}>📺</a>
+                      )}
+                      {esNoJugado && (
+                        <span style={{ fontSize: '0.5rem', color: '#e74c3c', fontWeight: 'bold', textTransform: 'uppercase', background: 'rgba(255,255,255,0.9)', padding: '1px 4px', borderRadius: '3px', border: '1px solid #fab1a0', whiteSpace: 'nowrap' }}>
+                          ⚠️ N/J
+                        </span>
                       )}
                     </div>
 
-                    {/* Añadido el aviso ocupando el 100% para forzar la posición debajo */}
-                    {esNoJugado && (
-                      <div style={{ width: '100%', textAlign: 'center', paddingBottom: '0px', marginTop: '4px', pointerEvents: 'none' }}>
-                        <span style={{ fontSize: '0.55rem', color: '#e74c3c', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', background: 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fab1a0', display: 'inline-block' }}>
-                          ⚠️ No Jugado
+                    {/* VISITANTE */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '6px', minWidth: 0, fontWeight: esMiPartido ? 'bold' : 'normal' }}>
+                      <AvatarConZoom url={p.visitante_avatar} />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: visitanteEsBye ? '#94a3b8' : 'inherit', fontStyle: visitanteEsBye ? 'italic' : 'normal' }}>
+                          {visitanteEsBye ? 'Pase Directo' : p.visitante_nick}
                         </span>
+                        {!visitanteEsBye && textoEquipoVisitante && (
+                          <span style={{ fontSize: '0.55rem', fontStyle: 'italic', color: '#95a5a6', fontWeight: '400', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                            {textoEquipoVisitante}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+
                   </div>
                 );
               })}

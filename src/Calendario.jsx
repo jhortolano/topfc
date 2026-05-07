@@ -500,8 +500,8 @@ export default function CalendarioCompleto({ config }) {
                       <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', fontSize: '0.75rem', gap: '10px', fontWeight: esMiPartido ? 'bold' : 'normal' }}>
 
                         {/* Local */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.local_nick || 'TBD'}</span>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', textAlign: 'right', minWidth: 0 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.local_nick || 'TBD'}</span>
                           <AvatarConZoom url={p.local_avatar} />
                         </div>
 
@@ -513,16 +513,16 @@ export default function CalendarioCompleto({ config }) {
                         </div>
 
                         {/* Visitante */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', textAlign: 'left', minWidth: 0 }}>
                           <AvatarConZoom url={p.visitante_avatar} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.visitante_nick || 'TBD'}</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.visitante_nick || 'TBD'}</span>
                         </div>
 
                         {/* Icono TV (A la derecha del todo) */}
                         <div style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>
                           {p.stream_url &&
                             p.stream_url.includes('http') &&
-                            p.stream_url !== "https://www.twitch.tv/p/es-es/about/" && ( 
+                            p.stream_url !== "https://www.twitch.tv/p/es-es/about/" && (
                               <a href={p.stream_url} target="_blank" rel="noopener noreferrer" title="Ver retransmisión"
                                 style={{ textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer', filter: 'grayscale(0.2)' }}>
                                 📺

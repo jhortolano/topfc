@@ -1,0 +1,11 @@
+{
+  "appId": "com.terminus.topfc",
+  "appName": "TopFC",
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "backgroundColor": "#ffffff",
+      "style": "DARK"
+    }
+  }
+}

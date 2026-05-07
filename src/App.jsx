@@ -24,7 +24,10 @@ const globalStyles = `
     color: #2c3e50 !important; 
     margin: 0; padding: 0;
     font-family: -apple-system, system-ui, sans-serif;
-    overflow-x: hidden; display: block;
+    width: 100%; overflow-x: hidden; display: block;
+    /* Fix resize al rotar en Capacitor Android */
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
   }
   input, select, button { color: #2c3e50; font-size: 16px; }
   input { background-color: white !important; color: black !important; }
@@ -101,10 +104,13 @@ function App() {
     window.addEventListener('hashchange', checkRecovery);
 
     // 3. Supabase y Config
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) setLoading(false);
+    })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // Si el evento es PASSWORD_RECOVERY, también activamos el modo
+      if (!session) setLoading(false);
       if (_event === 'PASSWORD_RECOVERY') setIsRecoveryMode(true);
     });
 
@@ -143,17 +149,23 @@ function App() {
   // -----------------------------------------------
 
   const fetchConfig = async () => {
-    // 1. Traer la config actual
+    // 1. Traer la config y hacer setConfig INMEDIATAMENTE
+    // así getProfile no espera al trabajo pesado de actualizar jornadas/playoffs
     const { data: configData } = await supabase.from('config').select('*').eq('id', 1).maybeSingle();
+    if (!configData) return;
 
-    if (configData) {
+    // ✅ Seteamos config ya, el perfil puede cargarse sin esperar
+    setConfig(configData);
+
+    // 2. Trabajo pesado en background (no bloquea la UI)
+    const actualizarEnBackground = async () => {
       const { data: sRules } = await supabase
         .from('season_rules')
         .select('auto_week_by_date')
         .eq('season', configData.current_season)
         .maybeSingle();
-      // 2. Si el modo automático está activo, verificamos la fecha
-      if (sRules.auto_week_by_date) {
+
+      if (sRules?.auto_week_by_date) {
         const { data: schedule } = await supabase
           .from('weeks_schedule')
           .select('week, start_at, end_at')
@@ -162,8 +174,6 @@ function App() {
 
         if (schedule && schedule.length > 0) {
           const jornadaQueToca = calcularJornadaReal(schedule);
-
-          // 3. SOLO actualizamos si hay un cambio real
           if (jornadaQueToca !== configData.current_week) {
             console.log(`Actualizando jornada automática: ${configData.current_week} -> ${jornadaQueToca}`);
             const semanaAcabada = configData.current_week;
@@ -171,18 +181,16 @@ function App() {
               .from('config')
               .update({ current_week: jornadaQueToca })
               .eq('id', 1);
-
             await procesarCierreJornada(semanaAcabada);
-
             if (!error) {
-              configData.current_week = jornadaQueToca;
+              setConfig(prev => ({ ...prev, current_week: jornadaQueToca }));
             }
           }
         }
       }
-      if (!playoffsActualizadosEnSesion) {
-        playoffsActualizadosEnSesion = true; // Bloqueamos futuras ejecuciones
 
+      if (!playoffsActualizadosEnSesion) {
+        playoffsActualizadosEnSesion = true;
         const { data: playoffsActivos } = await supabase
           .from('playoffs_extra')
           .select('id, current_round, config_fechas')
@@ -192,7 +200,6 @@ function App() {
         if (playoffsActivos && playoffsActivos.length > 0) {
           for (const po of playoffsActivos) {
             const rondaQueToca = calcularRondaPlayoff(po.config_fechas);
-            // Solo actualizamos si hemos encontrado una ronda válida y es distinta a la actual
             if (rondaQueToca && rondaQueToca !== po.current_round) {
               console.log(`Auto-Round Playoff ${po.id}: ${po.current_round} -> ${rondaQueToca}`);
               await supabase
@@ -204,9 +211,10 @@ function App() {
           }
         }
       }
+    };
 
-      setConfig(configData);
-    }
+    // Lanzamos en background sin await — no bloquea la carga del perfil
+    actualizarEnBackground().catch(err => console.error('Error en actualización background:', err));
   };
 
   useEffect(() => {
@@ -216,8 +224,8 @@ function App() {
   }, [session, config])
 
   async function getProfile() {
-    setLoading(true); // Empezamos a cargar
     if (!session?.user?.id || !config) return;
+    setLoading(true); // Empezamos a cargar
 
     // 1. Obtener perfil
     const { data: profileData } = await supabase
@@ -430,6 +438,12 @@ function Dashboard({ profile, config, onConfigChange, getProfile, isActivePlayer
             }}>
               Temporada {config?.current_season || '-'}
             </div>
+            <div
+              onClick={() => window.location.reload()}
+              style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.65rem', color: '#c8d0d8', border: '1px solid #dde2e7', borderRadius: '5px', padding: '2px 8px', cursor: 'pointer', letterSpacing: '0.03em', transition: 'color 0.2s, border-color 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#95a5a6'; e.currentTarget.style.borderColor = '#95a5a6'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#c8d0d8'; e.currentTarget.style.borderColor = '#dde2e7'; }}
+            >↺ Recargar</div>
           </div>
         </div>
 
